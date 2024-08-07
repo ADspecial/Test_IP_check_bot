@@ -28,7 +28,7 @@ async def menu(msg: Message):
 async def input_check_ip(clbck: CallbackQuery, state: FSMContext):
     await state.set_state(Gen.check_ip)
     await clbck.message.edit_text(text.check_ip)
-    await clbck.message.answer(text.gen_exit, reply_markup=kb.exit_kb)
+    await clbck.message.answer(text.gen_exit, reply_markup=kb.iexit_kb)
 
 @router.message(Gen.check_ip)
 @flags.chat_action("typing")
@@ -36,9 +36,9 @@ async def check_single_ip(msg: Message, state: FSMContext):
     ip = msg.text
     mesg = await msg.answer(text.gen_wait)
     res = ip_info(ip)
-    str1 = '\n'.join(res)
     if not res:
-        return await mesg.edit_text(text.err, reply_markup=kb.iexit_kb)
+        return await mesg.edit_text(text.err_ip, reply_markup=kb.iexit_kb)
+    str1 = '\n'.join(res)
     mal_str = res[12][12:]
     mal = int(mal_str)
     if int(mal) > 0:
