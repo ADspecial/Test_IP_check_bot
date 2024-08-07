@@ -1,0 +1,8 @@
+Domain: updateosd.ru, Country: None, Last Analysis Results Count: 1, Malicious Count: 1, Total Engines: 93, Reputation Score: 1/93
+Domain: api.wilbderreis.ru, Country: None, Last Analysis Results Count: 3, Malicious Count: 3, Total Engines: 93, Reputation Score: 3/93
+Domain: dev.sauselid.ru, Country: None, Last Analysis Results Count: 6, Malicious Count: 6, Total Engines: 93, Reputation Score: 6/93
+Domain: api.yandex-disk.info, Country: None, Last Analysis Results Count: 3, Malicious Count: 3, Total Engines: 93, Reputation Score: 3/93
+IP: 45.156.21.178, Country: RU, Last Analysis Results Count: 4, Malicious Count: 4, Total Engines: 93, Reputation Score: 4/93
+IP: 94.131.113.80, Country: RU, Last Analysis Results Count: 2, Malicious Count: 2, Total Engines: 93, Reputation Score: 2/93
+IP: 94.131.113.79, Country: RU, Last Analysis Results Count: 4, Malicious Count: 4, Total Engines: 93, Reputation Score: 4/93
+IP: 185.80.91.107, Country: RU, Last Analysis Results Count: 1, Malicious Count: 1, Total Engines: 93, Reputation Score: 1/93
