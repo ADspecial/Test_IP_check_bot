@@ -7,6 +7,7 @@ from aiogram.fsm.context import FSMContext
 from includes.single_ip import ip_info
 import utils
 from states import Gen
+import re
 
 import kb
 import text
@@ -38,8 +39,12 @@ async def check_single_ip(msg: Message, state: FSMContext):
     str1 = '\n'.join(res)
     if not res:
         return await mesg.edit_text(text.err, reply_markup=kb.iexit_kb)
-    await mesg.edit_text(str1)
-
+    mal_str = res[12][12:]
+    mal = int(mal_str)
+    if int(mal) > 0:
+        await mesg.edit_text(f"❌ - выявлены заражения от {mal} баз \n" + str1)
+    else:
+        await mesg.edit_text("✅ - заражения не выявлены \n" + str1)
 
 '''
 test = ip_info('193.124.92.111')
