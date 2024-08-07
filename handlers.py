@@ -1,7 +1,12 @@
 # Функции-обработчики бота
-from aiogram import F, Router, types
+from aiogram import F, Router
 from aiogram.filters import Command
-from aiogram.types import Message
+from aiogram.types import Message, CallbackQuery
+from aiogram import flags
+from aiogram.fsm.context import FSMContext
+from includes.single_ip import ip_info
+import utils
+from states import Gen
 
 import kb
 import text
@@ -17,6 +22,23 @@ async def start_handler(msg: Message):
 @router.message(F.text == "◀️ Выйти в меню")
 async def menu(msg: Message):
     await msg.answer(text.menu, reply_markup=kb.menu)
+
+@router.callback_query(F.data == "check_ip")
+async def input_check_ip(clbck: CallbackQuery, state: FSMContext):
+    await state.set_state(Gen.check_ip)
+    await clbck.message.edit_text(text.check_ip)
+    await clbck.message.answer(text.gen_exit, reply_markup=kb.exit_kb)
+
+@router.message(Gen.check_ip)
+@flags.chat_action("typing")
+async def check_single_ip(msg: Message, state: FSMContext):
+    ip = msg.text
+    mesg = await msg.answer(text.gen_wait)
+    res = ip_info(ip)
+    str1 = '\n'.join(res)
+    if not res:
+        return await mesg.edit_text(text.err, reply_markup=kb.iexit_kb)
+    await mesg.edit_text(str1)
 
 
 '''
