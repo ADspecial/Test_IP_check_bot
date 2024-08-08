@@ -1,23 +1,24 @@
 # Функции-обработчики бота
+
 from aiogram import F, Router
 from aiogram.filters import Command
 from aiogram.types import Message, CallbackQuery
 from aiogram import flags
 from aiogram.fsm.context import FSMContext
 from includes.single_ip import ip_info
-import utils
 from states import Gen
-import re
 
 import kb
 import text
 
 router = Router()
 
+# Обработчик вывода меню
 @router.message(Command("start"))
 async def start_handler(msg: Message):
     await msg.answer(text.greet.format(name=msg.from_user.full_name), reply_markup=kb.menu)
 
+# Обработчик вывода меню
 @router.message(F.text == "Меню")
 @router.message(F.text == "Выйти в меню")
 @router.message(F.text == "◀️ Выйти в меню")
@@ -45,6 +46,10 @@ async def check_single_ip(msg: Message, state: FSMContext):
         await mesg.edit_text(f"❌ - выявлены заражения от {mal} баз \n" + str1)
     else:
         await mesg.edit_text("✅ - заражения не выявлены \n" + str1)
+
+@router.message(Command("help"))
+async def cmd_help(msg: Message):
+    await msg.answer("Вы нажали кнопку HELP)")
 
 '''
 test = ip_info('193.124.92.111')

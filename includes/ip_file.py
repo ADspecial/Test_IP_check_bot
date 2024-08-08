@@ -1,5 +1,3 @@
-import re
-import socket
 import os
 import csv
 import json
@@ -7,26 +5,6 @@ import urllib.request
 import urllib.parse
 from datetime import datetime
 from includes.config import VT_KEY, API_URL_IP_VT, API_URL_DOMAIN_VT
-
-def is_valid_ip(ip):
-    parts = ip.split('.')
-    if len(parts) != 4:
-        return False
-    for part in parts:
-        if not part.isdigit() or int(part) < 0 or int(part) > 255:
-            return False
-    return True
-
-def is_valid_dns(dns):
-    try:
-        socket.inet_aton(dns)  # Проверка, что это не IP-адрес
-        return False
-    except socket.error:
-        pass
-
-    # Проверка на корректность DNS-имени
-    dns_pattern = r'^(?!-)[A-Za-z0-9-]{1,63}(?<!-)(\.[A-Za-z]{2,})+$'
-    return re.match(dns_pattern, dns) is not None
 
 def fetch_data(url):
     request = urllib.request.Request(url, headers={'x-apikey': VT_KEY})
@@ -38,19 +16,27 @@ def fetch_data(url):
         print(f"Failed to retrieve data: {e}")
         return None
 
-def check_ip_list(text_ips):
-    ips, dnss = extract_and_validate(text_ips)
-    if not ips:
-        print(f"No valid IPs or domains")
+def process_ip_list(file_path):
+    items = read_ips_from_file(file_path)
+    if not items:
+        print(f"No valid IPs or domains found in the file: {file_path}")
         return
 
     results = []
-    for ip in ips:
-        results.append(get_ip_summary(ip))
-    for dns in dnss:
-        results.append(get_domain_summary(dns))
+    for item in items:
+        if is_ip(item):
+            results.append(get_ip_summary(item))
+        else:
+            results.append(get_domain_summary(item))
 
-    return results
+    timestamp = datetime.now().strftime("%Y-%m-%d_%H-%M-%S")
+    output_dir = "output/domain-ip-lists"
+    os.makedirs(output_dir, exist_ok=True)
+    output_path = os.path.join(output_dir, f"list-{timestamp}.txt")
+    with open(output_path, 'w') as f:
+        f.write("\n".join(results))
+
+    print("\n".join(results))
 
 def get_ip_summary(ip):
     url = API_URL_IP_VT + urllib.parse.quote(ip)
@@ -80,14 +66,29 @@ def get_domain_summary(domain):
 
     return f"Domain: {domain}, Country: {attributes.get('country')}, Last Analysis Results Count: {malicious_count}, Malicious Count: {malicious_count}, Total Engines: {total_engines}, Reputation Score: {reputation_score}"
 
-def extract_and_validate(text):
-    ip_pattern = r'\b\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3}\b'
-    dns_pattern = r'\b[A-Za-z0-9.-]+\.[A-Za-z]{2,}\b'
+def read_ips_from_file(file_path):
+    items = []
+    with open(file_path, 'r') as file:
+        try:
+            reader = csv.reader(file)
+            for row in reader:
+                for item in row:
+                    item = item.strip()
+                    if item and not item.startswith('#'):
+                        items.append(item)
+        except csv.Error:
+            file.seek(0)
+            for line in file:
+                line = line.strip()
+                if line and not line.startswith('#'):
+                    items.append(line)
+    return items
 
-    found_ips = re.findall(ip_pattern, text)
-    found_dns = re.findall(dns_pattern, text)
-
-    valid_ips = [ip for ip in found_ips if is_valid_ip(ip)]
-    valid_dns = [dns for dns in found_dns if is_valid_dns(dns)]
-
-    return valid_ips, valid_dns
+def is_ip(item):
+    """Check if the given item is an IP address."""
+    try:
+        urllib.parse.quote(item)
+        ip_parts = item.split('.')
+        return len(ip_parts) == 4 and all(part.isdigit() and 0 <= int(part) <= 255 for part in ip_parts)
+    except ValueError:
+        return False
