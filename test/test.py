@@ -14,7 +14,8 @@ text_with_ips = "213.87.14.102 \
 urler.site \
 localzilla.fun \
 sensor.fun \
-574056cm.nyashka.top"
+574056cm.nyashka.top\
+    xxxxagl;bfxcbadfq34 gasdljvpzoj apwhsfdpsahnpxzska as;da"
 result = check_ip_list(text_with_ips)
 print(result)
 

@@ -3,5 +3,5 @@
 from aiogram.fsm.state import StatesGroup, State
 
 class Gen(StatesGroup):
-    check_ip = State()
-    img_prompt = State()
+    about_ip = State()
+    check_ips = State()

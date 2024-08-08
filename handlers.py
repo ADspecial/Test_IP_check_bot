@@ -6,6 +6,7 @@ from aiogram.types import Message, CallbackQuery
 from aiogram import flags
 from aiogram.fsm.context import FSMContext
 from includes.single_ip import ip_info
+from includes.ip_list import check_ip_list
 from states import Gen
 
 import kb
@@ -25,13 +26,13 @@ async def start_handler(msg: Message):
 async def menu(msg: Message):
     await msg.answer(text.menu, reply_markup=kb.menu)
 
-@router.callback_query(F.data == "check_ip")
-async def input_check_ip(clbck: CallbackQuery, state: FSMContext):
-    await state.set_state(Gen.check_ip)
-    await clbck.message.edit_text(text.check_ip)
+@router.callback_query(F.data == "about_ip")
+async def input_about_ip(clbck: CallbackQuery, state: FSMContext):
+    await state.set_state(Gen.about_ip)
+    await clbck.message.edit_text(text.about_check_ip)
     await clbck.message.answer(text.gen_exit, reply_markup=kb.iexit_kb)
 
-@router.message(Gen.check_ip)
+@router.message(Gen.about_ip)
 @flags.chat_action("typing")
 async def check_single_ip(msg: Message, state: FSMContext):
     ip = msg.text
@@ -46,6 +47,23 @@ async def check_single_ip(msg: Message, state: FSMContext):
         await mesg.edit_text(f"❌ - выявлены заражения от {mal} баз \n" + str1)
     else:
         await mesg.edit_text("✅ - заражения не выявлены \n" + str1)
+
+@router.callback_query(F.data == "check_ip_list")
+async def input_check_ips(clbck: CallbackQuery, state: FSMContext):
+    await state.set_state(Gen.check_ips)
+    await clbck.message.edit_text(text.check_ips_list)
+    await clbck.message.answer(text.gen_exit, reply_markup=kb.iexit_kb)
+
+@router.message(Gen.check_ips)
+@flags.chat_action("typing")
+async def check_ips(msg: Message, state: FSMContext):
+    text_ips_and_dns = msg.text
+    mesg = await msg.answer(text.gen_wait)
+    res = check_ip_list(text_ips_and_dns)
+    if not res:
+        return await mesg.edit_text(text.err_ip, reply_markup=kb.iexit_kb)
+    str1 = '\n\n'.join(res)
+    await mesg.edit_text(str1)
 
 @router.message(Command("help"))
 async def cmd_help(msg: Message):
