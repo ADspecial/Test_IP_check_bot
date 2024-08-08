@@ -26,6 +26,10 @@ async def start_handler(msg: Message):
 async def menu(msg: Message):
     await msg.answer(text.menu, reply_markup=kb.menu)
 
+@router.callback_query(F.data == "view_menu")
+async def view_menu(clbck: CallbackQuery):
+        await clbck.message.answer(text.menu, reply_markup=kb.menu)
+
 @router.callback_query(F.data == "about_ip")
 async def input_about_ip(clbck: CallbackQuery, state: FSMContext):
     await state.set_state(Gen.about_ip)
