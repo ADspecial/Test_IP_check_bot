@@ -36,8 +36,14 @@ def ip_info(ip):
     attributes = data.get('data', {}).get('attributes', {})
     last_analysis_stats = attributes.get('last_analysis_stats', {})
     associated_domains = get_associated_domains(ip)
+    mal =  last_analysis_stats.get('malicious', 0)
+    if mal > 0:
+        check = f"❌ - выявлены заражения от {mal} баз \n"
+    else:
+        check = "✅ - заражения не выявлены \n"
 
     result = [
+        f"{check}"
         f"IP: {ip}",
         f"AS Owner: {attributes.get('as_owner')}",
         f"ASN: {attributes.get('asn')}",

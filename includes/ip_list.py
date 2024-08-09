@@ -63,8 +63,11 @@ def get_ip_summary(ip):
     malicious_count = sum(1 for result in last_analysis_results.values() if result['category'] == 'malicious')
     total_engines = len(last_analysis_results)
     reputation_score = f"{malicious_count}/{total_engines}" if total_engines > 0 else "N/A"
-
-    return f"IP: {ip}, Country: {attributes.get('country')}, Last Analysis Results Count: {malicious_count}, Malicious Count: {malicious_count}, Total Engines: {total_engines}, Reputation Score: {reputation_score}"
+    if malicious_count > 0:
+        check = '❌'
+    else:
+        check = '✅'
+    return f"{check} IP: {ip}, Country: {attributes.get('country')}, Last Analysis Results Count: {malicious_count}, Malicious Count: {malicious_count}, Total Engines: {total_engines}, Reputation Score: {reputation_score}"
 
 def get_domain_summary(domain):
     url = API_URL_DOMAIN_VT + urllib.parse.quote(domain)
@@ -77,8 +80,11 @@ def get_domain_summary(domain):
     malicious_count = sum(1 for result in last_analysis_results.values() if result['category'] == 'malicious')
     total_engines = len(last_analysis_results)
     reputation_score = f"{malicious_count}/{total_engines}" if total_engines > 0 else "N/A"
-
-    return f"Domain: {domain}, Country: {attributes.get('country')}, Last Analysis Results Count: {malicious_count}, Malicious Count: {malicious_count}, Total Engines: {total_engines}, Reputation Score: {reputation_score}"
+    if malicious_count > 0:
+        check = '❌'
+    else:
+        check = '✅'
+    return f"{check} Domain: {domain}, Country: {attributes.get('country')}, Last Analysis Results Count: {malicious_count}, Malicious Count: {malicious_count}, Total Engines: {total_engines}, Reputation Score: {reputation_score}"
 
 def extract_and_validate(text):
     ip_pattern = r'\b\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3}\b'
