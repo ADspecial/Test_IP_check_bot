@@ -2,23 +2,48 @@
 #from includes.ip_file import process_ip_list
 
 import sys
+
 sys.path.append('C:\\Users\\d.lekontsev\\Documents\\Development\\Test_IP_check_bot')
 
 
 from includes.ip_list import extract_and_validate, check_ip_list
-
+from time import sleep
 
 # Пример использования
-text_with_ips = "213.87.14.102 \
-104.255.66.139 \
-urler.site \
-localzilla.fun \
-sensor.fun \
-574056cm.nyashka.top\
-    xxxxagl;bfxcbadfq34 gasdljvpzoj apwhsfdpsahnpxzska as;da"
-result = check_ip_list(text_with_ips)
-print(result)
+host = ""
+username = ""
+password = ""
+command = "inet show interface eth0"
 
+
+import wexpect
+import time
+
+def execute_commands_with_pause(host, username, password, commands, pause_duration):
+    # Подключение к удаленному серверу по SSH
+    ssh_command = f'ssh {username}@{host}'
+    child = wexpect.spawn(ssh_command)
+
+    # Ожидание запроса пароля
+    child.expect('password:')
+    child.sendline(password)
+    print(f"Выполнение команды: {command}")
+    child.expect('>')  # Ожидание приглашения командной строки
+    child.sendline(command)
+
+    # Ожидание завершения команды
+    child.expect('>')
+    output = child.before.decode().strip()  # Получение вывода
+    print(f"Вывод: {output}")
+
+
+    # Завершение SSH сессии
+    child.sendline('exit')
+    child.close()
+
+pause_duration = 5  # Пауза в 5 секунд между командами
+
+execute_commands_with_pause(host, username, password, command, pause_duration)
 
 '''
 test = ip_info('193.124.92.111')
