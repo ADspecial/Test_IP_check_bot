@@ -1,6 +1,6 @@
 output
 data
 test
-test.py
+test/test.py
 __pycache__
 .venv
