@@ -5,3 +5,4 @@ includes/__pycache__
 .venv
 test/test.py
 includes/.env
+__pycache__
