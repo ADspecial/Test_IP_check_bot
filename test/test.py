@@ -9,6 +9,7 @@ sys.path.append('C:\\Users\\d.lekontsev\\Documents\\Development\\Test_IP_check_b
 from includes.ip_list import extract_and_validate, check_ip_list
 import time
 import paramiko
+import threading
 
 # Пример использования
 host = "11.0.0.134"
@@ -16,27 +17,39 @@ username = "user"
 password = "njhyflrjy"
 command = "inet show interface eth0"
 
+def read_output(chan):
+    while True:
+        time.sleep(1)  # Задержка для избежания излишней загрузки процессора
+        if chan.recv_ready():
+            output = chan.recv(1024).decode()
+            print(output, end='')
 
-# Создаем объект SSH клиента
-client = paramiko.SSHClient()
 
-# Автоматически добавляем неизвестные ключи хостов
-client.set_missing_host_key_policy(paramiko.AutoAddPolicy())
+def main():
 
-# Подключаемся к серверу
-client.connect(hostname=host, username=username, password=password)
-cli = client.invoke_shell()
-cli.send('ip sh config\n')
-time.sleep(3)
-cli.send("\x1b[6~")
-# Читаем вывод
-while True:
-    if cli.recv_ready():
-        output = cli.recv(1024).decode('koi8-r')
-        print(output)
-    if cli.exit_status_ready():
-        break
-client.close()
+    # Создаем объект SSH клиента
+    client = paramiko.SSHClient()
+    # Автоматически добавляем неизвестные ключи хостов
+    client.set_missing_host_key_policy(paramiko.AutoAddPolicy())
+    # Подключаемся к серверу
+    client.connect(hostname=host, username=username, password=password)
+    cli = client.invoke_shell()
+    output_thread = threading.Thread(target=read_output, args=(cli,))
+
+    output_thread.start()
+
+    cli.send('en\n')
+    time.sleep(3)
+    cli.send("vjlcfkbphgjg\n")
+    time.sleep(3)
+    cli.send('admin show check integrity status\n')
+    time.sleep(3)
+
+    cli.close()
+    client.close()
+
+if __name__ == '__main__':
+    main()
 
 '''
 test = ip_info('193.124.92.111')
