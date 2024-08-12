@@ -1,7 +1,7 @@
 output
 data
 test
-__pycache__
+includes/__pycache__
 .venv
 test/test.py
 includes/.env
