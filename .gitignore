@@ -1,3 +1,6 @@
 output
 data
 test
+test.py
+__pycache__
+.venv

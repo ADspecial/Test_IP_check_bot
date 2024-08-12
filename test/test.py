@@ -7,43 +7,36 @@ sys.path.append('C:\\Users\\d.lekontsev\\Documents\\Development\\Test_IP_check_b
 
 
 from includes.ip_list import extract_and_validate, check_ip_list
-from time import sleep
+import time
+import paramiko
 
 # Пример использования
-host = ""
-username = ""
-password = ""
+host = "11.0.0.134"
+username = "user"
+password = "njhyflrjy"
 command = "inet show interface eth0"
 
 
-import wexpect
-import time
+# Создаем объект SSH клиента
+client = paramiko.SSHClient()
 
-def execute_commands_with_pause(host, username, password, commands, pause_duration):
-    # Подключение к удаленному серверу по SSH
-    ssh_command = f'ssh {username}@{host}'
-    child = wexpect.spawn(ssh_command)
+# Автоматически добавляем неизвестные ключи хостов
+client.set_missing_host_key_policy(paramiko.AutoAddPolicy())
 
-    # Ожидание запроса пароля
-    child.expect('password:')
-    child.sendline(password)
-    print(f"Выполнение команды: {command}")
-    child.expect('>')  # Ожидание приглашения командной строки
-    child.sendline(command)
-
-    # Ожидание завершения команды
-    child.expect('>')
-    output = child.before.decode().strip()  # Получение вывода
-    print(f"Вывод: {output}")
-
-
-    # Завершение SSH сессии
-    child.sendline('exit')
-    child.close()
-
-pause_duration = 5  # Пауза в 5 секунд между командами
-
-execute_commands_with_pause(host, username, password, command, pause_duration)
+# Подключаемся к серверу
+client.connect(hostname=host, username=username, password=password)
+cli = client.invoke_shell()
+cli.send('ip sh config\n')
+time.sleep(3)
+cli.send("\x1b[6~")
+# Читаем вывод
+while True:
+    if cli.recv_ready():
+        output = cli.recv(1024).decode('koi8-r')
+        print(output)
+    if cli.exit_status_ready():
+        break
+client.close()
 
 '''
 test = ip_info('193.124.92.111')
