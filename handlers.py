@@ -5,8 +5,7 @@ from aiogram.filters import Command
 from aiogram.types import Message, CallbackQuery
 from aiogram import flags
 from aiogram.fsm.context import FSMContext
-from includes.vt.single_ip import ip_info
-from includes.vt.ip_list import check_ip_list
+from includes.vt.checkip_vt import get_info_ip, get_ip_list_info
 from states import Gen
 
 import kb
@@ -44,7 +43,7 @@ async def input_about_ip(clbck: CallbackQuery, state: FSMContext):
 async def check_single_ip(msg: Message, state: FSMContext):
     ip = msg.text
     mesg = await msg.answer(text.gen_wait)
-    res = ip_info(ip)
+    res = get_info_ip(ip)
     if not res:
         return await mesg.edit_text(text.err_ip, reply_markup=kb.iexit_kb)
     str1 = '\n'.join(res)
@@ -62,7 +61,7 @@ async def input_check_ips(clbck: CallbackQuery, state: FSMContext):
 async def check_ips(msg: Message, state: FSMContext):
     text_ips_and_dns = msg.text
     mesg = await msg.answer(text.gen_wait)
-    res = check_ip_list(text_ips_and_dns)
+    res = get_ip_list_info(text_ips_and_dns)
     if not res:
         return await mesg.edit_text(text.err_ip, reply_markup=kb.iexit_kb)
     str1 = '\n'.join(res)
@@ -87,7 +86,7 @@ async def handle_document(msg: Message, bot: Bot, state: FSMContext):
         with open(msg.document.file_name, 'r', encoding='UTF-8') as file:
             text_file = file.read()
         mesg = await msg.answer(text.gen_wait)
-        res = check_ip_list(text_file)
+        res = get_ip_list_info(text_file)
         if not res:
             return await mesg.edit_text(text.err_ip, reply_markup=kb.iexit_kb)
         str1 = '\n'.join(res)
