@@ -1,4 +1,4 @@
-# Вспомогательные классы для FSM
+# Classes for FSM
 
 from aiogram.fsm.state import StatesGroup, State
 

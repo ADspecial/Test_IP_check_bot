@@ -3,10 +3,12 @@ import socket
 import os
 import csv
 import json
+import flag
 import urllib.request
 import urllib.parse
 from datetime import datetime
-from includes.config import VT_KEY, API_URL_IP_VT, API_URL_DOMAIN_VT
+from includes.config import KEYS, URLS
+from includes.IPinfo.geo_ip import get_geo_response
 
 def is_valid_ip(ip):
     parts = ip.split('.')
@@ -29,7 +31,7 @@ def is_valid_dns(dns):
     return re.match(dns_pattern, dns) is not None
 
 def fetch_data(url):
-    request = urllib.request.Request(url, headers={'x-apikey': VT_KEY})
+    request = urllib.request.Request(url, headers={'x-apikey': KEYS.VT_KEY})
     try:
         with urllib.request.urlopen(request) as response:
             data = json.load(response)
@@ -53,11 +55,11 @@ def check_ip_list(text_ips):
     return results
 
 def get_ip_summary(ip):
-    url = API_URL_IP_VT + urllib.parse.quote(ip)
+    url = URLS.API_URL_IP_VT + urllib.parse.quote(ip)
     data = fetch_data(url)
     if not data:
         return f"IP: {ip} - No data"
-
+    country = get_geo_response(ip)
     attributes = data.get('data', {}).get('attributes', {})
     last_analysis_results = attributes.get('last_analysis_results', {})
     malicious_count = sum(1 for result in last_analysis_results.values() if result['category'] == 'malicious')
@@ -67,10 +69,10 @@ def get_ip_summary(ip):
         check = '❌'
     else:
         check = '✅'
-    return f"{check} IP: {ip}, Country: {attributes.get('country')}, Last Analysis Results Count: {malicious_count}, Malicious Count: {malicious_count}, Total Engines: {total_engines}, Reputation Score: {reputation_score}"
+    return f"{check} IP: {ip}, Country: {country} {flag.flag(attributes.get('country'))}, Last Analysis Results Count: {malicious_count}, Malicious Count: {malicious_count}, Total Engines: {total_engines}, Reputation Score: {reputation_score}"
 
 def get_domain_summary(domain):
-    url = API_URL_DOMAIN_VT + urllib.parse.quote(domain)
+    url = URLS.API_URL_DOMAIN_VT + urllib.parse.quote(domain)
     data = fetch_data(url)
     if not data:
         return f"Domain: {domain} - No data"

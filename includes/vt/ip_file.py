@@ -4,10 +4,10 @@ import json
 import urllib.request
 import urllib.parse
 from datetime import datetime
-from includes.config import VT_KEY, API_URL_IP_VT, API_URL_DOMAIN_VT
+from includes.config import KEYS, URLS
 
 def fetch_data(url):
-    request = urllib.request.Request(url, headers={'x-apikey': VT_KEY})
+    request = urllib.request.Request(url, headers={'x-apikey': KEYS.VT_KEY})
     try:
         with urllib.request.urlopen(request) as response:
             data = json.load(response)
@@ -39,7 +39,7 @@ def process_ip_list(file_path):
     print("\n".join(results))
 
 def get_ip_summary(ip):
-    url = API_URL_IP_VT + urllib.parse.quote(ip)
+    url = URLS.API_URL_IP_VT + urllib.parse.quote(ip)
     data = fetch_data(url)
     if not data:
         return f"IP: {ip} - No data"
@@ -53,7 +53,7 @@ def get_ip_summary(ip):
     return f"IP: {ip}, Country: {attributes.get('country')}, Last Analysis Results Count: {malicious_count}, Malicious Count: {malicious_count}, Total Engines: {total_engines}, Reputation Score: {reputation_score}"
 
 def get_domain_summary(domain):
-    url = API_URL_DOMAIN_VT + urllib.parse.quote(domain)
+    url = URLS.API_URL_DOMAIN_VT + urllib.parse.quote(domain)
     data = fetch_data(url)
     if not data:
         return f"Domain: {domain} - No data"

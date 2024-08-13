@@ -1,12 +1,12 @@
-# Функции-обработчики бота
+# Bot handler functions
 
 from aiogram import F, Router, Bot
 from aiogram.filters import Command
 from aiogram.types import Message, CallbackQuery
 from aiogram import flags
 from aiogram.fsm.context import FSMContext
-from includes.single_ip import ip_info
-from includes.ip_list import check_ip_list
+from includes.vt.single_ip import ip_info
+from includes.vt.ip_list import check_ip_list
 from states import Gen
 
 import kb

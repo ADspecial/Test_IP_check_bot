@@ -1,9 +1,9 @@
-# Клавиатуры бота
+# Bot keyboards
 
 from aiogram.types import InlineKeyboardButton, InlineKeyboardMarkup, KeyboardButton, ReplyKeyboardMarkup, ReplyKeyboardRemove
 menu = [
     [InlineKeyboardButton(text="⚙️ Информация об IP", callback_data="about_ip"),InlineKeyboardButton(text="📝 Проверить список IP", callback_data="check_ip_list")],
-    [InlineKeyboardButton(text="📄 Загрузить файл с IP", callback_data="get_file"),InlineKeyboardButton(text="📝 Проверить список IP", callback_data="check_ip_list")],
+    [InlineKeyboardButton(text="📄 Загрузить файл с IP", callback_data="get_file")],
     [InlineKeyboardButton(text="🔎 Помощь", callback_data="help")]
 ]
 menu = InlineKeyboardMarkup(inline_keyboard=menu)

@@ -1,4 +1,4 @@
-# Точка входа
+# Entry point
 import asyncio
 import logging
 
@@ -8,11 +8,11 @@ from aiogram.fsm.storage.memory import MemoryStorage
 from aiogram.client.bot import DefaultBotProperties
 from aiogram.utils.chat_action import ChatActionMiddleware
 
-from includes.config import TG_KEY
+from includes.config import KEYS
 from handlers import router
 
 async def main():
-    bot = Bot(token=TG_KEY, default=DefaultBotProperties(parse_mode=ParseMode.HTML))
+    bot = Bot(token=KEYS.TG_KEY, default=DefaultBotProperties(parse_mode=ParseMode.HTML))
     dp = Dispatcher(storage=MemoryStorage())
     dp.message.middleware(ChatActionMiddleware())
     dp.include_router(router)

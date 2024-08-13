@@ -3,10 +3,10 @@ import json
 import urllib.request
 import urllib.parse
 from datetime import datetime
-from includes.config import VT_KEY, API_URL_IP_VT
+from includes.config import KEYS, URLS
 
 def fetch_data(url):
-    request = urllib.request.Request(url, headers={'x-apikey': VT_KEY})
+    request = urllib.request.Request(url, headers={'x-apikey': KEYS.VT_KEY})
     try:
         with urllib.request.urlopen(request) as response:
             data = json.load(response)
@@ -17,7 +17,7 @@ def fetch_data(url):
 
 def get_associated_domains(ip):
     url = f"https://www.virustotal.com/api/v3/ip_addresses/{ip}/resolutions"
-    request = urllib.request.Request(url, headers={'x-apikey': VT_KEY})
+    request = urllib.request.Request(url, headers={'x-apikey': KEYS.VT_KEY})
     associated_domains = []
     try:
         with urllib.request.urlopen(request) as response:
@@ -28,7 +28,7 @@ def get_associated_domains(ip):
     return associated_domains
 
 def ip_info(ip):
-    url = API_URL_IP_VT + urllib.parse.quote(ip)
+    url = URLS.API_URL_IP_VT + urllib.parse.quote(ip)
     data = fetch_data(url)
     if not data:
         return

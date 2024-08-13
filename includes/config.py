@@ -1,10 +1,15 @@
 # settings.py
 import os
-from dotenv import load_dotenv
+from dotenv import load_dotenv, find_dotenv
 
-load_dotenv()
+load_dotenv(find_dotenv())
 
-TG_KEY = os.getenv("API_KEY_TG")
-VT_KEY = os.getenv("API_KEY_VT")
-API_URL_IP_VT = os.getenv("API_URL_IP_VT")
-API_URL_DOMAIN_VT = os.getenv("API_URL_DOMAIN_VT")
+class KEYS:
+    TG_KEY: str = os.getenv("API_KEY_TG")
+    VT_KEY: str = os.getenv("API_KEY_VT")
+    GEOIP_KEY: str = os.getenv("API_GEOIP_KEY")
+
+
+class URLS:
+    API_URL_IP_VT: str = os.getenv("API_URL_IP_VT")
+    API_URL_DOMAIN_VT: str = os.getenv("API_URL_DOMAIN_VT")
