@@ -1,10 +1,10 @@
-import re
-import socket
 import json
 import flag
 import urllib.request
 import urllib.parse
+
 from includes.config import KEYS, URLS
+from includes.valid import extract_and_validate
 
 def get_country_flag(country_code):
     if country_code == None:
@@ -75,24 +75,6 @@ def get_info_ip(ip):
     ]
     return result
 
-def is_valid_ip(ip):
-    parts = ip.split('.')
-    if len(parts) != 4:
-        return False
-    for part in parts:
-        if not part.isdigit() or int(part) < 0 or int(part) > 255:
-            return False
-    return True
-
-def is_valid_dns(dns):
-    try:
-        socket.inet_aton(dns)
-        return False
-    except socket.error:
-        pass
-    dns_pattern = r'^(?!-)[A-Za-z0-9-]{1,63}(?<!-)(\.[A-Za-z]{2,})+$'
-    return re.match(dns_pattern, dns) is not None
-
 def get_ip_list_info(text_ips):
     ips, dnss = extract_and_validate(text_ips)
     if not ips:
@@ -133,15 +115,3 @@ def get_domain_summary(domain):
     reputation_score = f"{malicious_count}/{total_engines}" if total_engines > 0 else "N/A"
     check = '❌' if malicious_count > 0 else '✅'
     return f"{check} Domain: {domain}, Country: {get_country_flag(attributes.get('country'))}, Last Analysis Results Count: {malicious_count}, Malicious Count: {malicious_count}, Total Engines: {total_engines}, Reputation Score: {reputation_score}"
-
-def extract_and_validate(text):
-    ip_pattern = r'\b\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3}\b'
-    dns_pattern = r'\b[A-Za-z0-9.-]+\.[A-Za-z]{2,}\b'
-
-    found_ips = re.findall(ip_pattern, text)
-    found_dns = re.findall(dns_pattern, text)
-
-    valid_ips = [ip for ip in found_ips if is_valid_ip(ip)]
-    valid_dns = [dns for dns in found_dns if is_valid_dns(dns)]
-
-    return valid_ips, valid_dns
