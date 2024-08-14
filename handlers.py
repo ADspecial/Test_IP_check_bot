@@ -20,6 +20,8 @@ router = Router()
 async def start_handler(msg: Message):
     await msg.answer(text.greet.format(name=msg.from_user.full_name), reply_markup=kb.start_menu)
 
+
+
 # Обработчик вывода меню
 @router.callback_query(F.data == "start")
 @router.message(F.text == "Меню")
@@ -41,12 +43,14 @@ async def view_menu(clbck: CallbackQuery, state: FSMContext):
 
 @router.callback_query(F.data == "virustotal")
 async def view_menu(clbck: CallbackQuery, state: FSMContext):
+    await clbck.message.edit_reply_markup()
     await state.set_state(Gen.virustotal_menu)
     await clbck.answer('virustotal menu')
     await clbck.message.answer(text.virustotal_menu, reply_markup=kb.menu_check_vt)
 
 @router.callback_query(F.data == "IPinfo")
 async def view_menu(clbck: CallbackQuery, state: FSMContext):
+    await clbck.message.edit_reply_markup()
     await state.set_state(Gen.ipinfo_menu)
     await clbck.answer('IPinfo menu')
     await clbck.message.answer(text.ipinfo_menu, reply_markup=kb.menu_check_ipinfo)
@@ -54,6 +58,7 @@ async def view_menu(clbck: CallbackQuery, state: FSMContext):
 
 @router.callback_query(F.data == "about_ip_ipinfo")
 async def input_about_ip(clbck: CallbackQuery, state: FSMContext):
+    await clbck.message.edit_reply_markup()
     await state.set_state(Gen.about_ip_ipinfo)
     await clbck.message.edit_text(text.check_ips_list)
     await clbck.message.answer(text.gen_exit, reply_markup=kb.back_ipinfo)
@@ -70,6 +75,7 @@ async def check_single_ip(msg: Message, state: FSMContext):
 
 @router.callback_query(F.data == "about_ip")
 async def input_about_ip(clbck: CallbackQuery, state: FSMContext):
+    await clbck.message.edit_reply_markup()
     await state.set_state(Gen.about_ip)
     await clbck.message.edit_text(text.about_check_ip)
     await clbck.message.answer(text.gen_exit, reply_markup=kb.back_vt)
@@ -88,6 +94,7 @@ async def check_single_ip(msg: Message, state: FSMContext):
 
 @router.callback_query(F.data == "check_ip_list")
 async def input_check_ips(clbck: CallbackQuery, state: FSMContext):
+    await clbck.message.edit_reply_markup()
     await state.set_state(Gen.check_ips)
     await clbck.message.edit_text(text.check_ips_list)
     await clbck.message.answer(text.gen_exit, reply_markup=kb.back_vt)
@@ -105,6 +112,7 @@ async def check_ips(msg: Message, state: FSMContext):
 
 @router.callback_query(F.data == "get_file")
 async def get_file(clbck: CallbackQuery, state: FSMContext):
+    await clbck.message.edit_reply_markup()
     await state.set_state(Gen.get_doc)
     await clbck.message.edit_text(text.send_text_file)
     await clbck.message.answer(text.gen_exit, reply_markup=kb.back_vt)
@@ -135,6 +143,7 @@ async def handle_document(msg: Message, bot: Bot, state: FSMContext):
 
 @router.callback_query(F.data == "get_file_ipinfo")
 async def get_file(clbck: CallbackQuery, state: FSMContext):
+    await clbck.message.edit_reply_markup()
     await state.set_state(Gen.get_doc_ipinfo)
     await clbck.message.edit_text(text.send_text_file)
     await clbck.message.answer(text.gen_exit, reply_markup=kb.back_ipinfo)
