@@ -1,8 +1,8 @@
 import ipinfo
 import flag
 
-from includes.config import KEYS
-from includes.valid import extract_and_validate
+from middleware.config import KEYS
+from middleware.valid_ip import extract_and_validate
 
 def format_dict(data):
     formatted_string = "🌐"

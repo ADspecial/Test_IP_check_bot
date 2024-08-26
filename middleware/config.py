@@ -8,6 +8,7 @@ class KEYS:
     TG_KEY: str = os.getenv("API_KEY_TG")
     VT_KEY: str = os.getenv("API_KEY_VT")
     GEOIP_KEY: str = os.getenv("API_GEOIP_KEY")
+    KS_KEY: str = os.getenv("API_KASPERSKY_KEY")
 
 
 class URLS:

@@ -8,7 +8,7 @@ from aiogram.fsm.storage.memory import MemoryStorage
 from aiogram.client.bot import DefaultBotProperties
 from aiogram.utils.chat_action import ChatActionMiddleware
 
-from includes.config import KEYS
+from middleware.config import KEYS
 from handlers import router
 
 async def main():

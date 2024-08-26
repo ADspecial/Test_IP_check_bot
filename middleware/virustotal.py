@@ -3,8 +3,8 @@ import flag
 import urllib.request
 import urllib.parse
 
-from includes.config import KEYS, URLS
-from includes.valid import extract_and_validate
+from middleware.config import KEYS, URLS
+from middleware.valid_ip import extract_and_validate
 
 def get_country_flag(country_code):
     if country_code == None:
