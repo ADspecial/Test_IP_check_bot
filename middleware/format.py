@@ -25,6 +25,6 @@ def dict_summary(data):
     harmless_count = stats.get('🟢 harmless', 0)
     undetected_count = stats.get('⚫️ undetected', 0)
 
-    summary = f"{verdict} IP: {ip} | Country: {country} \n 🔴 Malicious: {malicious_count} \n 🟢Harmless: {harmless_count} \n 🟡 Suspicious: {suspicious_count} \n ⚫️Undetected: {undetected_count} \n ================ "
+    summary = f"{verdict} IP: {ip} | Country: {country} \n  Malicious: {malicious_count} \n Harmless: {harmless_count} \n  Suspicious: {suspicious_count} \n Undetected: {undetected_count} \n ================ "
 
     return summary

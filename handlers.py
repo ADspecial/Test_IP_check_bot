@@ -81,6 +81,8 @@ async def get_file(clbck: CallbackQuery, state: FSMContext):
 async def handle_document(msg: Message, bot: Bot, state: FSMContext):
     await process_document(msg, bot, get_vt_info, text.err_ip, kb.back_vt)
 
+
+
 #=======================================================================
 #_______________________________________________________________________
 #==============================ipinfo===================================
@@ -110,8 +112,7 @@ async def process_ip(msg: Message, info_function, error_text, back_kb):
 async def handle_file_request(clbck: CallbackQuery, state: FSMContext, request_text, back_kb):
     await clbck.message.edit_reply_markup()
     await state.set_state(Gen.vt_file)
-    await clbck.message.edit_text(request_text)
-    await clbck.message.answer(text.gen_exit, reply_markup=back_kb)
+    await clbck.message.edit_text(request_text, reply_markup=back_kb)
 
 async def process_document(msg: Message, bot: Bot, info_function, error_text, back_kb):
     if msg.document.mime_type == 'text/plain':
@@ -125,7 +126,8 @@ async def process_document(msg: Message, bot: Bot, info_function, error_text, ba
         res = info_function(text_file)
         if not res:
             return await mesg.edit_text(error_text, reply_markup=back_kb)
-        await mesg.edit_text(res, reply_markup=back_kb)
+        await mesg.edit_text(listdict_to_string(res))
+        await mesg.answer(text.send_text_file, reply_markup=back_kb)
         os.remove(msg.document.file_name)
     else:
         await msg.answer("Пожалуйста, отправьте текстовый файл (.txt).", reply_markup=kb.iexit_kb)
