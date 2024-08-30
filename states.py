@@ -9,7 +9,7 @@ class Gen(StatesGroup):
     virustotal_menu = State()
     ipinfo_menu = State()
     help = State()
-
+    get_doc = State()
     vt_ip = State()
     vt_list = State()
     vt_file = State()

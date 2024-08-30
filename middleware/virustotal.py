@@ -29,23 +29,23 @@ def get_associated_domains(ip):
         print(f"Failed to retrieve associated domains for {ip}: {e}")
     return associated_domains
 
-def get_ip_list_info(text_ips):
+
+def get_vt_info(text_ips):
     ips, dnss = extract_and_validate(text_ips)
-    if not ips:
+    if not ips and dnss:
         print(f"No valid IPs or domains")
         return
 
     results = []
     for ip in ips:
-        results.append(get_info_ip(ip))
+        results.append(get_ip_info(ip))
     for dns in dnss:
         results.append(get_domain_info(dns))
 
     return results
 
-def get_info_ip(text_ips):
-    ips, dnss = extract_and_validate(text_ips)
-    url = URLS.API_URL_IP_VT + urllib.parse.quote(ips[0])
+def get_ip_info(ip):
+    url = URLS.API_URL_IP_VT + urllib.parse.quote(ip)
     data = fetch_data(url)
     if not data:
         return
@@ -84,7 +84,7 @@ def gen_res(ip,attr,lar):
                     '🟢 harmless': lar.get('harmless', 0),
                     '⚫️ undetected': lar.get('undetected', 0)
                   },
-        #'last_analysis_date': datetime.datetime.fromtimestamp(attr.get('last_analysis_date')).strftime('%Y-%m-%d %H:%M:%S')
+        'last_analysis_date': get_data(attr.get('last_analysis_date'))
     }
     malicious_votes = result['users_votes'].get('🔴 malicious', 0)
     malicious_stats = result['stats'].get('🔴 malicious', 0)
@@ -99,3 +99,9 @@ def get_country_flag(country_code):
         return country_code
     else:
         return f"{flag.flag(country_code)} {country_code}"
+
+def get_data(value):
+    if value == None:
+        return 'None'
+    else:
+        return datetime.datetime.fromtimestamp(value).strftime('%Y-%m-%d %H:%M:%S')
