@@ -12,14 +12,14 @@ check_menu = [
 ]
 check_menu = InlineKeyboardMarkup(inline_keyboard=check_menu)
 virustotal_menu = [
-    [InlineKeyboardButton(text="⚙️ Информация об IP", callback_data="about_ip"),InlineKeyboardButton(text="📝 Проверить список IP", callback_data="check_ip_list")],
-    [InlineKeyboardButton(text="📄 Загрузить файл с IP", callback_data="get_file")],
+    [InlineKeyboardButton(text="⚙️ Информация об IP", callback_data="vt_ip"),InlineKeyboardButton(text="📝 Проверить список IP", callback_data="vt_ip_list")],
+    [InlineKeyboardButton(text="📄 Загрузить файл с IP", callback_data="vt_get_file")],
     [InlineKeyboardButton(text="◀️ Назад", callback_data="check_menu")],
 ]
 virustotal_menu = InlineKeyboardMarkup(inline_keyboard=virustotal_menu)
 ipinfo_menu = [
-    [InlineKeyboardButton(text="⚙️ Информация об IP", callback_data="about_ip_ipinfo")],
-    [InlineKeyboardButton(text="📄 Загрузить файл с IP", callback_data="get_file_ipinfo")],
+    [InlineKeyboardButton(text="⚙️ Информация об IP", callback_data="ipi_ip")],
+    [InlineKeyboardButton(text="📄 Загрузить файл с IP", callback_data="ipi_file")],
     [InlineKeyboardButton(text="◀️ Назад", callback_data="check_menu")],
 ]
 ipinfo_menu = InlineKeyboardMarkup(inline_keyboard=ipinfo_menu)
