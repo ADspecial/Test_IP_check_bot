@@ -13,5 +13,6 @@ class Gen(StatesGroup):
     vt_ip = State()
     vt_list = State()
     vt_file = State()
+    vt_file_command = State()
     ipi_ip = State()
     ipi_file = State()
