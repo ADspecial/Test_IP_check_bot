@@ -5,8 +5,8 @@ from aiogram import flags
 from aiogram.fsm.context import FSMContext
 from aiogram.exceptions import TelegramBadRequest
 from states import Gen
-from middleware.virustotal import get_vt_info
-from middleware.ipinfo import get_info
+from ipcheckers.virustotal import get_vt_info
+from ipcheckers.ipinfo import get_info
 from middleware.format import dict_to_string, listdict_to_string
 
 import kb
