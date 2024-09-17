@@ -5,3 +5,4 @@ test
 test/test.py
 includes/.env
 __pycache__
+middleware/.env
