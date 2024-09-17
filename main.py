@@ -8,9 +8,11 @@ from aiogram.fsm.storage.memory import MemoryStorage
 from aiogram.client.bot import DefaultBotProperties
 from aiogram.utils.chat_action import ChatActionMiddleware
 
-from database.engine import create_db, drop_db
+from database.engine import create_db, drop_db, session_maker
 from middleware.config import KEYS
 from handlers import router
+from middleware.db import DataBaseSession
+
 
 async def on_startup(bot):
     run_param = False
@@ -26,6 +28,7 @@ async def main():
     dp = Dispatcher(storage=MemoryStorage())
     dp.startup.register(on_startup)
     dp.shutdown.register(on_shutdown)
+    dp.update.middleware(DataBaseSession(session_pool=session_maker))
     dp.message.middleware(ChatActionMiddleware())
     dp.include_router(router)
 
