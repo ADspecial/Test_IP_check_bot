@@ -2,6 +2,7 @@ output
 data
 test
 .venv
+pyvenv.cfg
 test/test.py
 includes/.env
 __pycache__
