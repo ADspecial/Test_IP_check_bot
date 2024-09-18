@@ -166,6 +166,7 @@ async def process_ip(msg: Message, info_function, error_text, post_text, back_kb
         answer = dict_to_string(res[0])
     else:
         answer = listdict_to_string(res)
+    await mesg.edit_text(answer)
     if post_text != None:
         await mesg.answer(post_text, reply_markup=back_kb)
 
