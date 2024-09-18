@@ -1,7 +1,7 @@
 import ipinfo
 import flag
 
-from includes.config import KEYS
+from config.config import KEYS
 
 
 def get_geo_ip(ip_address: str):# -> tuple(str, str):

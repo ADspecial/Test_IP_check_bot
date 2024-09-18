@@ -4,8 +4,8 @@ import urllib.request
 import urllib.parse
 import datetime
 
-from middleware.config import KEYS, URLS
-from middleware.valid_ip import extract_and_validate
+from config.config import KEYS, URLS
+from ipcheckers.valid_ip import extract_and_validate
 
 def fetch_data(url):
     request = urllib.request.Request(url, headers={'x-apikey': KEYS.VT_KEY})

@@ -1,9 +1,9 @@
 import requests
 
 from ipaddress import ip_address
-from includes.IPinfo.geo_ip import get_geo_response
-from includes.config import KEYS
-from includes.valid import extract_and_validate
+from ipcheckers.geo_ip import get_geo_response
+from config.config import KEYS
+from ipcheckers.valid_ip import extract_and_validate
 
 
 

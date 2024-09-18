@@ -7,18 +7,20 @@ from aiogram.exceptions import TelegramBadRequest
 from states import Gen
 from ipcheckers.virustotal import get_vt_info
 from ipcheckers.ipinfo import get_info
-from middleware.format import dict_to_string, listdict_to_string
-
+from ipcheckers.format import dict_to_string, listdict_to_string
+from sqlalchemy.ext.asyncio import AsyncSession
+from database.models import History
 import kb
 import re
 import os
 import text
-import asyncio
+
 
 router = Router()
 message_ids_to_delete = []
 #_______________________________________________________________________
 #==============================menu=====================================
+
 # Обработчик вывода меню
 @router.message(Command("start"))
 async def start_handler(msg: Message, state: FSMContext):
@@ -161,9 +163,9 @@ async def process_ip(msg: Message, info_function, error_text, post_text, back_kb
     if not res:
         return await mesg.edit_text(error_text, reply_markup=back_kb)
     if len(res) == 1:
-        await mesg.edit_text(dict_to_string(res[0]))
+        answer = dict_to_string(res[0])
     else:
-        await mesg.edit_text(listdict_to_string(res))
+        answer = listdict_to_string(res)
     if post_text != None:
         await mesg.answer(post_text, reply_markup=back_kb)
 

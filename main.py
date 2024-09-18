@@ -9,10 +9,10 @@ from aiogram.client.bot import DefaultBotProperties
 from aiogram.utils.chat_action import ChatActionMiddleware
 
 from database.engine import create_db, drop_db, session_maker
-from middleware.config import KEYS
+from config.config import KEYS
 from handlers import router
 from middleware.db import DataBaseSession
-
+from middleware.logs import LogMessageMiddleware
 
 async def on_startup(bot):
     run_param = False
@@ -30,6 +30,7 @@ async def main():
     dp.shutdown.register(on_shutdown)
     dp.update.middleware(DataBaseSession(session_pool=session_maker))
     dp.message.middleware(ChatActionMiddleware())
+    router.message.outer_middleware(LogMessageMiddleware(session_pool=session_maker))
     dp.include_router(router)
 
     await bot.delete_webhook(drop_pending_updates=True)
