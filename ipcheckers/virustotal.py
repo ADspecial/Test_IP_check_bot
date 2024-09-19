@@ -3,46 +3,46 @@ import flag
 import urllib.request
 import urllib.parse
 import datetime
-
 from config.config import KEYS, URLS
 from ipcheckers.valid_ip import extract_and_validate
 
 def fetch_data(url):
     request = urllib.request.Request(url, headers={'x-apikey': KEYS.VT_KEY})
-    try:
-        with urllib.request.urlopen(request) as response:
-            data = json.load(response)
-            return data
-    except urllib.error.URLError as e:
-        print(f"Failed to retrieve data: {e}")
-        return None
+    with urllib.request.urlopen(request) as response:
+        return json.load(response) if response.getcode() == 200 else None
 
 def get_associated_domains(ip):
-    url = f"https://www.virustotal.com/api/v3/ip_addresses/{ip}/resolutions"
+    url = f"{URLS.API_URL_IP_VT}/{ip}/resolutions"
     request = urllib.request.Request(url, headers={'x-apikey': KEYS.VT_KEY})
-    associated_domains = []
     try:
         with urllib.request.urlopen(request) as response:
-            data = json.load(response)
-            associated_domains.extend([res['attributes']['host_name'] for res in data.get('data', [])])
+            return [
+                res['attributes']['host_name']
+                for res in json.load(response)['data']
+                if 'attributes' in res and 'host_name' in res['attributes']
+            ]
     except urllib.error.URLError as e:
         print(f"Failed to retrieve associated domains for {ip}: {e}")
-    return associated_domains
+        return []
 
 
 def get_vt_info(text_ips):
     ips, dnss = extract_and_validate(text_ips)
-    if not ips and dnss:
+    if not ips and not dnss:
         print(f"No valid IPs or domains")
         return
 
     results = []
-    for ip in ips:
-        results.append(get_ip_info(ip))
-    for dns in dnss:
-        results.append(get_domain_info(dns))
+    ip_info_tasks = [get_ip_info(ip) for ip in ips]
+    domain_info_tasks = [get_domain_info(dns) for dns in dnss]
+
+    for task in ip_info_tasks + domain_info_tasks:
+        result = task
+        if result:
+            results.append(result)
 
     return results
+
 
 def get_ip_info(ip):
     url = URLS.API_URL_IP_VT + urllib.parse.quote(ip)
@@ -101,7 +101,4 @@ def get_country_flag(country_code):
         return f"{flag.flag(country_code)} {country_code}"
 
 def get_data(value):
-    if value == None:
-        return 'None'
-    else:
-        return datetime.datetime.fromtimestamp(value).strftime('%Y-%m-%d %H:%M:%S')
+    return value and datetime.datetime.utcfromtimestamp(value).strftime('%Y-%m-%d %H:%M:%S') or 'None'

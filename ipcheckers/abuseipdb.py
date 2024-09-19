@@ -76,14 +76,15 @@ def get_only_emoji(ip_address: str):
 
 def get_report_abuseipdb(ip_address: str):
     response = make_request_abuse(ip_address)
-    report = {}
-    report["verdict"] = f'{get_confidence_emoji(response["abuseConfidenceScore"])}'
-    report["whitelist"] = "yes" if response["isWhitelisted"] else ""
-    report["usage_type"] = response["usageType"] if response["usageType"] else ""
-    report["domain"] = response["domain"] if response["domain"] else ""
-    report["hostnames"] = ", ".join(hostname for hostname in response["hostnames"]) if response["hostnames"] else ""
-    report["tor"] = "yes" if response["isTor"] is True else ""
-    report["reports"] = response["totalReports"]
-    report["country"] = get_geo_response(ip_address)
-    report["last_report"] = datetime.strptime(response["lastReportedAt"][:10], "%Y-%m-%d").strftime("%d.%m.%Y") if response["lastReportedAt"] else ""
+    report = {
+        "verdict": get_confidence_emoji(response["abuseConfidenceScore"]),
+        "whitelist": "yes" if response["isWhitelisted"] else "",
+        "usage_type": response.get("usageType"),
+        "domain": response.get("domain"),
+        "hostnames": ", ".join(response.get("hostnames", [])),
+        "tor": "yes" if response.get("isTor") else "",
+        "reports": response.get("totalReports"),
+        "country": get_geo_response(ip_address),
+        "last_report": datetime.strptime(response.get("lastReportedAt")[:10], "%Y-%m-%d").strftime("%d.%m.%Y") if response.get("lastReportedAt") else ""
+    }
     return report
