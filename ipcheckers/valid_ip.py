@@ -1,32 +1,19 @@
 import re
-import socket
 
 def is_valid_ip(ip):
-    parts = ip.split('.')
-    if len(parts) != 4:
-        return False
-    for part in parts:
-        if not part.isdigit() or int(part) < 0 or int(part) > 255:
-            return False
-    return True
-
+    return all(0 <= int(part) <= 255 and part.isdigit() for part in ip.split('.'))
 def is_valid_dns(dns):
-    try:
-        socket.inet_aton(dns)
-        return False
-    except socket.error:
-        pass
-    dns_pattern = r'^(?!-)[A-Za-z0-9-]{1,63}(?<!-)(\.[A-Za-z]{2,})+$'
-    return re.match(dns_pattern, dns) is not None
+    return dns and dns[-1] != '-' and all(
+        part and part[0] != '-' and part[-1] != '-' and len(part) <= 63
+        for part in dns.split('.')
+    )
 
 def extract_and_validate(text):
-    ip_pattern = r'\b\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3}\b'
-    dns_pattern = r'\b[A-Za-z0-9.-]+\.[A-Za-z]{2,}\b'
+    ip_pattern = r'\b(?:(?:25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\.){3}(?:25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\b'
+    dns_pattern = r'\b[A-Za-z0-9](?:[A-Za-z0-9-]{0,61}[A-Za-z0-9])?\.[A-Za-z]{2,}\b'
 
-    found_ips = re.findall(ip_pattern, text)
-    found_dns = re.findall(dns_pattern, text)
-
-    valid_ips = [ip for ip in found_ips if is_valid_ip(ip)]
-    valid_dns = [dns for dns in found_dns if is_valid_dns(dns)]
-
-    return valid_ips, valid_dns
+    return [
+        ip for ip in re.findall(ip_pattern, text) if is_valid_ip(ip)
+    ], [
+        dns for dns in re.findall(dns_pattern, text) if is_valid_dns(dns)
+    ]

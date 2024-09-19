@@ -25,7 +25,6 @@ def get_associated_domains(ip):
         print(f"Failed to retrieve associated domains for {ip}: {e}")
         return []
 
-
 def get_vt_info(text_ips):
     ips, dnss = extract_and_validate(text_ips)
     if not ips and not dnss:
@@ -42,7 +41,6 @@ def get_vt_info(text_ips):
             results.append(result)
 
     return results
-
 
 def get_ip_info(ip):
     url = URLS.API_URL_IP_VT + urllib.parse.quote(ip)
@@ -62,13 +60,13 @@ def get_domain_info(domain):
         return f"Domain: {domain} - No data"
 
     attributes = data.get('data', {}).get('attributes', {})
-    last_analysis_results = attributes.get('last_analysis_results', {})
+    last_analysis_stats = attributes.get('last_analysis_stats', {})
 
-    return gen_res(domain,attributes,last_analysis_results)
+    return gen_res(domain,attributes,last_analysis_stats)
 
 def gen_res(ip,attr,lar):
     result = {
-        'verdict': None,
+        'verdict': '❌' if lar.get('malicious', 0) + attr.get('total_votes', {}).get('malicious', 0) > 0 else '✅',
         'ip': ip,
         'network': attr.get('network'),
         #'whois': attributes.get('whois'),
@@ -77,21 +75,15 @@ def gen_res(ip,attr,lar):
         'rep_score': attr.get('reputation'),
         'users_votes': {'🔴 malicious': attr.get('total_votes', {}).get('malicious', 0),
                         '🟢 harmless': attr.get('total_votes', {}).get('harmless', 0)},
-        'stats': {  'total engines' : lar.get('malicious', 0) + lar.get('suspicious', 0)
+        'stats': {'total engines' : lar.get('malicious', 0) + lar.get('suspicious', 0)
                   + lar.get('harmless', 0) + lar.get('undetected', 0),
                     '🔴 malicious': lar.get('malicious', 0),
                     '🟡 suspicious': lar.get('suspicious', 0),
                     '🟢 harmless': lar.get('harmless', 0),
                     '⚫️ undetected': lar.get('undetected', 0)
                   },
-        'last_analysis_date': get_data(attr.get('last_analysis_date'))
+        'last_analysis_date': get_date(attr.get('last_analysis_date'))
     }
-    malicious_votes = result['users_votes'].get('🔴 malicious', 0)
-    malicious_stats = result['stats'].get('🔴 malicious', 0)
-    if malicious_votes > 0 or malicious_stats > 0:
-        result['verdict'] = '❌'
-    else:
-        result['verdict'] = '✅'
     return result
 
 def get_country_flag(country_code):
@@ -100,5 +92,5 @@ def get_country_flag(country_code):
     else:
         return f"{flag.flag(country_code)} {country_code}"
 
-def get_data(value):
+def get_date(value):
     return value and datetime.datetime.utcfromtimestamp(value).strftime('%Y-%m-%d %H:%M:%S') or 'None'

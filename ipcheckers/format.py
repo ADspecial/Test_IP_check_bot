@@ -1,18 +1,12 @@
 def dict_to_string(data, indent=0):
-    result = ""
-    for key, value in data.items():
-        if isinstance(value, dict):
-            result += " " * indent + f"{key}:\n"
-            result += dict_to_string(value, indent + 2)
-        else:
-            result += " " * indent + f"{key}: {value}\n"
-    return result
+    return "\n".join(
+        " " * indent + f"{key}: {value}" if not isinstance(value, dict)
+        else " " * indent + f"{key}:\n{dict_to_string(value, indent + 2)}"
+        for key, value in data.items()
+    )
 
 def listdict_to_string(data_list):
-    result = ''
-    for data in data_list:
-        result += f'{dict_summary(data)}\n'
-    return result
+    return "\n".join(dict_summary(data) for data in data_list)
 
 def dict_summary(data):
     verdict = data['verdict']
