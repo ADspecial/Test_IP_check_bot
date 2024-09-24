@@ -12,17 +12,20 @@ import text
 
 menu_router = Router()
 message_ids_to_delete = []
+last_user_message_id = {}
 
 # Обработчик вывода меню
 @menu_router.message(Command("start"))
-async def start_handler(msg: Message, state: FSMContext):
+async def start_handler(msg: Message, state: FSMContext, bot: Bot):
+    #last_user_message_id[msg.chat.id] = msg.message_id
     await state.set_state(Gen.start)
-    await msg.answer(text.greetings.format(name=msg.from_user.full_name), reply_markup=kb.start_menu, parse_mode=None)
+    await bot.delete_message(msg.chat.id, msg.message_id)
+    await msg.answer(text.greetings.format(name=msg.from_user.full_name), reply_markup=kb.start_menu)
 
 # Обработчик вывода освновного меню
 @menu_router.message(Command("menu"))
 @menu_router.callback_query(F.data.in_({"start", "view_menu", "Меню", "Выйти в меню", "◀️ Выйти в меню"}))
-async def menu_handler(msg_or_callback: Message | CallbackQuery, state: FSMContext):
+async def menu_handler(msg_or_callback: Message | CallbackQuery, state: FSMContext, bot: Bot):
     await state.set_state(Gen.main_menu)
     if isinstance(msg_or_callback, CallbackQuery):
         await msg_or_callback.message.edit_text(text.menu, reply_markup=kb.start_menu)
@@ -33,7 +36,7 @@ async def menu_handler(msg_or_callback: Message | CallbackQuery, state: FSMConte
 # Обработчик вывода помощи
 @menu_router.callback_query(F.data.in_({"help", "помощь", "Помощь"}))
 @menu_router.message(Command("help"))
-async def help_handler(msg_or_callback: Message | CallbackQuery, state: FSMContext):
+async def help_handler(msg_or_callback: Message | CallbackQuery, state: FSMContext, bot: Bot):
     await state.set_state(Gen.help)
     if isinstance(msg_or_callback, CallbackQuery):
         await msg_or_callback.message.edit_text(text.help, reply_markup=kb.iexit_kb)
@@ -44,7 +47,7 @@ async def help_handler(msg_or_callback: Message | CallbackQuery, state: FSMConte
 # Обработчик вывода меню проверки IP
 @menu_router.callback_query(F.data == "check_menu")
 @menu_router.message(Command("check_menu"))
-async def check_menu_handler(msg_or_callback: Message | CallbackQuery, state: FSMContext):
+async def check_menu_handler(msg_or_callback: Message | CallbackQuery, state: FSMContext, bot: Bot):
     await state.set_state(Gen.check_menu)
     if isinstance(msg_or_callback, CallbackQuery):
         await msg_or_callback.message.edit_text(text.check_menu, reply_markup=kb.check_menu)
@@ -74,3 +77,10 @@ async def view_ipinfo_menu(clbck: CallbackQuery, state: FSMContext):
     await state.set_state(Gen.ipinfo_menu)
     await clbck.answer('IPinfo menu')
     await clbck.message.edit_text(text.ipinfo_menu, reply_markup=kb.ipinfo_menu)
+
+
+async def delete_last_message(msg: Message, bot: Bot):
+    messages =  await bot.get_chat_history(chat_id=msg.chat.id, limit=10)
+    if len(messages) > 1:
+        last_message = messages[-1]
+        await last_message.delete()
