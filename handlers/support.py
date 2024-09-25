@@ -2,11 +2,10 @@ from aiogram import Bot
 from aiogram.fsm.context import FSMContext
 from aiogram.types import CallbackQuery, Message
 
-from ipcheckers.format import dict_to_string, listdict_to_string
+from ipcheckers.format import dict_to_string, format_to_output_dict, listdict_to_string
 
 from states import Gen
 
-import handlers.vt_handlers
 import kb
 import os
 import text
@@ -17,8 +16,11 @@ async def process_ip(msg: Message, info_function, error_text, post_text, back_kb
     res = info_function(ip)
     if not res:
         return await mesg.edit_text(error_text, reply_markup=back_kb)
-
-    answer = listdict_to_string(res) if len(res) > 1 else dict_to_string(res[0])
+    if len(res) > 1:
+        answer = listdict_to_string(res)
+    else:
+        format_dict = format_to_output_dict(res[0])
+        answer = dict_to_string(format_dict)
     await mesg.edit_text(answer)
     if post_text is not None:
         await mesg.answer(post_text, reply_markup=back_kb)

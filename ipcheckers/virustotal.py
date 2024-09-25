@@ -64,24 +64,18 @@ def get_domain_info(domain):
 
     return gen_res(domain,attributes,last_analysis_stats)
 
-def gen_res(ip,attr,lar):
+def gen_res(ip, attr, lar):
     result = {
-        'verdict': '❌' if lar.get('malicious', 0) + attr.get('total_votes', {}).get('malicious', 0) > 0 else '✅',
+        'verdict': 'False' if lar.get('malicious', 0) + attr.get('total_votes', {}).get('malicious', 0) > 0 else 'True',
         'ip': ip,
         'network': attr.get('network'),
-        #'whois': attributes.get('whois'),
         'owner': attr.get('as_owner'),
         'country': get_country_flag(attr.get('country')),
         'rep_score': attr.get('reputation'),
-        'users_votes': {'🔴 malicious': attr.get('total_votes', {}).get('malicious', 0),
-                        '🟢 harmless': attr.get('total_votes', {}).get('harmless', 0)},
-        'stats': {'total engines' : lar.get('malicious', 0) + lar.get('suspicious', 0)
-                  + lar.get('harmless', 0) + lar.get('undetected', 0),
-                    '🔴 malicious': lar.get('malicious', 0),
-                    '🟡 suspicious': lar.get('suspicious', 0),
-                    '🟢 harmless': lar.get('harmless', 0),
-                    '⚫️ undetected': lar.get('undetected', 0)
-                  },
+        'users_votes': {'malicious': attr.get('total_votes', {}).get('malicious', 0),
+                        'harmless': attr.get('total_votes', {}).get('harmless', 0)},
+        'stats': {'total engines' : sum(lar.values()),
+                  **{k: v for k, v in lar.items() if k in {'malicious', 'suspicious', 'harmless', 'undetected'}}},
         'last_analysis_date': get_date(attr.get('last_analysis_date'))
     }
     return result

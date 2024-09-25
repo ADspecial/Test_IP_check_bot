@@ -1,51 +1,59 @@
-from typing import List
+from sqlalchemy import (
+    Boolean,
+    Column,
+    DateTime,
+    ForeignKey,
+    Integer,
+    String,
+    BigInteger,
+)
+from sqlalchemy.dialects.postgresql import INET
+from sqlalchemy.ext.declarative import declarative_base
+from sqlalchemy.orm import relationship
 
-from sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column, relationship
-from sqlalchemy import DateTime, ForeignKey, String, Text, func
-
-class Base(DeclarativeBase):
-    created: Mapped[DateTime] = mapped_column(DateTime, default=func.now())
-    updated: Mapped[DateTime] = mapped_column(DateTime, default=func.now(), onupdate=func.now())
+Base = declarative_base()
 
 class User(Base):
     __tablename__ = 'users'
 
-    id:Mapped[str] = mapped_column(String, primary_key=True)
-    first_name: Mapped[str] = mapped_column(String, nullable = True)
-    last_name: Mapped[str] = mapped_column(String, nullable = True)
-    username: Mapped[str] = mapped_column(String, nullable=True)
-    history_command: Mapped[List["History"]] = relationship()
+    id = Column(Integer, primary_key=True)
+    first_name = Column(String(32), nullable=True)
+    last_name = Column(String(32), nullable=True)
+    username = Column(String(32), nullable=False)
+    history_command = relationship('History', backref='user')
 
 class History(Base):
     __tablename__ = 'history'
 
-    id: Mapped[int] = mapped_column(primary_key=True, autoincrement=True)
-    chat_id: Mapped[str] = mapped_column(String, nullable = True)
-    user_id: Mapped[str] = mapped_column(ForeignKey("users.id"))
-    message_id: Mapped[str] = mapped_column(String, nullable = True)
-    message: Mapped[str] = mapped_column(Text, nullable = True)
+    id = Column(Integer, primary_key=True)
+    chat_id = Column(BigInteger, nullable=True)
+    user_id = Column(Integer, ForeignKey('users.id'))
+    message_id = Column(Integer, nullable=True)
+    message = Column(String(4096), nullable=True)
 
+class Address(Base):
+    __tablename__ = 'address'
 
-class IP_ADDRESS(Base):
-    __tablename__ = 'ip_address'
+    id = Column(Integer, primary_key=True)
+    ipv4 = Column(INET, nullable=True)
+    ipv6 = Column(INET, nullable=True)
+    dns_name = Column(String(256), nullable=True)
+    block = Column(Boolean)
+    user_id_blocker = Column(Integer, ForeignKey('users.id'), nullable=True)
 
-    id: Mapped[int] = mapped_column(autoincrement=True)
-    ip: Mapped[str] = mapped_column(String,primary_key=True)
-    vt: Mapped[List["VT_IP"]] = relationship()
-
-class VT_IP(Base):
+class Vt_ip(Base):
     __tablename__ = 'vt_ip'
 
-    id: Mapped[int] = mapped_column(primary_key=True, autoincrement=True)
-    ip: Mapped[str] = mapped_column(ForeignKey("ip_address.ip"))
-    verdict: Mapped[str] = mapped_column(String, nullable = False)
-    network: Mapped[str] = mapped_column(String, nullable = True)
-    owner: Mapped[str] = mapped_column(String, nullable = True)
-    country: Mapped[str] = mapped_column(String, nullable = True)
-    vote_malicious: Mapped[str] = mapped_column(String, nullable = True)
-    vote_harmless: Mapped[str] = mapped_column(String, nullable = True)
-    stat_malicious: Mapped[str] = mapped_column(String, nullable = True)
-    stat_suspicious: Mapped[str] = mapped_column(String, nullable = True)
-    stat_harmless: Mapped[str] = mapped_column(String, nullable = True)
-    stat_undetected: Mapped[str] = mapped_column(String, nullable = True)
-    last_analysis_date: Mapped[str] = mapped_column(String, nullable = True)
+    id = Column(Integer, primary_key=True)
+    address = Column(Integer, ForeignKey('address.id'),  nullable=True)
+    verdict = Column(Boolean, nullable=False)
+    network = Column(String(20), nullable=True)
+    owner = Column(String(255), nullable=True)
+    country = Column(String(24), nullable=True)
+    vote_malicious = Column(Integer, nullable=True)
+    vote_harmless = Column(Integer, nullable=True)
+    stat_malicious = Column(Integer, nullable=True)
+    stat_suspicious = Column(Integer, nullable=True)
+    stat_harmless = Column(Integer, nullable=True)
+    stat_undetected = Column(Integer, nullable=True)
+    last_analysis_date = Column(DateTime, nullable=True)

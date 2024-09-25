@@ -1,7 +1,7 @@
 from typing import Any, Awaitable, Callable, Dict
-from aiogram import BaseMiddleware, Bot
+from aiogram import BaseMiddleware
 from aiogram.types import Message, TelegramObject
-from sqlalchemy.ext.asyncio import async_sessionmaker, AsyncSession
+from sqlalchemy.ext.asyncio import async_sessionmaker
 from database.models import History, User
 from sqlalchemy.future import select
 
@@ -21,11 +21,11 @@ class LogMessageMiddleware(BaseMiddleware):
 
     async def save_message(self, msg: Message, session):
         user_id = msg.from_user.id
-        result = await session.execute(select(User).filter_by(id=str(user_id)))
+        result = await session.execute(select(User).filter_by(id=user_id))
         user = result.scalars().first()
         if not user:
             user = User(
-                id=str(user_id),
+                id=user_id,
                 first_name=msg.from_user.first_name,
                 last_name=msg.from_user.last_name,
                 username=msg.from_user.username,
@@ -34,9 +34,9 @@ class LogMessageMiddleware(BaseMiddleware):
             await session.commit()
 
         chat_message = History(
-            user_id=str(msg.from_user.id),
-            chat_id=str(msg.chat.id),
-            message_id=str(msg.message_id),
+            user_id=msg.from_user.id,
+            chat_id=msg.chat.id,
+            message_id=msg.message_id,
             message=msg.text
         )
         session.add(chat_message)
