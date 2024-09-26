@@ -10,6 +10,8 @@ from ipcheckers import virustotal
 
 from handlers import support
 
+from sqlalchemy.ext.asyncio import AsyncSession
+
 import kb
 import re
 import text
@@ -20,23 +22,36 @@ vt_router = Router()
 async def input_about_ip(clbck: CallbackQuery, state: FSMContext):
     await state.set_state(Gen.vt_ip)
     await clbck.message.edit_text(text.about_check_ip,reply_markup=kb.back_vt)
-    await state.update_data(last_message_id=clbck.message.message_id)
 
 @vt_router.message(Gen.vt_ip)
 @flags.chat_action("typing")
-async def check_single_ip(msg: Message, bot: Bot, state: FSMContext):
-    await support.handle_last_message_deletion(msg, bot, state)
-    await support.process_ip(msg, virustotal.get_vt_info, text.err_ip, text.about_check_ip, kb.back_vt)
+async def check_single_ip(msg: Message, bot: Bot, session: AsyncSession):
+    await bot.delete_message(msg.chat.id, msg.message_id-1,request_timeout=0)
+    await bot.delete_message(msg.chat.id, msg.message_id,request_timeout=0)
+    result, reports = await support.process_ip(msg, virustotal.get_vt_info, session)
+    mesg = await msg.answer(text.gen_wait)
+    if result:
+        await mesg.edit_text(reports)
+        await mesg.answer(text.about_check_ip, reply_markup=kb.back_vt)
+    else:
+        await mesg.edit_text(text.err_ip, reply_markup=kb.back_vt)
 
 # Обработчик команды для проверки ip
 @vt_router.message(Command("vt_checkip"))
-async def check_ip_command(msg: Message, state: FSMContext, bot: Bot):
+async def check_ip_command(msg: Message, state: FSMContext, bot: Bot, session: AsyncSession):
     await state.set_state(Gen.vt_ip)
     pattern = r'^/vt_checkip (?:(?:\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3}|[a-zA-Z0-9.-]+\.[a-zA-Z]{2,})(?:\s+|$))+$'
     match = re.match(pattern, msg.text)
     if match:
-        await support.process_ip(msg, virustotal.get_vt_info, text.err_ip, None, None)
+        result, report = await support.process_ip(msg, virustotal.get_vt_info, session)
+        mesg = await msg.answer(text.gen_wait)
+        if result:
+            await mesg.edit_text(report)
+        else:
+            await bot.delete_message(msg.chat.id, msg.message_id,request_timeout=0)
+            await mesg.edit_text(text.err_ip)
     else:
+        await bot.delete_message(msg.chat.id, msg.message_id,request_timeout=0)
         await msg.answer('Не введен ip адрес\n')
     await state.set_state(Gen.start)
 

@@ -66,7 +66,7 @@ def get_domain_info(domain):
 
 def gen_res(ip, attr, lar):
     result = {
-        'verdict': 'False' if lar.get('malicious', 0) + attr.get('total_votes', {}).get('malicious', 0) > 0 else 'True',
+        'verdict': False if lar.get('malicious', 0) + attr.get('total_votes', {}).get('malicious', 0) > 0 else True,
         'ip': ip,
         'network': attr.get('network'),
         'owner': attr.get('as_owner'),

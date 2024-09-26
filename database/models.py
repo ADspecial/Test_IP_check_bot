@@ -6,12 +6,14 @@ from sqlalchemy import (
     Integer,
     String,
     BigInteger,
+    func,
 )
 from sqlalchemy.dialects.postgresql import INET
-from sqlalchemy.ext.declarative import declarative_base
-from sqlalchemy.orm import relationship
+from sqlalchemy.orm import relationship, DeclarativeBase
 
-Base = declarative_base()
+class Base(DeclarativeBase):
+    created = Column(DateTime, default=func.now())
+    updated = Column(DateTime, default=func.now(), onupdate=func.now())
 
 class User(Base):
     __tablename__ = 'users'
@@ -35,10 +37,10 @@ class Address(Base):
     __tablename__ = 'address'
 
     id = Column(Integer, primary_key=True)
-    ipv4 = Column(INET, nullable=True)
-    ipv6 = Column(INET, nullable=True)
+    ipv4 = Column(String(16), nullable=True)
+    ipv6 = Column(String(40), nullable=True)
     dns_name = Column(String(256), nullable=True)
-    block = Column(Boolean)
+    block = Column(Boolean, nullable=True)
     user_id_blocker = Column(Integer, ForeignKey('users.id'), nullable=True)
 
 class Vt_ip(Base):

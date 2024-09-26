@@ -6,24 +6,39 @@ from ipcheckers.format import dict_to_string, format_to_output_dict, listdict_to
 
 from states import Gen
 
+from database.orm_query import orm_add_vt_ipv4
+
+from sqlalchemy.ext.asyncio import AsyncSession
+
 import kb
 import os
 import text
 
-async def process_ip(msg: Message, info_function, error_text, post_text, back_kb):
+from typing import Callable, List, Dict, Union, Tuple
+
+async def process_ip(msg: Message, info_function: Callable[[str], List[Dict[str, Union[str, int]]]], session: AsyncSession) -> Tuple[bool, str]:
+    """
+    Обработка сообщения, содержащего IP-адрес.
+
+    Аргументы:
+        msg: Сообщение, содержащее IP-адрес.
+        info_function: Функция, которая принимает IP-адрес и возвращает список словарей, содержащих информацию об IP.
+
+    Возвращает:
+        Кортеж, где первый элемент - это булево значение, указывающее, была ли функция успешной, а второй элемент - это строка, содержащая результат функции.
+    """
+
     ip = msg.text
-    mesg = await msg.answer(text.gen_wait)
-    res = info_function(ip)
-    if not res:
-        return await mesg.edit_text(error_text, reply_markup=back_kb)
-    if len(res) > 1:
-        answer = listdict_to_string(res)
+    results = info_function(ip)
+    if not results: return False, None
+    for result in results:
+        await orm_add_vt_ipv4(session, result)
+    if len(results) > 1:
+        answer = listdict_to_string(results)
     else:
-        format_dict = format_to_output_dict(res[0])
+        format_dict = format_to_output_dict(results[0])
         answer = dict_to_string(format_dict)
-    await mesg.edit_text(answer)
-    if post_text is not None:
-        await mesg.answer(post_text, reply_markup=back_kb)
+    return True, answer
 
 async def handle_file_request(msg_or_callback: Message | CallbackQuery, state: FSMContext, request_text, back_kb):
     await (msg_or_callback.message.edit_text if isinstance(msg_or_callback, CallbackQuery) else msg_or_callback.answer)(request_text, reply_markup=back_kb)
