@@ -1,12 +1,14 @@
+from itertools import zip_longest
 from aiogram import Bot
 from aiogram.fsm.context import FSMContext
 from aiogram.types import CallbackQuery, Message
 
+from database.orm_query import orm_add_vt_ip, orm_check_ip_in_vt, orm_check_ip_in_vt_updated, orm_get_vt_ip
+
 from ipcheckers.format import dict_to_string, format_to_output_dict, listdict_to_string
+from ipcheckers.valid_ip import extract_and_validate
 
 from states import Gen
-
-from database.orm_query import orm_add_vt_ipv4
 
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -28,15 +30,36 @@ async def process_ip(msg: Message, info_function: Callable[[str], List[Dict[str,
         Кортеж, где первый элемент - это булево значение, указывающее, была ли функция успешной, а второй элемент - это строка, содержащая результат функции.
     """
 
-    ip = msg.text
-    results = info_function(ip)
-    if not results: return False, None
+    ips, dnss = extract_and_validate(msg.text)
+    if not ips and not dnss: return False, None
+    db_ips = []
+    db_dnss = []
+
+    for ip, dns in zip_longest(ips[:], dnss[:]):
+        if ip and await orm_check_ip_in_vt(session, ip):
+            if await orm_check_ip_in_vt_updated(session, ip):
+                ips.remove(ip)
+                data_ip = await orm_get_vt_ip(session, ip)
+                db_ips.append(data_ip)
+        if dns and await orm_check_ip_in_vt(session, dns):
+            if await orm_check_ip_in_vt_updated(session, dns):
+                dnss.remove(dns)
+                data_dns = await orm_get_vt_ip(session, dns)
+                db_dnss.append(data_dns)
+
+    results = await info_function(ips, dnss)
+
+    combined_results = db_ips + db_dnss + results
+
+    if not combined_results: return False, None
+
     for result in results:
-        await orm_add_vt_ipv4(session, result)
-    if len(results) > 1:
-        answer = listdict_to_string(results)
+        await orm_add_vt_ip(session, result)
+
+    if len(combined_results) > 1:
+        answer = listdict_to_string(combined_results)
     else:
-        format_dict = format_to_output_dict(results[0])
+        format_dict = format_to_output_dict(combined_results[0])
         answer = dict_to_string(format_dict)
     return True, answer
 

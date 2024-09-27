@@ -1,3 +1,4 @@
+import datetime
 from sqlalchemy import (
     Boolean,
     Column,
@@ -12,8 +13,8 @@ from sqlalchemy.dialects.postgresql import INET
 from sqlalchemy.orm import relationship, DeclarativeBase
 
 class Base(DeclarativeBase):
-    created = Column(DateTime, default=func.now())
-    updated = Column(DateTime, default=func.now(), onupdate=func.now())
+    created = Column(DateTime, default=datetime.datetime.now)
+    updated = Column(DateTime, default=datetime.datetime.now, onupdate=datetime.datetime.now)
 
 class User(Base):
     __tablename__ = 'users'
@@ -23,6 +24,7 @@ class User(Base):
     last_name = Column(String(32), nullable=True)
     username = Column(String(32), nullable=False)
     history_command = relationship('History', backref='user')
+    blcok_ip = relationship('Address', backref='user')
 
 class History(Base):
     __tablename__ = 'history'
@@ -37,11 +39,10 @@ class Address(Base):
     __tablename__ = 'address'
 
     id = Column(Integer, primary_key=True)
-    ipv4 = Column(String(16), nullable=True)
-    ipv6 = Column(String(40), nullable=True)
-    dns_name = Column(String(256), nullable=True)
+    ip = Column(String(256), nullable=True)
     block = Column(Boolean, nullable=True)
     user_id_blocker = Column(Integer, ForeignKey('users.id'), nullable=True)
+    virustotal = relationship('Vt_ip', backref='Address', uselist=False)
 
 class Vt_ip(Base):
     __tablename__ = 'vt_ip'
@@ -52,6 +53,7 @@ class Vt_ip(Base):
     network = Column(String(20), nullable=True)
     owner = Column(String(255), nullable=True)
     country = Column(String(24), nullable=True)
+    rep_score = Column(Integer, nullable=True)
     vote_malicious = Column(Integer, nullable=True)
     vote_harmless = Column(Integer, nullable=True)
     stat_malicious = Column(Integer, nullable=True)

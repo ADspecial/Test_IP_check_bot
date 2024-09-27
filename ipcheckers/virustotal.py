@@ -3,8 +3,12 @@ import flag
 import urllib.request
 import urllib.parse
 import datetime
+import asyncio
+
 from config.config import KEYS, URLS
 from ipcheckers.valid_ip import extract_and_validate
+from typing import Callable, List, Dict, Union, Tuple
+
 
 def fetch_data(url):
     request = urllib.request.Request(url, headers={'x-apikey': KEYS.VT_KEY})
@@ -25,24 +29,33 @@ def get_associated_domains(ip):
         print(f"Failed to retrieve associated domains for {ip}: {e}")
         return []
 
-def get_vt_info(text_ips):
-    ips, dnss = extract_and_validate(text_ips)
-    if not ips and not dnss:
-        print(f"No valid IPs or domains")
-        return
+async def get_vt_info(
+    ips: List[str], dnss: List[str]
+) -> Tuple[bool, List[Dict[str, Union[str, int, datetime.datetime]]]]:
+    """
+    Получает данные из VirusTotal для заданных IP-адресов и доменов.
 
+    Параметры:
+        ips (List[str]): Список IP-адресов.
+        dnss (List[str]): Список доменных имен.
+
+    Возвращает:
+        Tuple[bool, List[Dict[str, Union[str, int, datetime.datetime]]]]:
+            Кортеж, содержащий булево значение, указывающее на успех,
+            и список словарей, содержащих данные из VirusTotal для каждого
+            IP-адреса и домена.
+    """
     results = []
     ip_info_tasks = [get_ip_info(ip) for ip in ips]
     domain_info_tasks = [get_domain_info(dns) for dns in dnss]
+    all_tasks = ip_info_tasks + domain_info_tasks
+    results = await asyncio.gather(*all_tasks, return_exceptions=True)
+    filtered_results = [
+        result for result in results if not isinstance(result, Exception)
+    ]
+    return filtered_results
 
-    for task in ip_info_tasks + domain_info_tasks:
-        result = task
-        if result:
-            results.append(result)
-
-    return results
-
-def get_ip_info(ip):
+async def get_ip_info(ip):
     url = URLS.API_URL_IP_VT + urllib.parse.quote(ip)
     data = fetch_data(url)
     if not data:
@@ -53,7 +66,7 @@ def get_ip_info(ip):
 
     return gen_res(ip,attributes,last_analysis_stats)
 
-def get_domain_info(domain):
+async def get_domain_info(domain):
     url = URLS.API_URL_DOMAIN_VT + urllib.parse.quote(domain)
     data = fetch_data(url)
     if not data:
