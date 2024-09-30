@@ -6,6 +6,7 @@ import datetime
 import asyncio
 
 from config.config import KEYS, URLS
+from ipcheckers.format import get_country_flag, get_date
 from ipcheckers.valid_ip import extract_and_validate
 from typing import Callable, List, Dict, Union, Tuple
 
@@ -53,7 +54,7 @@ async def get_vt_info(
     filtered_results = [
         result for result in results if not isinstance(result, Exception)
     ]
-    return filtered_results
+    return True, filtered_results
 
 async def get_ip_info(ip):
     url = URLS.API_URL_IP_VT + urllib.parse.quote(ip)
@@ -92,12 +93,3 @@ def gen_res(ip, attr, lar):
         'last_analysis_date': get_date(attr.get('last_analysis_date'))
     }
     return result
-
-def get_country_flag(country_code):
-    if country_code == None:
-        return country_code
-    else:
-        return f"{flag.flag(country_code)} {country_code}"
-
-def get_date(value):
-    return value and datetime.datetime.utcfromtimestamp(value).strftime('%Y-%m-%d %H:%M:%S') or 'None'

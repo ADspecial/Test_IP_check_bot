@@ -5,7 +5,7 @@ from sqlalchemy.future import select
 from sqlalchemy.exc import NoResultFound, IntegrityError
 
 from datetime import datetime, timedelta
-from database.models import Address, History, Vt_ip
+from database.models import Address, History, Vt_ip, Ipi_ip
 
 from typing import Callable, List, Dict, Union, Tuple
 
@@ -188,6 +188,7 @@ async def orm_add_vt_ip(session: AsyncSession, data: dict) -> bool:
                 country=data['country'],
                 vote_malicious=data['stats']['malicious'],
                 vote_harmless=data['stats']['harmless'],
+                rep_score=data['stats']['malicious']/(data['stats']['harmless']+data['stats']['malicious']),
                 stat_malicious=data['stats']['malicious'],
                 stat_suspicious=data['stats']['suspicious'],
                 stat_harmless=data['stats']['harmless'],
@@ -268,3 +269,181 @@ async def orm_add_file_history(session: AsyncSession, message_id: int, file_path
         print(f"Ошибка при добавлении/обновлении данных: {e}")
         await session.rollback()
         return False
+
+async def orm_add_ipi_ip(session: AsyncSession, data: dict) -> bool:
+    """
+    Добавляет или обновляет IP-адрес и связанные данные в таблице Ipi_ip.
+
+    :param session: Асинхронная сессия для работы с базой данных.
+    :param data: Словарь с данными для добавления или обновления.
+    :return: True в случае успешного добавления или обновления, иначе False.
+    """
+    try:
+        # Проверяем, существует ли адрес
+        result = await session.execute(select(Address).where(Address.id == data['address_id']))
+        existing_address = result.scalars().first()
+
+        if existing_address:
+            # Если адрес существует, проверяем, существует ли запись Ipi_ip
+            ipi_ip_result = await session.execute(select(Ipi_ip).where(Ipi_ip.address == existing_address.id))
+            existing_ipi_ip = ipi_ip_result.scalars().first()
+
+            if existing_ipi_ip:
+                # Обновляем существующую запись
+                existing_ipi_ip.country = data.get('country')
+                existing_ipi_ip.region = data.get('region')
+                existing_ipi_ip.city = data.get('city')
+                existing_ipi_ip.org = data.get('org')
+                existing_ipi_ip.loc = data.get('loc')
+                existing_ipi_ip.updated = func.current_timestamp()
+            else:
+                # Если записи Ipi_ip не существует, создаем новую
+                new_ipi_ip = Ipi_ip(
+                    address=existing_address.id,
+                    country=data.get('country'),
+                    region=data.get('region'),
+                    city=data.get('city'),
+                    org=data.get('org'),
+                    loc=data.get('loc')
+                )
+                session.add(new_ipi_ip)
+
+        else:
+            # Если адрес не найден, создаем новый адрес
+            new_address = Address(id=data['ip'])  # Предполагается, что ID передается в data
+            session.add(new_address)
+            await session.commit()  # Сохраняем новый адрес
+
+            # Создаем новую запись Ipi_ip
+            new_ipi_ip = Ipi_ip(
+                address=new_address.id,
+                country=data.get('country'),
+                region=data.get('region'),
+                city=data.get('city'),
+                org=data.get('org'),
+                loc=data.get('loc')
+            )
+            session.add(new_ipi_ip)
+
+        await session.commit()  # Сохраняем изменения
+        return True
+
+    except IntegrityError as e:
+        print(f"Ошибка при добавлении/обновлении IP-адреса {data['address_id']}: {e}")
+        await session.rollback()
+        return False
+    except Exception as e:
+        print(f"Ошибка при добавлении/обновлении данных: {e}")
+        await session.rollback()
+        return False
+
+async def orm_check_ip_in_table(session: AsyncSession, ip_address: str, table_model) -> bool:
+    """
+    Проверяет, существует ли указанный IP-адрес в заданной таблице.
+
+    :param session: Асинхронная сессия для работы с базой данных.
+    :param ip_address: IP-адрес для проверки.
+    :param table_model: Модель таблицы для проверки (например, Vt_ip или Ipi_ip).
+    :return: True, если IP-адрес существует в указанной таблице, иначе False.
+    """
+    try:
+        # Выполняем запрос к таблице Address для получения ID адреса
+        result = await session.execute(select(Address).where(Address.ip == ip_address))
+        existing_address = result.scalars().first()
+
+        # Если адрес не найден, возвращаем False
+        if not existing_address:
+            return False
+
+        # Выполняем запрос к указанной таблице по ID адреса
+        result = await session.execute(select(table_model).where(table_model.address == existing_address.id))
+        existing_record = result.scalars().first()
+
+        # Возвращаем результат проверки
+        return existing_record is not None
+
+    except Exception as e:
+        # Логируем ошибку (можно использовать logging)
+        print(f"Ошибка при проверке IP-адреса {ip_address} в {table_model.__tablename__}: {e}")
+        return False
+
+async def orm_check_ip_in_table_updated(session: AsyncSession, ip_address: str, table_model) -> bool:
+    """
+    Проверяет, существует ли указанный IP-адрес в заданной таблице и обновлён ли он в течение последней недели.
+
+    :param session: Асинхронная сессия для работы с базой данных.
+    :param ip_address: IP-адрес для проверки.
+    :param table_model: Модель таблицы для проверки (например, Vt_ip или Ipi_ip).
+    :return: True, если IP-адрес существует в указанной таблице и был обновлён за последнюю неделю, иначе False.
+    """
+    try:
+        # Выполняем запрос к таблице Address для получения ID адреса
+        result = await session.execute(select(Address).where(Address.ip == ip_address))
+        existing_address = result.scalars().first()
+
+        # Если адрес не найден, возвращаем False
+        if not existing_address:
+            return False
+
+        # Выполняем запрос к указанной таблице по ID адреса
+        result = await session.execute(select(table_model).where(table_model.address == existing_address.id))
+        existing_record = result.scalars().first()
+
+        # Если запись не найдена, возвращаем False
+        if not existing_record:
+            return False
+
+        # Проверяем дату обновления записи
+        if existing_record.updated:
+            current_time = datetime.utcnow()
+            if (current_time - existing_record.updated) <= timedelta(days=7):
+                return True
+
+        return False
+
+    except Exception as e:
+        print(f"Ошибка при проверке IP-адреса {ip_address} в {table_model.__tablename__}: {e}")
+        return False
+
+async def orm_get_ipi_ip_data(session: AsyncSession, ip_address: str) -> Dict[str, any]:
+    """
+    Ищет запись в таблице Ipi_ip по IP-адресу и возвращает данные в виде словаря.
+
+    Аргументы:
+        session (AsyncSession): Асинхронная сессия для работы с базой данных.
+        ip_address (str): IP-адрес для поиска.
+
+    Возвращает:
+        Dict[str, any]: Словарь, содержащий данные из таблицы Ipi_ip, или словарь с одним ключом 'error',
+                        содержащий сообщение об ошибке, если запись не найдена.
+    """
+    try:
+        # Выполняем запрос к таблице Address для получения ID адреса
+        result = await session.execute(select(Address).where(Address.ip == ip_address))
+        address = result.scalars().first()
+
+        if not address:
+            return {'error': 'IP not found in database'}
+
+        # Выполняем запрос к таблице Ipi_ip по ID адреса
+        result = await session.execute(select(Ipi_ip).where(Ipi_ip.address == address.id))
+        ipi_ip_data = result.scalars().first()
+
+        if not ipi_ip_data:
+            return {'error': 'IP not found in Ipi_ip table'}
+
+        # Формируем ответ
+        response = {
+            'ip': ip_address,
+            'country': ipi_ip_data.country,
+            'region': ipi_ip_data.region,
+            'city': ipi_ip_data.city,
+            'org': ipi_ip_data.org,
+            'loc': ipi_ip_data.loc
+        }
+
+        return response
+
+    except Exception as e:
+        print(f"Ошибка при поиске IP-адреса {ip_address} в Ipi_ip: {e}")
+        return {'error': str(e)}

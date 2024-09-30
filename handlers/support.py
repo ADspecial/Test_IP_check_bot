@@ -3,9 +3,10 @@ from aiogram import Bot
 from aiogram.fsm.context import FSMContext
 from aiogram.types import CallbackQuery, Message, ReplyKeyboardMarkup
 
-from database.orm_query import orm_add_file_history, orm_add_vt_ip, orm_check_ip_in_vt, orm_check_ip_in_vt_updated, orm_get_vt_ip
+from database.models import Ipi_ip, Vt_ip
+from database.orm_query import orm_add_file_history, orm_add_vt_ip, orm_check_ip_in_table, orm_check_ip_in_table_updated, orm_check_ip_in_vt, orm_check_ip_in_vt_updated, orm_get_ipi_ip_data, orm_get_vt_ip
 
-from ipcheckers.format import dict_to_string, format_to_output_dict, listdict_to_string
+from ipcheckers.format import dict_to_string, format_to_output_dict_ipi, format_to_output_dict_vt, listdict_to_string, listdict_to_string_vt
 from ipcheckers.valid_ip import extract_and_validate
 
 from states import Gen
@@ -16,7 +17,7 @@ import os
 
 from typing import Callable, List, Dict, Union, Tuple
 
-async def process_db_ip(ips: List[str], dnss: List[str], session: AsyncSession) -> Tuple[List[Dict], List[Dict]]:
+async def process_db_ip(ips: List[str], dnss: List[str], session: AsyncSession, table_model) -> Tuple[List[Dict], List[Dict]]:
     """
     Обработка IP-адресов и DNS, проверка их в базе данных и получение информации.
 
@@ -32,21 +33,22 @@ async def process_db_ip(ips: List[str], dnss: List[str], session: AsyncSession) 
     db_dnss = []
 
     for ip, dns in zip_longest(ips[:], dnss[:]):
-        if ip and await orm_check_ip_in_vt(session, ip):
-            if await orm_check_ip_in_vt_updated(session, ip):
+        if ip and await orm_check_ip_in_table(session, ip, table_model = table_model):
+            if await orm_check_ip_in_table_updated(session, ip, table_model):
                 ips.remove(ip)
-                data_ip = await orm_get_vt_ip(session, ip)
+                if table_model == Vt_ip: data_ip = await orm_get_vt_ip(session, ip)
+                if table_model == Ipi_ip: data_ip = await orm_get_ipi_ip_data(session, ip)
                 db_ips.append(data_ip)
 
-        if dns and await orm_check_ip_in_vt(session, dns):
-            if await orm_check_ip_in_vt_updated(session, dns):
+        if dns and await orm_check_ip_in_table(session, dns, table_model) and table_model == Vt_ip:
+            if await orm_check_ip_in_table_updated(session, dns, table_model):
                 dnss.remove(dns)
                 data_dns = await orm_get_vt_ip(session, dns)
                 db_dnss.append(data_dns)
 
     return db_ips, db_dnss
 
-async def process_ip(msg: Message, info_function: Callable[[str], List[Dict[str, Union[str, int]]]], session: AsyncSession) -> Tuple[bool, str]:
+async def process_ip(msg: Message, info_function: Callable[[str], List[Dict[str, Union[str, int]]]], db_function, format, session: AsyncSession) -> Tuple[bool, str]:
     """
     Обработка сообщения, содержащего IP-адрес.
 
@@ -60,23 +62,30 @@ async def process_ip(msg: Message, info_function: Callable[[str], List[Dict[str,
 
     ips, dnss = extract_and_validate(msg.text)
     if not ips and not dnss: return False, None
-    db_ips, db_dnss = await process_db_ip(ips, dnss, session)
+    db_ips, db_dnss = await process_db_ip(ips, dnss, session, Vt_ip if format == 'vt' else Ipi_ip,)
 
-    results = await info_function(ips, dnss)
+    result, reports = await info_function(ips, dnss)
 
-    combined_results = db_ips + db_dnss + results
+    combined_reports = db_ips + db_dnss + reports
 
-    if not combined_results: return False, None
+    if not combined_reports: return False, None
 
-    for result in results:
-        await orm_add_vt_ip(session, result)
+    for report in reports:
+        await db_function(session, report)
 
-    if len(combined_results) > 1:
-        answer = listdict_to_string(combined_results)
-    else:
-        format_dict = format_to_output_dict(combined_results[0])
-        answer = dict_to_string(format_dict)
+    if format == 'vt':
+        if len(combined_reports) > 1:
+            answer = listdict_to_string_vt(combined_reports)
+        else:
+            format_dict = format_to_output_dict_vt(combined_reports[0])
+            answer = dict_to_string(format_dict)
+    if format == 'ipi':
+        format_reports = []
+        for report in combined_reports:
+            format_reports.append(format_to_output_dict_ipi(report))
+        answer = listdict_to_string(format_reports)
     return True, answer
+
 
 async def handle_file_request(
     msg_or_callback: Message | CallbackQuery, state: FSMContext, request_text: str, back_kb: ReplyKeyboardMarkup
@@ -145,8 +154,8 @@ async def process_document(
         await orm_add_vt_ip(session, result)
 
     if len(combined_results) > 1:
-        answer = listdict_to_string(combined_results)
+        answer = listdict_to_string_vt(combined_results)
     else:
-        format_dict = format_to_output_dict(combined_results[0])
+        format_dict = format_to_output_dict_vt(combined_results[0])
         answer = dict_to_string(format_dict)
     return True, answer

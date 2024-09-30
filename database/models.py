@@ -3,6 +3,7 @@ from sqlalchemy import (
     Boolean,
     Column,
     DateTime,
+    Float,
     ForeignKey,
     Integer,
     String,
@@ -43,6 +44,7 @@ class Address(Base):
     block = Column(Boolean, nullable=True)
     user_id_blocker = Column(Integer, ForeignKey('users.id'), nullable=True)
     virustotal = relationship('Vt_ip', backref='Address', uselist=False)
+    ipinfo = relationship('Ipi_ip', backref='Address', uselist=False)
 
 class Vt_ip(Base):
     __tablename__ = 'vt_ip'
@@ -53,7 +55,7 @@ class Vt_ip(Base):
     network = Column(String(20), nullable=True)
     owner = Column(String(255), nullable=True)
     country = Column(String(24), nullable=True)
-    rep_score = Column(Integer, nullable=True)
+    rep_score = Column(Float, nullable=True)
     vote_malicious = Column(Integer, nullable=True)
     vote_harmless = Column(Integer, nullable=True)
     stat_malicious = Column(Integer, nullable=True)
@@ -61,3 +63,14 @@ class Vt_ip(Base):
     stat_harmless = Column(Integer, nullable=True)
     stat_undetected = Column(Integer, nullable=True)
     last_analysis_date = Column(DateTime, nullable=True)
+
+class Ipi_ip(Base):
+    __tablename__ = 'ipi_ip'
+
+    id = Column(Integer, primary_key=True)
+    address = Column(Integer, ForeignKey('address.id'),  nullable=True)
+    country = Column(String(24), nullable=True)
+    region = Column(String(255), nullable=True)
+    city = Column(String(255), nullable=True)
+    org = Column(String(255), nullable=True)
+    loc = Column(String(255), nullable=True)

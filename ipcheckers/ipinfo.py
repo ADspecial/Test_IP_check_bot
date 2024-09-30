@@ -1,8 +1,11 @@
 import ipinfo
 import flag
+import datetime
 
 from config.config import KEYS
 from ipcheckers.valid_ip import extract_and_validate
+
+from typing import List, Dict, Union, Tuple
 
 def format_dict(data):
     formatted_string = "🌐"
@@ -22,18 +25,21 @@ def format_dict(data):
 
     return formatted_string.strip()
 
-def get_info(text_ips: str):
-    ips, dnss = extract_and_validate(text_ips)
-    if not ips:
-        return f"No valid IPs"
-    else:
-        try:
-            results = []
-            handler = ipinfo.getHandler(KEYS.GEOIP_KEY)
-            for ip in ips:
-                details = handler.getDetails(ip)
-                results.append(format_dict(details.all))
-            return '\n'.join(results)
-        except Exception as e:
-            print(e)
-            return  f"bruh, it's looks like a error\n"
+async def get_ipi_info(
+    ips: List[str], dnss: List[str]
+    ) -> Tuple[bool, List[Dict[str, Union[str, int, datetime.datetime]]]]:
+    """
+    Получает информацию об IP-адресе из ipinfo.io
+
+    Аргументы:
+        ips (List[str]): Список IP-адресов
+
+    Возвращает:
+        Tuple[bool, List[Dict[str, Union[str, int, datetime.datetime]]]]: Кортеж, содержащий флаг успеха и список словарей с информацией об IP-адресе
+    """
+    try:
+        handler = ipinfo.getHandler(KEYS.GEOIP_KEY)
+        return True, [handler.getDetails(ip).all for ip in ips]
+    except Exception as e:
+        print(e)
+        return  False, None

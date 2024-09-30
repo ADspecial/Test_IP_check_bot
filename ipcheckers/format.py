@@ -1,4 +1,7 @@
+import datetime
 from typing import Dict, Any, List
+
+import flag
 
 def dict_to_string(data: Dict[str, Any], indent: int = 0) -> str:
     """
@@ -20,7 +23,7 @@ def dict_to_string(data: Dict[str, Any], indent: int = 0) -> str:
                 for line in dict_to_string(value, indent + 2).splitlines())
     return "\n".join(lines)
 
-def listdict_to_string(data_list: List[Dict[str, Any]]) -> str:
+def listdict_to_string_vt(data_list: List[Dict[str, Any]]) -> str:
     """
     Convert a list of dictionaries to a string representation.
 
@@ -33,7 +36,7 @@ def listdict_to_string(data_list: List[Dict[str, Any]]) -> str:
     return "\n".join(dict_summary(data) for data in data_list)
 
 def dict_summary(data):
-    verdict = data['verdict']
+    verdict = '✅' if data['verdict'] else '❌'
     ip = data['ip']
     country = data['country']
     stats = data['stats']
@@ -43,11 +46,11 @@ def dict_summary(data):
     harmless_count = stats.get('harmless', 0)
     undetected_count = stats.get('undetected', 0)
 
-    summary = f"{verdict} IP: {ip} | Country: {country} \n 🔴 Malicious: {malicious_count} \n 🟢 Harmless: {harmless_count} \n 🟡 Suspicious: {suspicious_count} \n ⚫️ Undetected: {undetected_count} \n ================ "
+    summary = f"{verdict} IP: {ip} | Country: {country} \nMalicious: {malicious_count} \nHarmless: {harmless_count} \nSuspicious: {suspicious_count} \nUndetected: {undetected_count} \n ================ "
 
     return summary
 
-def format_to_output_dict(data):
+def format_to_output_dict_vt(data):
     votes = data['users_votes']
     stats = data['stats']
     output = {
@@ -67,3 +70,70 @@ def format_to_output_dict(data):
         'last_analysis_date': data['last_analysis_date']
     }
     return output
+
+from typing import Dict
+
+def format_to_output_dict_ipi(data: Dict[str, str]) -> Dict[str, str]:
+    """
+    Format a dictionary from ipinfo to a dictionary with the keys formatted for output.
+
+    Args:
+        data: A dictionary with the keys 'ip', 'country', 'region', 'city', 'org', and 'loc'.
+            The values for these keys are strings.
+
+    Returns:
+        A dictionary with the same keys as the input, but with the values formatted for output.
+    """
+    output = {
+        'header': '🌐',
+        'ip': data['ip'],
+        'country': get_country_flag(data['country']),
+        'region': data['region'],
+        'city': data['city'],
+        'org': data['org'],
+        'loc': data['loc'],
+    }
+    return output
+
+
+def listdict_to_string(data: List[Dict[str, str]]) -> str:
+    """
+    Преобразует список словарей в строку.
+
+    Аргументы:
+        data: Список словарей для преобразования. Каждый словарь должен иметь строковые ключи и значения.
+
+    Возвращает:
+        Строку, представляющую список словарей.
+    """
+    if not data:
+        return "Нет данных"
+
+    formatted_entries: List[str] = []
+
+    for entry in data:
+        # Проверяем наличие ключа 'header'
+        header = entry.get('header', None)
+
+        if header:
+            # Если ключ 'header' существует, добавляем его значение
+            formatted_entry = f"{header}\n" + '\n'.join(f"{key}: {value}" for key, value in entry.items() if key != 'header')
+        else:
+            # Если ключа 'header' нет, просто добавляем стандартный формат
+            formatted_entry = "\n" + '\n'.join(f"{key}: {value}" for key, value in entry.items())
+
+        formatted_entries.append(formatted_entry)
+
+    # Объединяем все записи с разделителем
+    result = '\n================\n'.join(formatted_entries)
+    return result
+
+
+def get_country_flag(country_code):
+    if country_code == None:
+        return country_code
+    else:
+        return f"{flag.flag(country_code)} {country_code}"
+
+def get_date(value):
+    return value and datetime.datetime.utcfromtimestamp(value).strftime('%Y-%m-%d %H:%M:%S') or 'None'

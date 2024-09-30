@@ -15,6 +15,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 import kb
 import re
 import text
+import database.orm_query as orm_query
 
 vt_router = Router()
 
@@ -28,7 +29,7 @@ async def input_about_ip(clbck: CallbackQuery, state: FSMContext):
 async def check_single_ip(msg: Message, bot: Bot, session: AsyncSession):
     await bot.delete_message(msg.chat.id, msg.message_id-1,request_timeout=0)
     await bot.delete_message(msg.chat.id, msg.message_id,request_timeout=0)
-    result, reports = await support.process_ip(msg, virustotal.get_vt_info, session)
+    result, reports = await support.process_ip(msg, virustotal.get_vt_info, orm_query.orm_add_vt_ip, 'vt', session)
     mesg = await msg.answer(text.gen_wait)
     if result:
         await mesg.edit_text(reports)
@@ -43,7 +44,7 @@ async def check_ip_command(msg: Message, state: FSMContext, bot: Bot, session: A
     pattern = r'^/vt_checkip (?:(?:\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3}|[a-zA-Z0-9.-]+\.[a-zA-Z]{2,})(?:\s+|$))+$'
     match = re.match(pattern, msg.text)
     if match:
-        result, report = await support.process_ip(msg, virustotal.get_vt_info, session)
+        result, report = await support.process_ip(msg, virustotal.get_vt_info, orm_query.orm_add_vt_ip, 'vt', session)
         mesg = await msg.answer(text.gen_wait)
         if result:
             await mesg.edit_text(report)
