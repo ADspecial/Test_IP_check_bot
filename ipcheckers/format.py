@@ -1,4 +1,4 @@
-from typing import Dict, Any, List, Union
+from typing import Dict, Any, List
 
 def dict_to_string(data: Dict[str, Any], indent: int = 0) -> str:
     """
@@ -46,6 +46,7 @@ def dict_summary(data):
     summary = f"{verdict} IP: {ip} | Country: {country} \n 🔴 Malicious: {malicious_count} \n 🟢 Harmless: {harmless_count} \n 🟡 Suspicious: {suspicious_count} \n ⚫️ Undetected: {undetected_count} \n ================ "
 
     return summary
+
 def format_to_output_dict(data):
     votes = data['users_votes']
     stats = data['stats']

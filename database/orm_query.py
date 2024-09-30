@@ -1,12 +1,11 @@
 
-from sqlalchemy import Column
+from sqlalchemy import Column, func
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.future import select
-from sqlalchemy.dialects.postgresql import INET
 from sqlalchemy.exc import NoResultFound, IntegrityError
 
 from datetime import datetime, timedelta
-from database.models import Address, Vt_ip
+from database.models import Address, History, Vt_ip
 
 from typing import Callable, List, Dict, Union, Tuple
 
@@ -86,7 +85,6 @@ async def orm_check_ip_in_vt_updated(session: AsyncSession, ip_address: str) -> 
         print(f"Ошибка при проверке IP-адреса {ip_address} в Vt_ip: {e}")
         return False
 
-
 async def orm_get_vt_ip(session: AsyncSession, ip_address: str) -> Dict[str, any]:
     """
     Ищет запись в таблице Vt_ip по IP-адресу.
@@ -158,7 +156,8 @@ async def orm_add_vt_ip(session: AsyncSession, data: dict) -> bool:
                 existing_vt_ip.stat_harmless = data['stats']['harmless']
                 existing_vt_ip.stat_undetected = data['stats']['undetected']
                 existing_vt_ip.last_analysis_date = datetime.strptime(data['last_analysis_date'], '%Y-%m-%d %H:%M:%S')
-                existing_vt_ip.updated = datetime.datetime.now()
+                existing_vt_ip.updated = func.current_timestamp()
+                #update(session, Vt_ip, existing_vt_ip)
             else:
                 # Если записи Vt_ip не существует, создаем новую
                 new_vt_ip = Vt_ip(
@@ -241,5 +240,31 @@ async def orm_delete_vt_ip(session: AsyncSession, ip_address: str) -> bool:
 
     except Exception as e:
         print(f"Ошибка при удалении данных: {e}")
+        await session.rollback()
+        return False
+
+async def orm_add_file_history(session: AsyncSession, message_id: int, file_path: str) -> bool:
+    """
+    Сохранение пути к файлу в таблицу history.
+
+    Аргументы:
+        session: Асинхронная сессия для работы с базой данных.
+        user_id: ID пользователя.
+        chat_id: ID чата.
+        message_id: ID сообщения.
+        file_path: Путь к файлу, который нужно сохранить.
+    """
+    try:
+        result = await session.execute(select(History).where(History.message_id == message_id))
+        existing_history = result.scalars().first()
+        if existing_history:
+            existing_history.message = '__data file__'
+            existing_history.file_path = file_path
+            await session.commit()
+            return True
+        else:
+            return False
+    except Exception as e:
+        print(f"Ошибка при добавлении/обновлении данных: {e}")
         await session.rollback()
         return False

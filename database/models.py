@@ -14,7 +14,7 @@ from sqlalchemy.orm import relationship, DeclarativeBase
 
 class Base(DeclarativeBase):
     created = Column(DateTime, default=datetime.datetime.now)
-    updated = Column(DateTime, default=datetime.datetime.now, onupdate=datetime.datetime.now)
+    updated = Column(DateTime, default=func.current_timestamp(), onupdate=func.current_timestamp())
 
 class User(Base):
     __tablename__ = 'users'
@@ -29,11 +29,11 @@ class User(Base):
 class History(Base):
     __tablename__ = 'history'
 
-    id = Column(Integer, primary_key=True)
+    message_id= Column(Integer, primary_key=True)
     chat_id = Column(BigInteger, nullable=True)
     user_id = Column(Integer, ForeignKey('users.id'))
-    message_id = Column(Integer, nullable=True)
     message = Column(String(4096), nullable=True)
+    file_path = Column(String(255), nullable=True)
 
 class Address(Base):
     __tablename__ = 'address'

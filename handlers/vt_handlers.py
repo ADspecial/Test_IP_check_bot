@@ -66,10 +66,17 @@ async def get_file(msg_or_callback: Message | CallbackQuery, state: FSMContext, 
 
 @vt_router.message(Gen.vt_file)
 @flags.chat_action("typing")
-async def handle_document(msg: Message, bot: Bot, state: FSMContext):
+async def handle_document(msg: Message, bot: Bot, state: FSMContext, session: AsyncSession):
     await bot.delete_message(msg.chat.id, msg.message_id-1,request_timeout=0)
-    await bot.delete_message(msg.chat.id, msg.message_id,request_timeout=0)
-    await support.process_document(msg, bot, state, virustotal.get_vt_info, text.err_ip, text.send_text_file, kb.back_vt)
+    if msg.document.mime_type != 'text/plain':
+        await msg.answer("Пожалуйста, отправьте текстовый файл (.txt).", reply_markup=kb.iexit_kb)
+    else:
+        await bot.delete_message(msg.chat.id, msg.message_id,request_timeout=0)
+        mesg = await msg.answer(text.gen_wait)
+        result, report = await support.process_document(msg, bot, virustotal.get_vt_info, session)
+        if result:
+            await mesg.edit_text(report)
+            await mesg.answer(text.send_text_file, reply_markup=kb.back_vt)
 
 # Обработчик команды для получения файла
 @vt_router.message(Command("vt_checkipfile"))
@@ -80,7 +87,13 @@ async def command_get_file(msg: Message, state: FSMContext, bot: Bot):
 
 @vt_router.message(Gen.vt_file_command)
 @flags.chat_action("typing")
-async def handle_document(msg: Message, bot: Bot, state: FSMContext):
+async def handle_document(msg: Message, bot: Bot, state: FSMContext, session: AsyncSession):
     await bot.delete_message(msg.chat.id, msg.message_id-1,request_timeout=0)
-    await bot.delete_message(msg.chat.id, msg.message_id,request_timeout=0)
-    await support.process_document(msg, bot, state, virustotal.get_vt_info, text.err_ip, None, None)
+    if msg.document.mime_type != 'text/plain':
+        await msg.answer("Пожалуйста, отправьте текстовый файл (.txt).")
+    else:
+        await bot.delete_message(msg.chat.id, msg.message_id,request_timeout=0)
+        mesg = await msg.answer(text.gen_wait)
+        result, report = await support.process_document(msg, bot, virustotal.get_vt_info, session)
+    if result:
+        await mesg.edit_text(report)

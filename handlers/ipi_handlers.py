@@ -6,7 +6,7 @@ from aiogram.fsm.context import FSMContext
 from states import Gen
 from ipcheckers.ipinfo import get_info
 
-from handlers.support import process_ip, handle_last_message_deletion, process_document, handle_file_request
+from handlers.support import process_ip
 
 
 import kb
@@ -25,5 +25,4 @@ async def input_about_ip(clbck: CallbackQuery, state: FSMContext):
 @ipi_router.message(Gen.ipi_ip)
 @flags.chat_action("typing")
 async def check_single_ip(msg: Message, bot: Bot, state: FSMContext):
-    await handle_last_message_deletion(msg, bot, state)
     await process_ip(msg, get_info, text.err_ip, text.about_check_ip, kb.back_vt)

@@ -34,9 +34,9 @@ class LogMessageMiddleware(BaseMiddleware):
             await session.commit()
 
         chat_message = History(
+            message_id=msg.message_id,
             user_id=msg.from_user.id,
             chat_id=msg.chat.id,
-            message_id=msg.message_id,
             message=msg.text
         )
         session.add(chat_message)
