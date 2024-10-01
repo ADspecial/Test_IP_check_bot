@@ -17,3 +17,5 @@ class Gen(StatesGroup):
     vt_retry_file = State()
     ipi_ip = State()
     ipi_file = State()
+    ipi_retry_file = State()
+    ipi_file_command = State()

@@ -26,10 +26,10 @@ async def input_about_ip(clbck: CallbackQuery, state: FSMContext):
 
 @vt_router.message(Gen.vt_ip)
 @flags.chat_action("typing")
-async def check_single_ip(msg: Message, bot: Bot, session: AsyncSession):
+async def check_single_ip(msg: Message, bot: Bot, state: FSMContext, session: AsyncSession):
     await bot.delete_message(msg.chat.id, msg.message_id-1,request_timeout=0)
     await bot.delete_message(msg.chat.id, msg.message_id,request_timeout=0)
-    result, reports = await support.process_ip(msg, virustotal.get_vt_info, orm_query.orm_add_vt_ip, 'vt', session)
+    result, reports = await support.process_ip(msg, virustotal.get_vt_info, orm_query.orm_add_vt_ip, state, session)
     mesg = await msg.answer(text.gen_wait)
     if result:
         await mesg.edit_text(reports)
@@ -44,7 +44,7 @@ async def check_ip_command(msg: Message, state: FSMContext, bot: Bot, session: A
     pattern = r'^/vt_checkip (?:(?:\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3}|[a-zA-Z0-9.-]+\.[a-zA-Z]{2,})(?:\s+|$))+$'
     match = re.match(pattern, msg.text)
     if match:
-        result, report = await support.process_ip(msg, virustotal.get_vt_info, orm_query.orm_add_vt_ip, 'vt', session)
+        result, report = await support.process_ip(msg, virustotal.get_vt_info, orm_query.orm_add_vt_ip, state, session)
         mesg = await msg.answer(text.gen_wait)
         if result:
             await mesg.edit_text(report)
@@ -57,34 +57,27 @@ async def check_ip_command(msg: Message, state: FSMContext, bot: Bot, session: A
     await state.set_state(Gen.start)
 
 @vt_router.callback_query(F.data == "vt_file")
-@vt_router.message(Gen.vt_retry_file)
-async def get_file(msg_or_callback: Message | CallbackQuery, state: FSMContext, bot: Bot):
-    await support.handle_file_request(msg_or_callback, state, text.send_text_file, kb.back_vt)
-    if isinstance(msg_or_callback, CallbackQuery):
-        await state.update_data(last_message_id=msg_or_callback.message.message_id)
-    else:
-        await state.update_data(last_message_id=msg_or_callback.message_id)
+@vt_router.message(Command("vt_checkipfile"))
+async def get_file(msg_or_callback: Message | CallbackQuery, state: FSMContext):
+    await support.handle_file_request(msg_or_callback, state, text.send_text_file, kb.back_vt, Gen.vt_file, Gen.vt_file_command)
 
 @vt_router.message(Gen.vt_file)
 @flags.chat_action("typing")
-async def handle_document(msg: Message, bot: Bot, state: FSMContext, session: AsyncSession):
+async def handle_document(msg: Message,  bot: Bot, state: FSMContext, session: AsyncSession):
+    if not msg.document:
+        await msg.answer("Пожалуйста, отправьте текстовый файл (.txt).", reply_markup=kb.back_vt)
+        return
     await bot.delete_message(msg.chat.id, msg.message_id-1,request_timeout=0)
     if msg.document.mime_type != 'text/plain':
         await msg.answer("Пожалуйста, отправьте текстовый файл (.txt).", reply_markup=kb.iexit_kb)
     else:
         await bot.delete_message(msg.chat.id, msg.message_id,request_timeout=0)
         mesg = await msg.answer(text.gen_wait)
-        result, report = await support.process_document(msg, bot, virustotal.get_vt_info, session)
+        result, report = await support.process_document(msg, bot, virustotal.get_vt_info, orm_query.orm_add_vt_ip, state, session)
         if result:
             await mesg.edit_text(report)
-            await mesg.answer(text.send_text_file, reply_markup=kb.back_vt)
-
-# Обработчик команды для получения файла
-@vt_router.message(Command("vt_checkipfile"))
-async def command_get_file(msg: Message, state: FSMContext, bot: Bot):
-    await support.handle_file_request(msg, state, text.send_text_file, kb.back_vt)
-    await state.update_data(last_message_id=msg.message_id)
-
+            await msg.answer(text.send_text_file, reply_markup=kb.back_vt)
+    await state.set_state(Gen.vt_file)
 
 @vt_router.message(Gen.vt_file_command)
 @flags.chat_action("typing")
@@ -95,6 +88,7 @@ async def handle_document(msg: Message, bot: Bot, state: FSMContext, session: As
     else:
         await bot.delete_message(msg.chat.id, msg.message_id,request_timeout=0)
         mesg = await msg.answer(text.gen_wait)
-        result, report = await support.process_document(msg, bot, virustotal.get_vt_info, session)
+        result, report = await support.process_document(msg, bot, virustotal.get_vt_info, orm_query.orm_add_vt_ip, state, session)
     if result:
         await mesg.edit_text(report)
+    await state.set_state(Gen.start)

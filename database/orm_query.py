@@ -161,6 +161,7 @@ async def orm_add_vt_ip(session: AsyncSession, data: dict) -> bool:
             else:
                 # Если записи Vt_ip не существует, создаем новую
                 new_vt_ip = Vt_ip(
+                    address=existing_address.id,
                     verdict=data['verdict'],
                     network=data['network'],
                     owner=data['owner'],
@@ -280,7 +281,7 @@ async def orm_add_ipi_ip(session: AsyncSession, data: dict) -> bool:
     """
     try:
         # Проверяем, существует ли адрес
-        result = await session.execute(select(Address).where(Address.id == data['address_id']))
+        result = await session.execute(select(Address).where(Address.ip == data['ip']))
         existing_address = result.scalars().first()
 
         if existing_address:
@@ -310,7 +311,7 @@ async def orm_add_ipi_ip(session: AsyncSession, data: dict) -> bool:
 
         else:
             # Если адрес не найден, создаем новый адрес
-            new_address = Address(id=data['ip'])  # Предполагается, что ID передается в data
+            new_address = Address(ip=data['ip'])  # Предполагается, что ID передается в data
             session.add(new_address)
             await session.commit()  # Сохраняем новый адрес
 

@@ -48,7 +48,7 @@ async def process_db_ip(ips: List[str], dnss: List[str], session: AsyncSession, 
 
     return db_ips, db_dnss
 
-async def process_ip(msg: Message, info_function: Callable[[str], List[Dict[str, Union[str, int]]]], db_function, format, session: AsyncSession) -> Tuple[bool, str]:
+async def process_ip(msg: Message, info_function: Callable[[str], List[Dict[str, Union[str, int]]]], db_function, state: FSMContext, session: AsyncSession) -> Tuple[bool, str]:
     """
     Обработка сообщения, содержащего IP-адрес.
 
@@ -59,10 +59,11 @@ async def process_ip(msg: Message, info_function: Callable[[str], List[Dict[str,
     Возвращает:
         Кортеж, где первый элемент - это булево значение, указывающее, была ли функция успешной, а второй элемент - это строка, содержащая результат функции.
     """
+    current_state = await state.get_state()
 
     ips, dnss = extract_and_validate(msg.text)
     if not ips and not dnss: return False, None
-    db_ips, db_dnss = await process_db_ip(ips, dnss, session, Vt_ip if format == 'vt' else Ipi_ip,)
+    db_ips, db_dnss = await process_db_ip(ips, dnss, session, Vt_ip if current_state == Gen.vt_ip else Ipi_ip,)
 
     result, reports = await info_function(ips, dnss)
 
@@ -73,13 +74,13 @@ async def process_ip(msg: Message, info_function: Callable[[str], List[Dict[str,
     for report in reports:
         await db_function(session, report)
 
-    if format == 'vt':
+    if current_state == Gen.vt_ip:
         if len(combined_reports) > 1:
             answer = listdict_to_string_vt(combined_reports)
         else:
             format_dict = format_to_output_dict_vt(combined_reports[0])
             answer = dict_to_string(format_dict)
-    if format == 'ipi':
+    if current_state == Gen.ipi_ip:
         format_reports = []
         for report in combined_reports:
             format_reports.append(format_to_output_dict_ipi(report))
@@ -88,7 +89,7 @@ async def process_ip(msg: Message, info_function: Callable[[str], List[Dict[str,
 
 
 async def handle_file_request(
-    msg_or_callback: Message | CallbackQuery, state: FSMContext, request_text: str, back_kb: ReplyKeyboardMarkup
+    msg_or_callback: Message | CallbackQuery, state: FSMContext, request_text: str, back_kb: ReplyKeyboardMarkup, gen_state_inline: Gen, gen_state_command: Gen
 ) -> None:
     """
     Обработка запроса файла, путем редактирования сообщения или ответа на колбэк, с текстом запроса и установкой состояния Gen.vt_file или Gen.vt_file_command.
@@ -100,10 +101,10 @@ async def handle_file_request(
         back_kb: Маркап reply keyboard для использования.
     """
     await (msg_or_callback.message.edit_text if isinstance(msg_or_callback, CallbackQuery) else msg_or_callback.answer)(request_text, reply_markup=back_kb)
-    await state.set_state(Gen.vt_file if isinstance(msg_or_callback, CallbackQuery) else Gen.vt_file_command)
+    await state.set_state(gen_state_inline if isinstance(msg_or_callback, CallbackQuery) else gen_state_command)
 
 async def process_document(
-    msg: Message, bot: Bot, info_function: Callable[[List[str], List[str]], List[Dict[str, Union[str, int]]]], session: AsyncSession
+    msg: Message, bot: Bot, info_function: Callable[[List[str], List[str]], List[Dict[str, Union[str, int]]]], db_function, state: FSMContext, session: AsyncSession
 ) -> Tuple[bool, str]:
     """
     Обработка сообщения, содержащего документ, с извлечением IP-адресов и DNS-имен и обработкой их с помощью указанной функции.
@@ -117,16 +118,17 @@ async def process_document(
     Возвращает:
         Кортеж, где первый элемент - это булево значение, указывающее, была ли функция успешной, а второй элемент - это строка, содержащая результат функции.
     """
+    current_state = await state.get_state()
     file_id = msg.document.file_id
     file = await bot.get_file(file_id)
 
     print(msg.from_user.id,msg.document.file_id, msg.chat.id, msg.message_id)
 
-    os.makedirs('data/vt', exist_ok=True)
+    os.makedirs(f'data/{current_state[4:]}', exist_ok=True)
 
     increment = 1
     while True:
-        file_name = f'data/vt/ip{increment}.txt'
+        file_name = f'data/{current_state[4:]}/ip{increment}.txt'
         if not os.path.exists(file_name):
             break
         increment += 1
@@ -142,20 +144,26 @@ async def process_document(
         os.remove(file_name)
         return False, None
 
-    db_ips, db_dnss = await process_db_ip(ips, dnss, session)
+    db_ips, db_dnss = await process_db_ip(ips, dnss, session, Vt_ip if current_state == Gen.vt_file or current_state == Gen.vt_file_command else Ipi_ip,)
 
-    results = await info_function(ips, dnss)
+    result, reports = await info_function(ips, dnss)
 
-    combined_results = db_ips + db_dnss + results
+    combined_reports  = db_ips + db_dnss + reports
 
-    if not combined_results: return False, None
+    if not combined_reports : return False, None
 
-    for result in results:
-        await orm_add_vt_ip(session, result)
+    for report in reports:
+        await db_function(session, report)
 
-    if len(combined_results) > 1:
-        answer = listdict_to_string_vt(combined_results)
-    else:
-        format_dict = format_to_output_dict_vt(combined_results[0])
-        answer = dict_to_string(format_dict)
+    if current_state == Gen.vt_file or current_state == Gen.vt_file_command:
+        if len(combined_reports) > 1:
+            answer = listdict_to_string_vt(combined_reports)
+        else:
+            format_dict = format_to_output_dict_vt(combined_reports[0])
+            answer = dict_to_string(format_dict)
+    if current_state == Gen.ipi_file or current_state == Gen.ipi_file_command:
+        format_reports = []
+        for report in combined_reports:
+            format_reports.append(format_to_output_dict_ipi(report))
+        answer = listdict_to_string(format_reports)
     return True, answer

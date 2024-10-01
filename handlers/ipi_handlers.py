@@ -29,10 +29,10 @@ async def input_about_ip(clbck: CallbackQuery, state: FSMContext):
 
 @ipi_router.message(Gen.ipi_ip)
 @flags.chat_action("typing")
-async def check_single_ip(msg: Message, bot: Bot, session: AsyncSession):
+async def check_single_ip(msg: Message, bot: Bot, state: FSMContext, session: AsyncSession):
     await bot.delete_message(msg.chat.id, msg.message_id-1,request_timeout=0)
     await bot.delete_message(msg.chat.id, msg.message_id,request_timeout=0)
-    result, reports = await support.process_ip(msg, ipinfo.get_ipi_info, orm_query.orm_add_ipi_ip, 'ipi', session)
+    result, reports = await support.process_ip(msg, ipinfo.get_ipi_info, orm_query.orm_add_ipi_ip, state, session)
     mesg = await msg.answer(text.gen_wait)
     if result:
         await mesg.edit_text(reports)
@@ -46,7 +46,7 @@ async def check_ip_command(msg: Message, state: FSMContext, bot: Bot, session: A
     pattern = r'^/ipi_checkip (?:(?:25[0-5]|2[0-4][0-9]|1[0-9][0-9]|[1-9]?[0-9])\.(?:25[0-5]|2[0-4][0-9]|1[0-9][0-9]|[1-9]?[0-9])\.(?:25[0-5]|2[0-4][0-9]|1[0-9][0-9]|[1-9]?[0-9])\.(?:25[0-5]|2[0-4][0-9]|1[0-9][0-9]|[1-9]?[0-9])(?:\s+|$))+$'
     match = re.match(pattern, msg.text)
     if match:
-        result, report = await support.process_ip(msg, ipinfo.get_ipi_info, orm_query.orm_add_ipi_ip, 'ipi', session)
+        result, report = await support.process_ip(msg, ipinfo.get_ipi_info, orm_query.orm_add_ipi_ip, state, session)
         mesg = await msg.answer(text.gen_wait)
         if result:
             await mesg.edit_text(report)
@@ -56,4 +56,41 @@ async def check_ip_command(msg: Message, state: FSMContext, bot: Bot, session: A
     else:
         await bot.delete_message(msg.chat.id, msg.message_id,request_timeout=0)
         await msg.answer('Не введен ip адрес\n')
+    await state.set_state(Gen.start)
+
+@ipi_router.callback_query(F.data == "ipi_file")
+@ipi_router.message(Command("ipi_checkipfile"))
+async def get_file(msg_or_callback: Message | CallbackQuery, state: FSMContext):
+    await support.handle_file_request(msg_or_callback, state, text.send_text_file, kb.back_ipinfo, Gen.ipi_file, Gen.ipi_file_command)
+
+@ipi_router.message(Gen.ipi_file)
+@flags.chat_action("typing")
+async def handle_document(msg: Message, bot: Bot, state: FSMContext, session: AsyncSession):
+    if not msg.document:
+        await msg.answer("Пожалуйста, отправьте текстовый файл (.txt).", reply_markup=kb.back_ipinfo)
+        return
+    await bot.delete_message(msg.chat.id, msg.message_id-1,request_timeout=0)
+    if msg.document.mime_type != 'text/plain':
+        await msg.answer("Пожалуйста, отправьте текстовый файл (.txt).", reply_markup=kb.iexit_kb)
+    else:
+        await bot.delete_message(msg.chat.id, msg.message_id,request_timeout=0)
+        mesg = await msg.answer(text.gen_wait)
+        result, report = await support.process_document(msg, bot, ipinfo.get_ipi_info, orm_query.orm_add_ipi_ip, state, session)
+        if result:
+            await mesg.edit_text(report)
+            await msg.answer(text.send_text_file, reply_markup=kb.back_ipinfo)
+    await state.set_state(Gen.ipi_file)
+
+@ipi_router.message(Gen.ipi_file_command)
+@flags.chat_action("typing")
+async def handle_document(msg: Message, bot: Bot, state: FSMContext, session: AsyncSession):
+    await bot.delete_message(msg.chat.id, msg.message_id-1,request_timeout=0)
+    if msg.document.mime_type != 'text/plain':
+        await msg.answer("Пожалуйста, отправьте текстовый файл (.txt).")
+    else:
+        await bot.delete_message(msg.chat.id, msg.message_id,request_timeout=0)
+        mesg = await msg.answer(text.gen_wait)
+        result, report = await support.process_document(msg, bot, ipinfo.get_ipi_info, orm_query.orm_add_ipi_ip, state, session)
+    if result:
+        await mesg.edit_text(report)
     await state.set_state(Gen.start)
