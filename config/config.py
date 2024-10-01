@@ -9,11 +9,13 @@ class KEYS:
     VT_KEY: str = os.getenv("API_KEY_VT")
     GEOIP_KEY: str = os.getenv("API_GEOIP_KEY")
     KS_KEY: str = os.getenv("API_KASPERSKY_KEY")
+    ABUSEIPDB_KEY: str = os.getenv("API_ABUSEIPDB_KEY")
 
 
 class URLS:
     API_URL_IP_VT: str = os.getenv("API_URL_IP_VT")
     API_URL_DOMAIN_VT: str = os.getenv("API_URL_DOMAIN_VT")
+    API_URL_ABUSEIPDB: str = os.getenv("API_URL_ABUSEIPDB")
 
 class DB:
     url: str = os.getenv("DB_URL")

@@ -1,34 +1,72 @@
 import requests
-
 import json
+import urllib.parse
+import asyncio
 
-from ipaddress import ip_address
-
+from config.config import KEYS, URLS
 from datetime import datetime
-
-from geo_ip import get_geo_response
-
-from config import settings
+from typing import Callable, List, Dict, Union, Tuple
 
 
-url = 'https://api.abuseipdb.com/api/v2/check'
-
-
-def make_request_abuse(ip_address: ip_address):
+async def make_request_abuse(ip):
     querystring = {
-        'ipAddress': ip_address,
+        'ipAddress': ip,
         'maxAgeInDays': '90'
     }
     headers = {
         'Accept': 'application/json',
-        'Key': settings.ABUSEIPDB_KEY
+        'Key': KEYS.ABUSEIPDB_KEY
     }
-    response = requests.request(method='GET', url=url, headers=headers, params=querystring)
-    return json.loads(response.text)['data']
+    response = requests.request(method='GET', url=URLS.API_URL_ABUSEIPDB, headers=headers, params=querystring)
+    return gen_res(json.loads(response.text)['data'])
 
-# print(make_request("185.138.131.234"))
+async def get_abuseipdb_info(
+    ips: List[str]
+) -> Tuple[bool, List[Dict[str, Union[str, int]]]]:
+    """
+    Получает данные из AbuseIPDB для заданных IP-адресов и доменов.
 
-# print (json.dumps(decodedResponse, sort_keys=True, indent=4)) # - pretty output
+    Параметры:
+        ips (List[str]): Список IP-адресов.
+        dnss (List[str]): Список доменных имен.
+
+    Возвращает:
+        Tuple[bool, List[Dict[str, Union[str, int, datetime.datetime]]]]:
+            Кортеж, содержащий булево значение, указывающее на успех,
+            и список словарей, содержащих данные из AbuseIPDB для каждого
+            IP-адреса и домена.
+    """
+    results = []
+    ip_info_tasks = [make_request_abuse(ip) for ip in ips]
+    results = await asyncio.gather(*ip_info_tasks, return_exceptions=True)
+    filtered_results = [
+        result for result in results if not isinstance(result, Exception)
+    ]
+    return True, filtered_results
+
+def gen_res(response):
+    report = {
+        "verdict": get_confidence_emoji(response["abuseConfidenceScore"]),
+        "whitelist": "yes" if response["isWhitelisted"] else "",
+        "usage_type": response.get("usageType"),
+        "domain": response.get("domain"),
+        "hostnames": ", ".join(response.get("hostnames", [])),
+        "tor": "yes" if response.get("isTor") else "",
+        "reports": response.get("totalReports"),
+        #"country": get_geo_response(ip_address),
+        "last_report": datetime.strptime(response.get("lastReportedAt")[:10], "%Y-%m-%d").strftime("%d.%m.%Y") if response.get("lastReportedAt") else ""
+    }
+    return report
+
+
+
+
+
+
+
+
+
+
 
 def get_hostnames(ip_address: str):
     response = make_request_abuse(ip_address)["hostnames"]
@@ -84,7 +122,7 @@ def get_report_abuseipdb(ip_address: str):
         "hostnames": ", ".join(response.get("hostnames", [])),
         "tor": "yes" if response.get("isTor") else "",
         "reports": response.get("totalReports"),
-        "country": get_geo_response(ip_address),
+        #"country": get_geo_response(ip_address),
         "last_report": datetime.strptime(response.get("lastReportedAt")[:10], "%Y-%m-%d").strftime("%d.%m.%Y") if response.get("lastReportedAt") else ""
     }
     return report
