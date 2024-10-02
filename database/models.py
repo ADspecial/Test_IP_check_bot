@@ -45,6 +45,7 @@ class Address(Base):
     user_id_blocker = Column(Integer, ForeignKey('users.id'), nullable=True)
     virustotal = relationship('Vt_ip', backref='Address', uselist=False)
     ipinfo = relationship('Ipi_ip', backref='Address', uselist=False)
+    abuseipdb = relationship('Abusedb_ip', backref='Address', uselist=False)
 
 class Vt_ip(Base):
     __tablename__ = 'vt_ip'
@@ -74,3 +75,20 @@ class Ipi_ip(Base):
     city = Column(String(255), nullable=True)
     org = Column(String(255), nullable=True)
     loc = Column(String(255), nullable=True)
+
+class Abuseipdb(Base):
+    __tablename__ = 'abuseipdb'
+
+    id = Column(Integer, primary_key=True)
+    address = Column(Integer, ForeignKey('address.id'),  nullable=True)
+    is_public = Column(Boolean, default=True)
+    ip_version = Column(Integer, nullable=False)
+    is_whitelisted = Column(Boolean, nullable=True)
+    abuse_confidence_score = Column(Integer, nullable=True)
+    country = Column(String(24), nullable=True)
+    usage_type = Column(String(255), nullable=True)
+    isp = Column(String(255), nullable=True)
+    domain = Column(String(255), nullable=True)
+    total_reports = Column(Integer, nullable=True)
+    num_distinct_users = Column(Integer, nullable=True)
+    last_reported_at = Column(DateTime, nullable=True)

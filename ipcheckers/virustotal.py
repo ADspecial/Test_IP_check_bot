@@ -1,5 +1,4 @@
 import json
-import flag
 import urllib.request
 import urllib.parse
 import datetime
@@ -7,8 +6,7 @@ import asyncio
 
 from config.config import KEYS, URLS
 from ipcheckers.format import get_country_flag, get_date
-from ipcheckers.valid_ip import extract_and_validate
-from typing import Callable, List, Dict, Union, Tuple
+from typing import List, Dict, Union, Tuple
 
 
 def fetch_data(url):
