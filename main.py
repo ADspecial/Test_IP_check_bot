@@ -15,6 +15,7 @@ from database.engine import create_db, drop_db, session_maker
 from handlers.menu_handlers import menu_router
 from handlers.vt_handlers import vt_router
 from handlers.ipi_handlers import ipi_router
+from handlers.adb_handlers import adb_router
 
 from middleware.db import DataBaseSession
 from middleware.logs import LogMessageMiddleware
@@ -42,6 +43,7 @@ async def main() -> None:
     dp.include_router(ipi_router)
     dp.include_router(menu_router)
     dp.include_router(vt_router)
+    dp.include_router(adb_router)
 
     await bot.delete_webhook(drop_pending_updates=True)
 

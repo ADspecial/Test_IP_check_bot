@@ -95,6 +95,29 @@ def format_to_output_dict_ipi(data: Dict[str, str]) -> Dict[str, str]:
     }
     return output
 
+def format_to_output_dict_adb(data: Dict[str, str]) -> Dict[str, str]:
+    """
+    Format a dictionary from ipinfo to a dictionary with the keys formatted for output.
+
+    Args:
+        data: A dictionary with the keys 'ip', 'country', 'region', 'city', 'org', and 'loc'.
+            The values for these keys are strings.
+
+    Returns:
+        A dictionary with the same keys as the input, but with the values formatted for output.
+    """
+    output = {
+        'header': '🚫',
+        'ip_address': data['ip_address'],
+        'country': data['country'],
+        'abuse_confidence_score': data['abuse_confidence_score'],
+        'total_reports': data['total_reports'],
+        'num_distinct_users': data['num_distinct_users'],
+        'last_reported_at': data['last_reported_at'],
+    }
+    return output
+
+
 
 def listdict_to_string(data: List[Dict[str, str]]) -> str:
     """

@@ -5,7 +5,7 @@ from sqlalchemy.future import select
 from sqlalchemy.exc import NoResultFound, IntegrityError
 
 from datetime import datetime, timedelta
-from database.models import Address, History, Vt_ip, Ipi_ip
+from database.models import Address, History, Vt_ip, Ipi_ip, Abuseipdb
 
 from typing import Callable, List, Dict, Union, Tuple
 
@@ -447,4 +447,131 @@ async def orm_get_ipi_ip_data(session: AsyncSession, ip_address: str) -> Dict[st
 
     except Exception as e:
         print(f"Ошибка при поиске IP-адреса {ip_address} в Ipi_ip: {e}")
+        return {'error': str(e)}
+
+async def orm_add_abuseipdb(session: AsyncSession, data: dict) -> bool:
+    """
+    Добавляет или обновляет данные о злоупотреблении IP-адресом в таблице Abuseipdb.
+
+    :param session: Асинхронная сессия для работы с базой данных.
+    :param data: Словарь с данными для добавления или обновления.
+    :return: True в случае успешного добавления или обновления, иначе False.
+    """
+    try:
+        result = await session.execute(select(Address).where(Address.ip == data['ip_address']))
+        existing_address = result.scalars().first()
+
+        if existing_address:
+            abuseipdb_result = await session.execute(select(Abuseipdb).where(Abuseipdb.address == existing_address.id))
+            existing_abuse_record = abuseipdb_result.scalars().first()
+
+            if existing_abuse_record:
+                # Обновляем существующую запись
+                existing_abuse_record.is_public = data.get('is_public')
+                existing_abuse_record.ip_version = data.get('ip_version')
+                existing_abuse_record.is_whitelisted = data.get('is_whitelisted')
+                existing_abuse_record.abuse_confidence_score = data.get('abuse_confidence_score')
+                existing_abuse_record.country = data.get('country')
+                existing_abuse_record.usage_type = data.get('usage_type')
+                existing_abuse_record.isp = data.get('isp')
+                existing_abuse_record.domain = data.get('domain')
+                existing_abuse_record.total_reports = data.get('total_reports')
+                existing_abuse_record.num_distinct_users = data.get('num_distinct_users')
+                existing_abuse_record.last_reported_at = datetime.strptime(data['last_reported_at'], '%Y-%m-%d %H:%M:%S')
+                existing_abuse_record.updated = func.current_timestamp()
+            else:
+                new_abuse_record = Abuseipdb(
+                    address=existing_address.id,
+                    is_public=data.get('is_public', True),
+                    ip_version=data['ip_version'],
+                    is_whitelisted=data.get('is_whitelisted'),
+                    abuse_confidence_score=data.get('abuse_confidence_score'),
+                    country=data.get('country'),
+                    usage_type=data.get('usage_type'),
+                    isp=data.get('isp'),
+                    domain=data.get('domain'),
+                    total_reports=data.get('total_reports'),
+                    num_distinct_users=data.get('num_distinct_users'),
+                    last_reported_at=datetime.strptime(data['last_reported_at'], '%Y-%m-%d %H:%M:%S')
+                )
+                session.add(new_abuse_record)
+
+        else:
+            new_address = Address(ip=data['ip_address'])
+            session.add(new_address)
+            await session.commit()
+
+            new_abuse_record = Abuseipdb(
+                address=existing_address.id,
+                is_public=data.get('is_public', True),
+                ip_version=data['ip_version'],
+                is_whitelisted=data.get('is_whitelisted'),
+                abuse_confidence_score=data.get('abuse_confidence_score'),
+                country=data.get('country'),
+                usage_type=data.get('usage_type'),
+                isp=data.get('isp'),
+                domain=data.get('domain'),
+                total_reports=data.get('total_reports'),
+                num_distinct_users=data.get('num_distinct_users'),
+                last_reported_at=datetime.strptime(data['last_reported_at'], '%Y-%m-%d %H:%M:%S')
+            )
+            session.add(new_abuse_record)
+
+
+        await session.commit()  # Сохраняем изменения
+        return True
+
+    except IntegrityError as e:
+        print(f"Ошибка при добавлении/обновлении записи Abuseipdb для адреса {data['ip_address']}: {e}")
+        await session.rollback()
+        return False
+    except Exception as e:
+        print(f"Ошибка при добавлении/обновлении данных Abuseipdb: {e}")
+        await session.rollback()
+        return False
+
+async def orm_get_abuseipdb_data(session: AsyncSession, ip_address: str) -> Dict[str, any]:
+    """
+    Ищет запись в таблице Abuseipdb по IP-адресу и возвращает данные в виде словаря.
+
+    Аргументы:
+        session (AsyncSession): Асинхронная сессия для работы с базой данных.
+        ip_address (str): IP-адрес для поиска.
+
+    Возвращает:
+        Dict[str, any]: Словарь, содержащий данные из таблицы Abuseipdb, или словарь с одним ключом 'error',
+                        содержащий сообщение об ошибке, если запись не найдена.
+    """
+    try:
+        result = await session.execute(select(Address).where(Address.ip == ip_address))
+        address = result.scalars().first()
+
+        if not address:
+            return {'error': 'IP not found in database'}
+
+        result = await session.execute(select(Abuseipdb).where(Abuseipdb.address == address.id))
+        abuse_data = result.scalars().first()
+
+        if not abuse_data:
+            return {'error': 'IP not found in Abuseipdb table'}
+
+        response = {
+            'ip_address': ip_address,
+            'is_public': abuse_data.is_public,
+            'ip_version': abuse_data.ip_version,
+            'is_whitelisted': abuse_data.is_whitelisted,
+            'abuse_confidence_score': abuse_data.abuse_confidence_score,
+            'country': abuse_data.country,
+            'usage_type': abuse_data.usage_type,
+            'isp': abuse_data.isp,
+            'domain': abuse_data.domain,
+            'total_reports': abuse_data.total_reports,
+            'num_distinct_users': abuse_data.num_distinct_users,
+            'last_reported_at': abuse_data.last_reported_at
+        }
+
+        return response
+
+    except Exception as e:
+        print(f"Ошибка при поиске IP-адреса {ip_address} в Abuseipdb: {e}")
         return {'error': str(e)}

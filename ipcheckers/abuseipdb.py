@@ -6,7 +6,7 @@ from typing import List, Dict, Union, Tuple
 from datetime import datetime
 
 from config.config import KEYS, URLS
-from ipcheckers.format import get_country_flag, get_date
+from ipcheckers.format import get_country_flag
 
 
 async def make_request_abuse(
@@ -31,17 +31,17 @@ async def make_request_abuse(
         'Key': KEYS.ABUSEIPDB_KEY
     }
     async with session.get(URLS.API_URL_ABUSEIPDB, headers=headers, params=querystring) as response:
-        return gen_res(json.loads(await response.text())['data'])
+        return gen_result(json.loads(await response.text())['data'])
 
 
 async def get_abuseipdb_info(
-    ips: List[str]
+    ips: List[str], dnss: List[str]
 ) -> Tuple[bool, List[Dict[str, Union[str, int, datetime]]]]:
     """
     Gets data from AbuseIPDB for given IP addresses.
 
     Args:
-        ips (List[str]): A list of IP addresses.
+        ips: A list of IP addresses.
 
     Returns:
         A tuple containing a boolean indicating success and a list of dictionaries containing the response data.
@@ -55,7 +55,7 @@ async def get_abuseipdb_info(
         return True, filtered_results
 
 
-def gen_res(response: Dict[str, Union[str, int]]) -> Dict[str, Union[str, int, datetime]]:
+def gen_result(response: Dict[str, Union[str, int]]) -> Dict[str, Union[str, int, datetime]]:
     """
     Formats the response from AbuseIPDB to a dictionary with the required keys.
 
@@ -66,16 +66,17 @@ def gen_res(response: Dict[str, Union[str, int]]) -> Dict[str, Union[str, int, d
         A dictionary with the response data.
     """
     result = {
+        "ip_address": response["ipAddress"],
         "is_public": response["isPublic"],
         "ip_version": response["ipVersion"],
         "is_whitelisted": response["isWhitelisted"],
         "abuse_confidence_score": response["abuseConfidenceScore"],
-        "country": get_country_flag(response.get("countryCode")),
-        "usage_type": response.get("usageType"),
-        "isp": response.get("isp"),
-        "domain": response.get("domain"),
-        "total_reports": response.get("totalReports"),
-        "num_distinct_users": response.get("numDistinctUsers"),
-        "last_reported_at": get_date(response.get("lastReportedAt"))
+        "country": get_country_flag(response["countryCode"]),
+        "usage_type": response["usageType"],
+        "isp": response["isp"],
+        "domain": response["domain"],
+        "total_reports": response["totalReports"],
+        "num_distinct_users": response["numDistinctUsers"],
+        "last_reported_at": datetime.fromisoformat(response["lastReportedAt"][:-6]).strftime("%Y-%m-%d %H:%M:%S"),
     }
     return result

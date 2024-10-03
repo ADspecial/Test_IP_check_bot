@@ -45,7 +45,7 @@ class Address(Base):
     user_id_blocker = Column(Integer, ForeignKey('users.id'), nullable=True)
     virustotal = relationship('Vt_ip', backref='Address', uselist=False)
     ipinfo = relationship('Ipi_ip', backref='Address', uselist=False)
-    abuseipdb = relationship('Abusedb_ip', backref='Address', uselist=False)
+    abuseipdb = relationship('Abuseipdb', backref='Address', uselist=False)
 
 class Vt_ip(Base):
     __tablename__ = 'vt_ip'

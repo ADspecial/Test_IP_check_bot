@@ -4,7 +4,7 @@ from aiogram.types import Message, CallbackQuery
 from aiogram import flags
 from aiogram.fsm.context import FSMContext
 
-from states import Gen
+from states import Base_states, VT_states
 
 from ipcheckers import virustotal
 
@@ -17,14 +17,15 @@ import re
 import text
 import database.orm_query as orm_query
 
+
 vt_router = Router()
 
 @vt_router.callback_query(F.data == "vt_ip")
 async def input_about_ip(clbck: CallbackQuery, state: FSMContext):
-    await state.set_state(Gen.vt_ip)
+    await state.set_state(VT_states.check_ip)
     await clbck.message.edit_text(text.about_check_ip,reply_markup=kb.back_vt)
 
-@vt_router.message(Gen.vt_ip)
+@vt_router.message(VT_states.check_ip)
 @flags.chat_action("typing")
 async def check_single_ip(msg: Message, bot: Bot, state: FSMContext, session: AsyncSession):
     await bot.delete_message(msg.chat.id, msg.message_id-1,request_timeout=0)
@@ -40,7 +41,7 @@ async def check_single_ip(msg: Message, bot: Bot, state: FSMContext, session: As
 # Обработчик команды для проверки ip
 @vt_router.message(Command("vt_checkip"))
 async def check_ip_command(msg: Message, state: FSMContext, bot: Bot, session: AsyncSession):
-    await state.set_state(Gen.vt_ip)
+    await state.set_state(VT_states.check_ip)
     pattern = r'^/vt_checkip (?:(?:\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3}|[a-zA-Z0-9.-]+\.[a-zA-Z]{2,})(?:\s+|$))+$'
     match = re.match(pattern, msg.text)
     if match:
@@ -54,14 +55,14 @@ async def check_ip_command(msg: Message, state: FSMContext, bot: Bot, session: A
     else:
         await bot.delete_message(msg.chat.id, msg.message_id,request_timeout=0)
         await msg.answer('Не введен ip адрес\n')
-    await state.set_state(Gen.start)
+    await state.set_state(Base_states.start)
 
 @vt_router.callback_query(F.data == "vt_file")
 @vt_router.message(Command("vt_checkipfile"))
 async def get_file(msg_or_callback: Message | CallbackQuery, state: FSMContext):
-    await support.handle_file_request(msg_or_callback, state, text.send_text_file, kb.back_vt, Gen.vt_file, Gen.vt_file_command)
+    await support.handle_file_request(msg_or_callback, state, text.send_text_file, kb.back_vt, VT_states.check_ip_file, VT_states.check_ip_file_command)
 
-@vt_router.message(Gen.vt_file)
+@vt_router.message(VT_states.check_ip_file)
 @flags.chat_action("typing")
 async def handle_document(msg: Message,  bot: Bot, state: FSMContext, session: AsyncSession):
     if not msg.document:
@@ -77,9 +78,9 @@ async def handle_document(msg: Message,  bot: Bot, state: FSMContext, session: A
         if result:
             await mesg.edit_text(report)
             await msg.answer(text.send_text_file, reply_markup=kb.back_vt)
-    await state.set_state(Gen.vt_file)
+    await state.set_state(VT_states.check_ip_file)
 
-@vt_router.message(Gen.vt_file_command)
+@vt_router.message(VT_states.check_ip_file_command)
 @flags.chat_action("typing")
 async def handle_document(msg: Message, bot: Bot, state: FSMContext, session: AsyncSession):
     await bot.delete_message(msg.chat.id, msg.message_id-1,request_timeout=0)
@@ -91,4 +92,4 @@ async def handle_document(msg: Message, bot: Bot, state: FSMContext, session: As
         result, report = await support.process_document(msg, bot, virustotal.get_vt_info, orm_query.orm_add_vt_ip, state, session)
     if result:
         await mesg.edit_text(report)
-    await state.set_state(Gen.start)
+    await state.set_state(Base_states.start)

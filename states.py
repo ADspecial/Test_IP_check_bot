@@ -2,20 +2,32 @@
 
 from aiogram.fsm.state import StatesGroup, State
 
-class Gen(StatesGroup):
+class Base_states(StatesGroup):
     start = State()
     main_menu = State()
     check_menu = State()
     virustotal_menu = State()
     ipinfo_menu = State()
+    adbuseip_menu = State()
     help = State()
+
+class VT_states(StatesGroup):
+    menu = State()
     get_doc = State()
-    vt_ip = State()
-    vt_list = State()
-    vt_file = State()
-    vt_file_command = State()
-    vt_retry_file = State()
-    ipi_ip = State()
-    ipi_file = State()
-    ipi_retry_file = State()
-    ipi_file_command = State()
+    check_ip = State()
+    check_ip_file = State()
+    check_ip_file_command = State()
+
+class IPI_states(StatesGroup):
+    menu = State()
+    get_doc = State()
+    check_ip = State()
+    check_ip_file = State()
+    check_ip_file_command = State()
+
+class ADB_states(StatesGroup):
+    menu = State()
+    get_doc = State()
+    check_ip = State()
+    check_ip_file = State()
+    check_ip_file_command = State()

@@ -3,13 +3,13 @@ from aiogram import Bot
 from aiogram.fsm.context import FSMContext
 from aiogram.types import CallbackQuery, Message, ReplyKeyboardMarkup
 
-from database.models import Ipi_ip, Vt_ip
-from database.orm_query import orm_add_file_history, orm_add_vt_ip, orm_check_ip_in_table, orm_check_ip_in_table_updated, orm_check_ip_in_vt, orm_check_ip_in_vt_updated, orm_get_ipi_ip_data, orm_get_vt_ip
+from database.models import Ipi_ip, Vt_ip, Abuseipdb
+from database.orm_query import orm_add_file_history, orm_add_vt_ip, orm_check_ip_in_table, orm_check_ip_in_table_updated, orm_check_ip_in_vt, orm_check_ip_in_vt_updated, orm_get_ipi_ip_data, orm_get_vt_ip, orm_get_abuseipdb_data
 
-from ipcheckers.format import dict_to_string, format_to_output_dict_ipi, format_to_output_dict_vt, listdict_to_string, listdict_to_string_vt
+from ipcheckers.format import dict_to_string, format_to_output_dict_ipi, format_to_output_dict_vt, listdict_to_string, listdict_to_string_vt, format_to_output_dict_adb
 from ipcheckers.valid_ip import extract_and_validate
 
-from states import Gen
+from states import VT_states, IPI_states, ADB_states
 
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -32,12 +32,17 @@ async def process_db_ip(ips: List[str], dnss: List[str], session: AsyncSession, 
     db_ips = []
     db_dnss = []
 
+    orm_func = {
+        Vt_ip: orm_check_ip_in_vt,
+        Ipi_ip: orm_get_ipi_ip_data,
+        Abuseipdb: orm_get_abuseipdb_data,
+    }[table_model]
+
     for ip, dns in zip_longest(ips[:], dnss[:]):
         if ip and await orm_check_ip_in_table(session, ip, table_model = table_model):
             if await orm_check_ip_in_table_updated(session, ip, table_model):
                 ips.remove(ip)
-                if table_model == Vt_ip: data_ip = await orm_get_vt_ip(session, ip)
-                if table_model == Ipi_ip: data_ip = await orm_get_ipi_ip_data(session, ip)
+                data_ip = await orm_func(session,ip)
                 db_ips.append(data_ip)
 
         if dns and await orm_check_ip_in_table(session, dns, table_model) and table_model == Vt_ip:
@@ -61,9 +66,11 @@ async def process_ip(msg: Message, info_function: Callable[[str], List[Dict[str,
     """
     current_state = await state.get_state()
 
+    table_name = {VT_states.check_ip: Vt_ip, IPI_states.check_ip: Ipi_ip, ADB_states.check_ip: Abuseipdb}[current_state]
+
     ips, dnss = extract_and_validate(msg.text)
     if not ips and not dnss: return False, None
-    db_ips, db_dnss = await process_db_ip(ips, dnss, session, Vt_ip if current_state == Gen.vt_ip else Ipi_ip,)
+    db_ips, db_dnss = await process_db_ip(ips, dnss, session, table_name)
 
     result, reports = await info_function(ips, dnss)
 
@@ -74,22 +81,27 @@ async def process_ip(msg: Message, info_function: Callable[[str], List[Dict[str,
     for report in reports:
         await db_function(session, report)
 
-    if current_state == Gen.vt_ip:
+    if current_state == VT_states.check_ip:
         if len(combined_reports) > 1:
             answer = listdict_to_string_vt(combined_reports)
         else:
             format_dict = format_to_output_dict_vt(combined_reports[0])
             answer = dict_to_string(format_dict)
-    if current_state == Gen.ipi_ip:
+    if current_state == IPI_states.check_ip:
         format_reports = []
         for report in combined_reports:
             format_reports.append(format_to_output_dict_ipi(report))
+        answer = listdict_to_string(format_reports)
+    if current_state == ADB_states.check_ip:
+        format_reports = []
+        for report in combined_reports:
+                format_reports.append(format_to_output_dict_adb(report))
         answer = listdict_to_string(format_reports)
     return True, answer
 
 
 async def handle_file_request(
-    msg_or_callback: Message | CallbackQuery, state: FSMContext, request_text: str, back_kb: ReplyKeyboardMarkup, gen_state_inline: Gen, gen_state_command: Gen
+    msg_or_callback: Message | CallbackQuery, state: FSMContext, request_text: str, back_kb: ReplyKeyboardMarkup, gen_state_inline, gen_state_command
 ) -> None:
     """
     Обработка запроса файла, путем редактирования сообщения или ответа на колбэк, с текстом запроса и установкой состояния Gen.vt_file или Gen.vt_file_command.
@@ -124,11 +136,13 @@ async def process_document(
 
     print(msg.from_user.id,msg.document.file_id, msg.chat.id, msg.message_id)
 
-    os.makedirs(f'data/{current_state[4:]}', exist_ok=True)
+    dir_name, table_name = {VT_states.check_ip_file or VT_states.check_ip_file_command: ('virustotal', Vt_ip), IPI_states.check_ip_file or IPI_states.check_ip_file_command: ('ipinfo', Ipi_ip), ADB_states.check_ip_file or ADB_states.check_ip_file_command: ('abuseipdb', Abuseipdb)}[current_state]
+
+    os.makedirs(f'data/{dir_name}', exist_ok=True)
 
     increment = 1
     while True:
-        file_name = f'data/{current_state[4:]}/ip{increment}.txt'
+        file_name = f'data/{dir_name}/ip{increment}.txt'
         if not os.path.exists(file_name):
             break
         increment += 1
@@ -144,7 +158,7 @@ async def process_document(
         os.remove(file_name)
         return False, None
 
-    db_ips, db_dnss = await process_db_ip(ips, dnss, session, Vt_ip if current_state == Gen.vt_file or current_state == Gen.vt_file_command else Ipi_ip,)
+    db_ips, db_dnss = await process_db_ip(ips, dnss, session, table_name)
 
     result, reports = await info_function(ips, dnss)
 
@@ -155,15 +169,20 @@ async def process_document(
     for report in reports:
         await db_function(session, report)
 
-    if current_state == Gen.vt_file or current_state == Gen.vt_file_command:
+    if current_state == VT_states.check_ip_file or current_state == VT_states.check_ip_file_command:
         if len(combined_reports) > 1:
             answer = listdict_to_string_vt(combined_reports)
         else:
             format_dict = format_to_output_dict_vt(combined_reports[0])
             answer = dict_to_string(format_dict)
-    if current_state == Gen.ipi_file or current_state == Gen.ipi_file_command:
+    if current_state == IPI_states.check_ip_file or current_state ==IPI_states.check_ip_file_command:
         format_reports = []
         for report in combined_reports:
             format_reports.append(format_to_output_dict_ipi(report))
+        answer = listdict_to_string(format_reports)
+    if current_state == ADB_states.check_ip_file or current_state == ADB_states.check_ip_file_command:
+        format_reports = []
+        for report in combined_reports:
+            format_reports.append(format_to_output_dict_adb(report))
         answer = listdict_to_string(format_reports)
     return True, answer
