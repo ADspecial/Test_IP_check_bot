@@ -91,4 +91,4 @@ class Abuseipdb(Base):
     domain = Column(String(255), nullable=True)
     total_reports = Column(Integer, nullable=True)
     num_distinct_users = Column(Integer, nullable=True)
-    last_reported_at = Column(DateTime, nullable=True)
+    #last_reported_at = Column(DateTime, nullable=True)

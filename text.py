@@ -1,9 +1,10 @@
 greetings = "Привет, {name}, я бот, предназначенный проверки ip адресов"
 menu = "📍 Главное меню"
 check_menu = "📍 Меню проверки адреса"
-virustotal_menu = "🔤🔤 Проверка адресов по базам virustotal"
+virustotal_menu = "🔷 Проверка адресов по базам virustotal"
 ipinfo_menu = "🌐 Получить информацию об ip из базы ipinfo"
-adbuseip_menu = "🚫 Получить информацию об ip из базы AbuseIPDB"
+adbuseip_menu = "⭕️ Получить информацию об ip из базы AbuseIPDB"
+kaspersky_menu = "🟩 Получить информацию об ip из базы Kaspersky *"
 help = "Команды бота: \n\n\
         Общие команды: \n\
         - /start - запуск бота \n\

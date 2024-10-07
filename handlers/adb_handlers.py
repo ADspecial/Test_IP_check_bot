@@ -41,7 +41,7 @@ async def check_single_ip(msg: Message, bot: Bot, state: FSMContext, session: As
 @adb_router.message(Command("adb_checkip"))
 async def check_ip_command(msg: Message, state: FSMContext, bot: Bot, session: AsyncSession):
     await state.set_state(ADB_states.check_ip)
-    pattern = r'^/ipi_checkip (?:(?:25[0-5]|2[0-4][0-9]|1[0-9][0-9]|[1-9]?[0-9])\.(?:25[0-5]|2[0-4][0-9]|1[0-9][0-9]|[1-9]?[0-9])\.(?:25[0-5]|2[0-4][0-9]|1[0-9][0-9]|[1-9]?[0-9])\.(?:25[0-5]|2[0-4][0-9]|1[0-9][0-9]|[1-9]?[0-9])(?:\s+|$))+$'
+    pattern = r'^/adb_checkip\s+((\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3})(\s+|$))+$'
     match = re.match(pattern, msg.text)
     if match:
         result, report = await support.process_ip(msg, abuseipdb.get_abuseipdb_info, orm_query. orm_add_abuseipdb, state, session)

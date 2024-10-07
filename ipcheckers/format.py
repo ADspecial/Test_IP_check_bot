@@ -106,14 +106,19 @@ def format_to_output_dict_adb(data: Dict[str, str]) -> Dict[str, str]:
     Returns:
         A dictionary with the same keys as the input, but with the values formatted for output.
     """
+    abuse_confidence_score = data.get('abuse_confidence_score')
+    output_str = "🟢 harmless"
+    if abuse_confidence_score > 20: output_str = "🔴 malicious"
+    elif abuse_confidence_score > 3: output_str = "🟡 suspicious"
     output = {
-        'header': '🚫',
+        'header': '⭕️ AbuseIPDB',
         'ip_address': data['ip_address'],
         'country': data['country'],
-        'abuse_confidence_score': data['abuse_confidence_score'],
+        'verdict': output_str + f' ({abuse_confidence_score}/100)',
+        #'abuse_confidence_score': data['abuse_confidence_score'],
         'total_reports': data['total_reports'],
         'num_distinct_users': data['num_distinct_users'],
-        'last_reported_at': data['last_reported_at'],
+        #'last_reported_at': data['last_reported_at'],
     }
     return output
 

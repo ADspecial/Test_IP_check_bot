@@ -477,7 +477,7 @@ async def orm_add_abuseipdb(session: AsyncSession, data: dict) -> bool:
                 existing_abuse_record.domain = data.get('domain')
                 existing_abuse_record.total_reports = data.get('total_reports')
                 existing_abuse_record.num_distinct_users = data.get('num_distinct_users')
-                existing_abuse_record.last_reported_at = datetime.strptime(data['last_reported_at'], '%Y-%m-%d %H:%M:%S')
+                #existing_abuse_record.last_reported_at =data.get('last_reported_at'),
                 existing_abuse_record.updated = func.current_timestamp()
             else:
                 new_abuse_record = Abuseipdb(
@@ -492,7 +492,7 @@ async def orm_add_abuseipdb(session: AsyncSession, data: dict) -> bool:
                     domain=data.get('domain'),
                     total_reports=data.get('total_reports'),
                     num_distinct_users=data.get('num_distinct_users'),
-                    last_reported_at=datetime.strptime(data['last_reported_at'], '%Y-%m-%d %H:%M:%S')
+                    #last_reported_at=data.get('last_reported_at')
                 )
                 session.add(new_abuse_record)
 
@@ -502,7 +502,7 @@ async def orm_add_abuseipdb(session: AsyncSession, data: dict) -> bool:
             await session.commit()
 
             new_abuse_record = Abuseipdb(
-                address=existing_address.id,
+                address=new_address.id,
                 is_public=data.get('is_public', True),
                 ip_version=data['ip_version'],
                 is_whitelisted=data.get('is_whitelisted'),
@@ -513,7 +513,7 @@ async def orm_add_abuseipdb(session: AsyncSession, data: dict) -> bool:
                 domain=data.get('domain'),
                 total_reports=data.get('total_reports'),
                 num_distinct_users=data.get('num_distinct_users'),
-                last_reported_at=datetime.strptime(data['last_reported_at'], '%Y-%m-%d %H:%M:%S')
+                #last_reported_at=data.get('last_reported_at')
             )
             session.add(new_abuse_record)
 
@@ -567,7 +567,7 @@ async def orm_get_abuseipdb_data(session: AsyncSession, ip_address: str) -> Dict
             'domain': abuse_data.domain,
             'total_reports': abuse_data.total_reports,
             'num_distinct_users': abuse_data.num_distinct_users,
-            'last_reported_at': abuse_data.last_reported_at
+            #'last_reported_at': abuse_data.last_reported_at
         }
 
         return response

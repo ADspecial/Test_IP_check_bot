@@ -81,9 +81,14 @@ async def view_ipinfo_menu(clbck: CallbackQuery, state: FSMContext):
 @menu_router.callback_query(F.data == "adbuseip_menu")
 async def view_adbuseip_menu(clbck: CallbackQuery, state: FSMContext):
     await state.set_state(Base_states.adbuseip_menu)
-    await clbck.answer('IPinfo menu')
+    await clbck.answer('AbuseIPDB menu')
     await clbck.message.edit_text(text.adbuseip_menu, reply_markup=kb.adbuseip_menu)
 
+@menu_router.callback_query(F.data == "kaspersky_menu")
+async def view_adbuseip_menu(clbck: CallbackQuery, state: FSMContext):
+    await state.set_state(Base_states.kaspersky_menu)
+    await clbck.answer('Kaspersky menu')
+    await clbck.message.edit_text(text.kaspersky_menu, reply_markup=kb.kaspersky_menu)
 
 
 async def delete_last_message(msg: Message, bot: Bot):
