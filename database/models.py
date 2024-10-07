@@ -46,6 +46,7 @@ class Address(Base):
     virustotal = relationship('Vt_ip', backref='Address', uselist=False)
     ipinfo = relationship('Ipi_ip', backref='Address', uselist=False)
     abuseipdb = relationship('Abuseipdb', backref='Address', uselist=False)
+    kaspersky = relationship('Kaspersky', backref='Address', uselist=False)
 
 class Vt_ip(Base):
     __tablename__ = 'vt_ip'
@@ -92,3 +93,14 @@ class Abuseipdb(Base):
     total_reports = Column(Integer, nullable=True)
     num_distinct_users = Column(Integer, nullable=True)
     #last_reported_at = Column(DateTime, nullable=True)
+
+class Kaspersky(Base):
+    __tablename__ = 'kaspersky'
+
+    id = Column(Integer, primary_key=True)
+    address = Column(Integer, ForeignKey('address.id'),  nullable=True)
+    status = Column(String(32), nullable=True)
+    country = Column(String(24), nullable=True)
+    net_name = Column(String(255), nullable=True)
+    zone = Column(String(32), nullable=True)
+    last_changed_at = Column(DateTime, nullable=True)
