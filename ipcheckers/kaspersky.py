@@ -57,6 +57,6 @@ def gen_result(response: Dict[str, Union[str, int]]) -> Dict[str, Union[str, int
         'country': get_country_flag(response['IpGeneralInfo']['CountryCode']),
         'net_name': response["IpWhoIs"]["Net"]["Name"],
         'zone': response['Zone'],
-        'last_changed_at': response["IpWhoIs"]['Net']['Changed'],
+        'last_changed_at': datetime.strptime(response["IpWhoIs"]['Net']['Changed'], '%Y-%m-%dT%H:%M:%SZ'),
     }
     return result

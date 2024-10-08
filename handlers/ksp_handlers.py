@@ -30,7 +30,7 @@ async def input_about_ip(clbck: CallbackQuery, state: FSMContext):
 async def check_single_ip(msg: Message, bot: Bot, state: FSMContext, session: AsyncSession):
     await bot.delete_message(msg.chat.id, msg.message_id-1,request_timeout=0)
     await bot.delete_message(msg.chat.id, msg.message_id,request_timeout=0)
-    result, reports = await support.process_ip(msg, kaspersky.get_kaspersky_info, orm_query.orm_add_kaspersky, state, session)
+    result, reports = await support.process_ip(msg, kaspersky.get_kaspersky_info, orm_query.orm_add_kaspersky_data, state, session)
     mesg = await msg.answer(text.gen_wait)
     if result:
         await mesg.edit_text(reports)
@@ -44,7 +44,7 @@ async def check_ip_command(msg: Message, state: FSMContext, bot: Bot, session: A
     pattern = r'^/ksp_checkip\s+((\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3})(\s+|$))+$'
     match = re.match(pattern, msg.text)
     if match:
-        result, report = await support.process_ip(msg, kaspersky.get_kaspersky_info, orm_query. orm_add_kaspersky, state, session)
+        result, report = await support.process_ip(msg, kaspersky.get_kaspersky_info, orm_query.orm_add_kaspersky_data, state, session)
         mesg = await msg.answer(text.gen_wait)
         if result:
             await mesg.edit_text(report)
@@ -55,7 +55,7 @@ async def check_ip_command(msg: Message, state: FSMContext, bot: Bot, session: A
         await bot.delete_message(msg.chat.id, msg.message_id,request_timeout=0)
         await msg.answer('Не введен ip адрес\n')
 
-@ksp_router.callback_query(F.data == "kaspersky_file")
+@ksp_router.callback_query(F.data == "ksp_file")
 @ksp_router.message(Command("ksp_checkipfile"))
 async def get_file(msg_or_callback: Message | CallbackQuery, state: FSMContext):
     await support.handle_file_request(msg_or_callback, state, text.send_text_file, kb.back_kaspersky,KSP_states.check_ip_file, KSP_states.check_ip_file_command)
@@ -72,7 +72,7 @@ async def handle_document(msg: Message, bot: Bot, state: FSMContext, session: As
     else:
         await bot.delete_message(msg.chat.id, msg.message_id,request_timeout=0)
         mesg = await msg.answer(text.gen_wait)
-        result, report = await support.process_document(msg, bot,  kaspersky.get_kaspersky_info, orm_query.orm_add_kaspersky, state, session)
+        result, report = await support.process_document(msg, bot,  kaspersky.get_kaspersky_info, orm_query.orm_add_kaspersky_data, state, session)
         if result:
             await mesg.edit_text(report)
             await msg.answer(text.send_text_file, reply_markup=kb.back_kaspersky)
@@ -87,7 +87,7 @@ async def handle_document(msg: Message, bot: Bot, state: FSMContext, session: As
     else:
         await bot.delete_message(msg.chat.id, msg.message_id,request_timeout=0)
         mesg = await msg.answer(text.gen_wait)
-        result, report = await support.process_document(msg, bot,  kaspersky.get_kaspersky_info, orm_query.orm_add_kaspersky, state, session)
+        result, report = await support.process_document(msg, bot,  kaspersky.get_kaspersky_info, orm_query.orm_add_kaspersky_data, state, session)
     if result:
         await mesg.edit_text(report)
     await state.set_state(Base_states.start)

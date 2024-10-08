@@ -4,12 +4,12 @@ from aiogram.fsm.context import FSMContext
 from aiogram.types import CallbackQuery, Message, ReplyKeyboardMarkup
 
 from database.models import Ipi_ip, Vt_ip, Abuseipdb, Kaspersky
-from database.orm_query import orm_add_file_history, orm_add_vt_ip, orm_check_ip_in_table, orm_check_ip_in_table_updated, orm_check_ip_in_vt, orm_check_ip_in_vt_updated, orm_get_ipi_ip_data, orm_get_vt_ip, orm_get_abuseipdb_data
+from database.orm_query import orm_add_file_history, orm_add_vt_ip, orm_check_ip_in_table, orm_check_ip_in_table_updated, orm_check_ip_in_vt, orm_check_ip_in_vt_updated, orm_get_ipi_ip_data, orm_get_vt_ip, orm_get_abuseipdb_data, orm_get_kaspersky_data
 
-from ipcheckers.format import dict_to_string, format_to_output_dict_ipi, format_to_output_dict_vt, listdict_to_string, listdict_to_string_vt, format_to_output_dict_adb
+from ipcheckers.format import dict_to_string, format_to_output_dict_ipi, format_to_output_dict_vt, listdict_to_string, listdict_to_string_vt, format_to_output_dict_adb, format_to_output_dict_ksp
 from ipcheckers.valid_ip import extract_and_validate
 
-from states import VT_states, IPI_states, ADB_states
+from states import VT_states, IPI_states, ADB_states, KSP_states
 
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -36,6 +36,7 @@ async def process_db_ip(ips: List[str], dnss: List[str], session: AsyncSession, 
         Vt_ip: orm_check_ip_in_vt,
         Ipi_ip: orm_get_ipi_ip_data,
         Abuseipdb: orm_get_abuseipdb_data,
+        Kaspersky: orm_get_kaspersky_data,
     }[table_model]
 
     for ip, dns in zip_longest(ips[:], dnss[:]):
@@ -66,13 +67,13 @@ async def process_ip(msg: Message, info_function: Callable[[str], List[Dict[str,
     """
     current_state = await state.get_state()
 
-    table_name = {VT_states.check_ip: Vt_ip, IPI_states.check_ip: Ipi_ip, ADB_states.check_ip: Abuseipdb}[current_state]
+    table_name = {VT_states.check_ip: Vt_ip, IPI_states.check_ip: Ipi_ip, ADB_states.check_ip: Abuseipdb, KSP_states.check_ip: Kaspersky}[current_state]
 
     ips, dnss = extract_and_validate(msg.text)
     if not ips and not dnss: return False, None
     db_ips, db_dnss = await process_db_ip(ips, dnss, session, table_name)
-
-    result, reports = await info_function(ips, dnss)
+    reports = []
+    if ips or dnss: result, reports = await info_function(ips, dnss)
 
     combined_reports = db_ips + db_dnss + reports
 
@@ -96,6 +97,11 @@ async def process_ip(msg: Message, info_function: Callable[[str], List[Dict[str,
         format_reports = []
         for report in combined_reports:
                 format_reports.append(format_to_output_dict_adb(report))
+        answer = listdict_to_string(format_reports)
+    if current_state == KSP_states.check_ip:
+        format_reports = []
+        for report in combined_reports:
+            format_reports.append(format_to_output_dict_ksp(report))
         answer = listdict_to_string(format_reports)
     return True, answer
 
@@ -134,9 +140,20 @@ async def process_document(
     file_id = msg.document.file_id
     file = await bot.get_file(file_id)
 
-    print(msg.from_user.id,msg.document.file_id, msg.chat.id, msg.message_id)
 
-    dir_name, table_name = {VT_states.check_ip_file or VT_states.check_ip_file_command: ('virustotal', Vt_ip), IPI_states.check_ip_file or IPI_states.check_ip_file_command: ('ipinfo', Ipi_ip), ADB_states.check_ip_file or ADB_states.check_ip_file_command: ('abuseipdb', Abuseipdb)}[current_state]
+    print(msg.from_user.id,msg.document.file_id, msg.chat.id, msg.message_id)
+    print(str(VT_states.check_ip_file))
+    print(current_state)
+    dir_name, table_name = {
+        VT_states.check_ip_file: ('virustotal', Vt_ip),
+        VT_states.check_ip_file_command: ('virustotal', Vt_ip),
+        IPI_states.check_ip_file: ('ipinfo', Ipi_ip),
+        IPI_states.check_ip_file_command: ('ipinfo', Ipi_ip),
+        ADB_states.check_ip_file: ('abuseipdb', Abuseipdb),
+        ADB_states.check_ip_file_command: ('abuseipdb', Abuseipdb),
+        KSP_states.check_ip_file: ('kaspersky', Kaspersky),
+        KSP_states.check_ip_file_command: ('kaspersky', Kaspersky)
+    }[current_state]
 
     os.makedirs(f'data/{dir_name}', exist_ok=True)
 
@@ -184,5 +201,10 @@ async def process_document(
         format_reports = []
         for report in combined_reports:
             format_reports.append(format_to_output_dict_adb(report))
+        answer = listdict_to_string(format_reports)
+    if current_state == KSP_states.check_ip_file or current_state == KSP_states.check_ip_file_command:
+        format_reports = []
+        for report in combined_reports:
+            format_reports.append(format_to_output_dict_ksp(report))
         answer = listdict_to_string(format_reports)
     return True, answer

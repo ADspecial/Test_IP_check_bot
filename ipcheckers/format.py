@@ -122,7 +122,33 @@ def format_to_output_dict_adb(data: Dict[str, str]) -> Dict[str, str]:
     }
     return output
 
+def format_to_output_dict_ksp(data: Dict[str, str]) -> Dict[str, str]:
+    """
+    Format a dictionary from ipinfo to a dictionary with the keys formatted for output.
 
+    Args:
+        data: A dictionary with the keys 'ip', 'country', 'region', 'city', 'org', and 'loc'.
+            The values for these keys are strings.
+
+    Returns:
+        A dictionary with the same keys as the input, but with the values formatted for output.
+    """
+    zone = data.get('zone')
+    output_str = "🟢 harmless"
+    if zone == 'Red': output_str = "🔴 malicious"
+    elif zone == 'Orange': output_str = "🟡 suspicious"
+    elif zone == 'Yellow': output_str = "🟡 advertising"
+    elif zone == 'Grey': output_str = "⚫️ undetected"
+    output = {
+        'header': '🟩 Kaspersky',
+        'ip address': data['ip_address'],
+        'country': data['country'],
+        'verdict': output_str + f' {zone}',
+        'status': data['status'],
+        'net name': data['net_name'],
+        'last anlyzed at': data['last_changed_at'].strftime("%Y-%m-%d %H:%M:%S"),
+    }
+    return output
 
 def listdict_to_string(data: List[Dict[str, str]]) -> str:
     """

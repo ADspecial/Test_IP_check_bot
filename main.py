@@ -16,7 +16,7 @@ from handlers.menu_handlers import menu_router
 from handlers.vt_handlers import vt_router
 from handlers.ipi_handlers import ipi_router
 from handlers.adb_handlers import adb_router
-from handlers.adb_handlers import ksp_router
+from handlers.ksp_handlers import ksp_router
 
 from middleware.db import DataBaseSession
 from middleware.logs import LogMessageMiddleware

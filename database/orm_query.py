@@ -5,9 +5,9 @@ from sqlalchemy.future import select
 from sqlalchemy.exc import NoResultFound, IntegrityError
 
 from datetime import datetime, timedelta
-from database.models import Address, History, Vt_ip, Ipi_ip, Abuseipdb
+from database.models import Address, History, Vt_ip, Ipi_ip, Abuseipdb, Kaspersky
 
-from typing import Callable, List, Dict, Union, Tuple
+from typing import Callable, List, Dict, Union, Tuple, Any
 
 async def orm_check_ip_in_db(session: AsyncSession, ip_address: str) -> bool:
     """
@@ -575,3 +575,110 @@ async def orm_get_abuseipdb_data(session: AsyncSession, ip_address: str) -> Dict
     except Exception as e:
         print(f"Ошибка при поиске IP-адреса {ip_address} в Abuseipdb: {e}")
         return {'error': str(e)}
+
+async def orm_get_kaspersky_data(session: AsyncSession, ip_address: str) -> Dict[str, Any]:
+    """
+    Ищет запись в таблице Kaspersky по IP-адресу и возвращает данные в виде словаря.
+
+    Аргументы:
+        session (AsyncSession): Асинхронная сессия для работы с базой данных.
+        ip_address (str): IP-адрес для поиска.
+
+    Возвращает:
+        Dict[str, Any]: Словарь, содержащий данные из таблицы Kaspersky, или словарь с одним ключом 'error',
+                        содержащий сообщение об ошибке, если запись не найдена.
+    """
+    try:
+        # Получаем адрес по IP
+        result = await session.execute(select(Address).where(Address.ip == ip_address))
+        address = result.scalars().first()
+
+        if not address:
+            return {'error': 'IP not found in database'}
+
+        # Получаем данные из таблицы Kaspersky по адресу
+        result = await session.execute(select(Kaspersky).where(Kaspersky.address == address.id))
+        kaspersky_data = result.scalars().first()
+
+        if not kaspersky_data:
+            return {'error': 'IP not found in Kaspersky table'}
+
+        response = {
+            'ip_address': ip_address,
+            'status': kaspersky_data.status,
+            'country': kaspersky_data.country,
+            'net_name': kaspersky_data.net_name,
+            'zone': kaspersky_data.zone,
+            'last_changed_at': kaspersky_data.last_changed_at,
+        }
+
+        return response
+
+    except Exception as e:
+        print(f"Ошибка при поиске IP-адреса {ip_address} в Kaspersky: {e}")
+        return {'error': str(e)}
+
+async def orm_add_kaspersky_data(session: AsyncSession, data: Dict[str, any]) -> bool:
+    """
+    Добавляет или обновляет данные о IP-адресе в таблице Kaspersky.
+
+    :param session: Асинхронная сессия для работы с базой данных.
+    :param data: Словарь с данными для добавления или обновления.
+    :return: True в случае успешного добавления или обновления, иначе False.
+    """
+    try:
+        # Поиск существующего адреса по IP
+        result = await session.execute(select(Address).where(Address.ip == data['ip_address']))
+        existing_address = result.scalars().first()
+
+        if existing_address:
+            # Поиск существующей записи в Kaspersky
+            kaspersky_result = await session.execute(select(Kaspersky).where(Kaspersky.address == existing_address.id))
+            existing_kaspersky_record = kaspersky_result.scalars().first()
+
+            if existing_kaspersky_record:
+                # Обновляем существующую запись
+                existing_kaspersky_record.status = data.get('status')
+                existing_kaspersky_record.country = data.get('country')
+                existing_kaspersky_record.net_name = data.get('net_name')
+                existing_kaspersky_record.zone = data.get('zone')
+                existing_kaspersky_record.last_changed_at =data.get('last_changed_at'),
+            else:
+                # Создаем новую запись в Kaspersky
+                new_kaspersky_record = Kaspersky(
+                    address=existing_address.id,
+                    status=data.get('status'),
+                    country=data.get('country'),
+                    net_name=data.get('net_name'),
+                    zone=data.get('zone'),
+                    last_changed_at=data.get('last_changed_at'),
+                )
+                session.add(new_kaspersky_record)
+
+        else:
+            # Если адрес не найден, создаем новый адрес и новую запись в Kaspersky
+            new_address = Address(ip=data['ip_address'])
+            session.add(new_address)
+            await session.commit()  # Сохраняем новый адрес
+
+            new_kaspersky_record = Kaspersky(
+                address=new_address.id,
+                status=data.get('status'),
+                country=data.get('country'),
+                net_name=data.get('net_name'),
+                zone=data.get('zone'),
+                last_changed_at=data.get('last_changed_at'),
+            )
+            session.add(new_kaspersky_record)
+
+        await session.commit()  # Сохраняем изменения
+        return True
+
+    except IntegrityError as e:
+        print(f"Ошибка при добавлении/обновлении записи Kaspersky для адреса {data['ip_address']}: {e}")
+        await session.rollback()
+        return False
+    except Exception as e:
+        print(f"Ошибка при добавлении/обновлении данных Kaspersky: {e}")
+        await session.rollback()
+        return False
