@@ -11,6 +11,7 @@ class KEYS:
     KASPERSKY_KEY: str = os.getenv("API_KASPERSKY_KEY")
     ABUSEIPDB_KEY: str = os.getenv("API_ABUSEIPDB_KEY")
     CRIMINALIP_KEY: str = os.getenv("API_CRIMINALIP_KEY")
+    ALIENVAULT_KEY: str = os.getenv("API_ALIENVAULT_KEY")
 
 
 class URLS:
