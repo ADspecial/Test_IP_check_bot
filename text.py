@@ -4,7 +4,8 @@ check_menu = "📍 Меню проверки адреса"
 virustotal_menu = "🔷 Проверка адресов по базам virustotal"
 ipinfo_menu = "🌐 Получить информацию об ip из базы ipinfo"
 adbuseip_menu = "⭕️ Получить информацию об ip из базы AbuseIPDB"
-kaspersky_menu = "🟩 Получить информацию об ip из базы Kaspersky *"
+kaspersky_menu = "🟩 Получить информацию об ip из базы Kaspersky"
+criminalip_menu = "🔎 Получить информацию об ip из базы CriminalIP"
 help = "Команды бота: \n\n\
         Общие команды: \n\
         - /start - запуск бота \n\

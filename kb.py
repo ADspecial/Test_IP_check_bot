@@ -11,6 +11,7 @@ start_menu = InlineKeyboardMarkup(inline_keyboard=start_menu)
 check_menu = [
     [InlineKeyboardButton(text="🔷 VirusTotal", callback_data="virustotal_menu"), InlineKeyboardButton(text="🌐 IPinfo", callback_data="ipinfo_menu")],
     [InlineKeyboardButton(text="⭕️ AbuseIIDB", callback_data="adbuseip_menu"), InlineKeyboardButton(text="🟩 Kaspersky", callback_data="kaspersky_menu")],
+    [InlineKeyboardButton(text="🔎 CriminalIP", callback_data="criminalip_menu")],
     [InlineKeyboardButton(text="◀️ Выйти в меню", callback_data="view_menu")]
 ]
 check_menu = InlineKeyboardMarkup(inline_keyboard=check_menu)
@@ -43,9 +44,17 @@ kaspersky_menu = [
 ]
 kaspersky_menu = InlineKeyboardMarkup(inline_keyboard=kaspersky_menu)
 
+criminalip_menu = [
+    [InlineKeyboardButton(text="⚙️ Информация об IP", callback_data="cip_ip")],
+    [InlineKeyboardButton(text="📄 Загрузить файл с IP", callback_data="cip_file")],
+    [InlineKeyboardButton(text="◀️ Назад", callback_data="check_menu")],
+]
+criminalip_menu = InlineKeyboardMarkup(inline_keyboard=criminalip_menu)
+
 exit_kb = ReplyKeyboardMarkup(keyboard=[[KeyboardButton(text="◀️ Выйти в меню")]], resize_keyboard=True, input_field_placeholder='Выберите пункт меню...')
 back_vt = InlineKeyboardMarkup(inline_keyboard=[[InlineKeyboardButton(text="◀️ Назад", callback_data="virustotal_menu")]])
 back_ipinfo = InlineKeyboardMarkup(inline_keyboard=[[InlineKeyboardButton(text="◀️ Назад", callback_data="ipinfo_menu")]])
 back_adbuseip = InlineKeyboardMarkup(inline_keyboard=[[InlineKeyboardButton(text="◀️ Назад", callback_data="adbuseip_menu")]])
 back_kaspersky = InlineKeyboardMarkup(inline_keyboard=[[InlineKeyboardButton(text="◀️ Назад", callback_data="kaspersky_menu")]])
+back_criminalip = InlineKeyboardMarkup(inline_keyboard=[[InlineKeyboardButton(text="◀️ Назад", callback_data="criminalip_menu")]])
 iexit_kb = InlineKeyboardMarkup(inline_keyboard=[[InlineKeyboardButton(text="◀️ Выйти в меню", callback_data="view_menu")]])

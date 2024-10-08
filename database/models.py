@@ -12,6 +12,7 @@ from sqlalchemy import (
 )
 from sqlalchemy.dialects.postgresql import INET
 from sqlalchemy.orm import relationship, DeclarativeBase
+from sqlalchemy.types import JSON
 
 class Base(DeclarativeBase):
     created = Column(DateTime, default=datetime.datetime.now)
@@ -52,7 +53,7 @@ class Vt_ip(Base):
     __tablename__ = 'vt_ip'
 
     id = Column(Integer, primary_key=True)
-    address = Column(Integer, ForeignKey('address.id'),  nullable=True)
+    address = Column(Integer, ForeignKey('address.id'),  nullable=False)
     verdict = Column(Boolean, nullable=False)
     network = Column(String(20), nullable=True)
     owner = Column(String(255), nullable=True)
@@ -70,7 +71,7 @@ class Ipi_ip(Base):
     __tablename__ = 'ipi_ip'
 
     id = Column(Integer, primary_key=True)
-    address = Column(Integer, ForeignKey('address.id'),  nullable=True)
+    address = Column(Integer, ForeignKey('address.id'),  nullable=False)
     country = Column(String(24), nullable=True)
     region = Column(String(255), nullable=True)
     city = Column(String(255), nullable=True)
@@ -81,7 +82,7 @@ class Abuseipdb(Base):
     __tablename__ = 'abuseipdb'
 
     id = Column(Integer, primary_key=True)
-    address = Column(Integer, ForeignKey('address.id'),  nullable=True)
+    address = Column(Integer, ForeignKey('address.id'),  nullable=False)
     is_public = Column(Boolean, default=True)
     ip_version = Column(Integer, nullable=False)
     is_whitelisted = Column(Boolean, nullable=True)
@@ -98,9 +99,22 @@ class Kaspersky(Base):
     __tablename__ = 'kaspersky'
 
     id = Column(Integer, primary_key=True)
-    address = Column(Integer, ForeignKey('address.id'),  nullable=True)
+    address = Column(Integer, ForeignKey('address.id'),  nullable=False)
     status = Column(String(32), nullable=True)
     country = Column(String(24), nullable=True)
     net_name = Column(String(255), nullable=True)
     zone = Column(String(32), nullable=True)
     last_changed_at = Column(DateTime, nullable=True)
+
+class CriminalIP(Base):
+    __tablename__ = 'criminalip'
+
+    id = Column(Integer, primary_key=True)
+    address = Column(Integer, ForeignKey('address.id'),  nullable=False)
+    inbound = Column(String(32), nullable=True)
+    outbound = Column(String(32), nullable=True)
+    is_malicious = Column(Boolean, nullable=True)
+    open_ports = Column(JSON, nullable=True)
+    hostname = Column(String(255), nullable=True)
+    country = Column(String(24), nullable=True)
+    security = Column(JSON, nullable=True)

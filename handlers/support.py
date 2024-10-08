@@ -3,13 +3,13 @@ from aiogram import Bot
 from aiogram.fsm.context import FSMContext
 from aiogram.types import CallbackQuery, Message, ReplyKeyboardMarkup
 
-from database.models import Ipi_ip, Vt_ip, Abuseipdb, Kaspersky
-from database.orm_query import orm_add_file_history, orm_add_vt_ip, orm_check_ip_in_table, orm_check_ip_in_table_updated, orm_check_ip_in_vt, orm_check_ip_in_vt_updated, orm_get_ipi_ip_data, orm_get_vt_ip, orm_get_abuseipdb_data, orm_get_kaspersky_data
+from database.models import Ipi_ip, Vt_ip, Abuseipdb, Kaspersky, CriminalIP
+from database.orm_query import orm_add_file_history, orm_add_vt_ip, orm_check_ip_in_table, orm_check_ip_in_table_updated, orm_check_ip_in_vt, orm_check_ip_in_vt_updated, orm_get_ipi_ip_data, orm_get_vt_ip, orm_get_abuseipdb_data, orm_get_kaspersky_data, orm_get_criminalip_data
 
-from ipcheckers.format import dict_to_string, format_to_output_dict_ipi, format_to_output_dict_vt, listdict_to_string, listdict_to_string_vt, format_to_output_dict_adb, format_to_output_dict_ksp
+from ipcheckers.format import dict_to_string, format_to_output_dict_ipi, format_to_output_dict_vt, listdict_to_string, listdict_to_string_vt, format_to_output_dict_adb, format_to_output_dict_ksp, format_to_output_dict_cip
 from ipcheckers.valid_ip import extract_and_validate
 
-from states import VT_states, IPI_states, ADB_states, KSP_states
+from states import VT_states, IPI_states, ADB_states, KSP_states, CIP_states
 
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -37,6 +37,7 @@ async def process_db_ip(ips: List[str], dnss: List[str], session: AsyncSession, 
         Ipi_ip: orm_get_ipi_ip_data,
         Abuseipdb: orm_get_abuseipdb_data,
         Kaspersky: orm_get_kaspersky_data,
+        CriminalIP: orm_get_criminalip_data,
     }[table_model]
 
     for ip, dns in zip_longest(ips[:], dnss[:]):
@@ -67,7 +68,7 @@ async def process_ip(msg: Message, info_function: Callable[[str], List[Dict[str,
     """
     current_state = await state.get_state()
 
-    table_name = {VT_states.check_ip: Vt_ip, IPI_states.check_ip: Ipi_ip, ADB_states.check_ip: Abuseipdb, KSP_states.check_ip: Kaspersky}[current_state]
+    table_name = {VT_states.check_ip: Vt_ip, IPI_states.check_ip: Ipi_ip, ADB_states.check_ip: Abuseipdb, KSP_states.check_ip: Kaspersky, CIP_states.check_ip: CriminalIP}[current_state]
 
     ips, dnss = extract_and_validate(msg.text)
     if not ips and not dnss: return False, None
@@ -102,6 +103,11 @@ async def process_ip(msg: Message, info_function: Callable[[str], List[Dict[str,
         format_reports = []
         for report in combined_reports:
             format_reports.append(format_to_output_dict_ksp(report))
+        answer = listdict_to_string(format_reports)
+    if current_state == CIP_states.check_ip:
+        format_reports = []
+        for report in combined_reports:
+            format_reports.append(format_to_output_dict_cip(report))
         answer = listdict_to_string(format_reports)
     return True, answer
 
@@ -152,7 +158,9 @@ async def process_document(
         ADB_states.check_ip_file: ('abuseipdb', Abuseipdb),
         ADB_states.check_ip_file_command: ('abuseipdb', Abuseipdb),
         KSP_states.check_ip_file: ('kaspersky', Kaspersky),
-        KSP_states.check_ip_file_command: ('kaspersky', Kaspersky)
+        KSP_states.check_ip_file_command: ('kaspersky', Kaspersky),
+        CIP_states.check_ip_file: ('criminalip', CriminalIP),
+        CIP_states.check_ip_file_command: ('criminalip', CriminalIP),
     }[current_state]
 
     os.makedirs(f'data/{dir_name}', exist_ok=True)
@@ -206,5 +214,10 @@ async def process_document(
         format_reports = []
         for report in combined_reports:
             format_reports.append(format_to_output_dict_ksp(report))
+        answer = listdict_to_string(format_reports)
+    if current_state == CIP_states.check_ip_file or current_state == CIP_states.check_ip_file_command:
+        format_reports = []
+        for report in combined_reports:
+            format_reports.append(format_to_output_dict_cip(report))
         answer = listdict_to_string(format_reports)
     return True, answer

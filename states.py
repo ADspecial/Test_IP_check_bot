@@ -10,6 +10,7 @@ class Base_states(StatesGroup):
     ipinfo_menu = State()
     adbuseip_menu = State()
     kaspersky_menu = State()
+    criminalip_menu = State()
     help = State()
 
 class VT_states(StatesGroup):
@@ -34,6 +35,13 @@ class ADB_states(StatesGroup):
     check_ip_file_command = State()
 
 class KSP_states(StatesGroup):
+    menu = State()
+    get_doc = State()
+    check_ip = State()
+    check_ip_file = State()
+    check_ip_file_command = State()
+
+class CIP_states(StatesGroup):
     menu = State()
     get_doc = State()
     check_ip = State()

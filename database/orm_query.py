@@ -5,7 +5,7 @@ from sqlalchemy.future import select
 from sqlalchemy.exc import NoResultFound, IntegrityError
 
 from datetime import datetime, timedelta
-from database.models import Address, History, Vt_ip, Ipi_ip, Abuseipdb, Kaspersky
+from database.models import Address, History, Vt_ip, Ipi_ip, Abuseipdb, Kaspersky, CriminalIP
 
 from typing import Callable, List, Dict, Union, Tuple, Any
 
@@ -682,3 +682,118 @@ async def orm_add_kaspersky_data(session: AsyncSession, data: Dict[str, any]) ->
         print(f"Ошибка при добавлении/обновлении данных Kaspersky: {e}")
         await session.rollback()
         return False
+
+async def orm_add_criminalip_data(session: AsyncSession, data: Dict[str, any]) -> bool:
+    """
+    Добавляет или обновляет данные о IP-адресе в таблице CriminalIP.
+
+    :param session: Асинхронная сессия для работы с базой данных.
+    :param data: Словарь с данными для добавления или обновления.
+    :return: True в случае успешного добавления или обновления, иначе False.
+    """
+    try:
+        # Поиск существующего адреса по IP
+        result = await session.execute(select(Address).where(Address.ip == data['ip_address']))
+        existing_address = result.scalars().first()
+
+        if existing_address:
+            # Поиск существующей записи в CriminalIP
+            criminal_ip_result = await session.execute(select(CriminalIP).where(CriminalIP.address == existing_address.id))
+            existing_criminal_record = criminal_ip_result.scalars().first()
+
+            if existing_criminal_record:
+                # Обновляем существующую запись
+                existing_criminal_record.inbound = data.get('inbound')
+                existing_criminal_record.outbound = data.get('outbound')
+                existing_criminal_record.is_malicious = data.get('is_malicious')
+                existing_criminal_record.open_ports = data.get('open_ports')
+                existing_criminal_record.hostname = data.get('hostname')
+                existing_criminal_record.country = data.get('country')
+                existing_criminal_record.security = data.get('security')
+            else:
+                # Создаем новую запись в CriminalIP
+                new_criminal_record = CriminalIP(
+                    address=existing_address.id,
+                    inbound=data.get('inbound'),
+                    outbound=data.get('outbound'),
+                    is_malicious=data.get('is_malicious'),
+                    open_ports=data.get('open_ports'),
+                    hostname=data.get('hostname'),
+                    country=data.get('country'),
+                    security=data.get('security'),
+                )
+                session.add(new_criminal_record)
+
+        else:
+            # Если адрес не найден, создаем новый адрес и новую запись в CriminalIP
+            new_address = Address(ip=data['ip_address'])
+            session.add(new_address)
+            await session.commit()  # Сохраняем новый адрес
+
+            new_criminal_record = CriminalIP(
+                address=new_address.id,
+                inbound=data.get('inbound'),
+                outbound=data.get('outbound'),
+                is_malicious=data.get('is_malicious'),
+                open_ports=data.get('open_ports'),
+                hostname=data.get('hostname'),
+                country=data.get('country'),
+                security=data.get('security'),
+            )
+            session.add(new_criminal_record)
+
+        await session.commit()  # Сохраняем изменения
+        return True
+
+    except IntegrityError as e:
+        print(f"Ошибка при добавлении/обновлении записи CriminalIP для адреса {data['ip_address']}: {e}")
+        await session.rollback()
+        return False
+    except Exception as e:
+        print(f"Ошибка при добавлении/обновлении данных CriminalIP: {e}")
+        await session.rollback()
+        return False
+
+async def orm_get_criminalip_data(session: AsyncSession, ip_address: str) -> Dict[str, Any]:
+    """
+    Ищет запись в таблице CriminalIP по IP-адресу и возвращает данные в виде словаря.
+
+    Аргументы:
+        session (AsyncSession): Асинхронная сессия для работы с базой данных.
+        ip_address (str): IP-адрес для поиска.
+
+    Возвращает:
+        Dict[str, Any]: Словарь, содержащий данные из таблицы CriminalIP, или словарь с одним ключом 'error',
+                        содержащий сообщение об ошибке, если запись не найдена.
+    """
+    try:
+        # Получаем адрес по IP
+        result = await session.execute(select(Address).where(Address.ip == ip_address))
+        address = result.scalars().first()
+
+        if not address:
+            return {'error': 'IP not found in database'}
+
+        # Получаем данные из таблицы CriminalIP по адресу
+        result = await session.execute(select(CriminalIP).where(CriminalIP.address == address.id))
+        criminal_ip_data = result.scalars().first()
+
+        if not criminal_ip_data:
+            return {'error': 'IP not found in CriminalIP table'}
+
+        response = {
+            'ip_address': ip_address,
+            'inbound': criminal_ip_data.inbound,
+            'outbound': criminal_ip_data.outbound,
+            'is_malicious': criminal_ip_data.is_malicious,
+            'open_ports': criminal_ip_data.open_ports,
+            'hostname': criminal_ip_data.hostname,
+            'country': criminal_ip_data.country,
+            'security': criminal_ip_data.security,
+        }
+
+        return response
+
+    except Exception as e:
+        print(f"Ошибка при поиске IP-адреса {ip_address} в CriminalIP: {e}")
+        return {'error': str(e)}
