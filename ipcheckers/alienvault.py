@@ -1,5 +1,3 @@
-import json
-import aiohttp
 import asyncio
 import requests
 

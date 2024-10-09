@@ -4,9 +4,9 @@ from aiogram.fsm.context import FSMContext
 from aiogram.types import CallbackQuery, Message, ReplyKeyboardMarkup
 
 from database.models import Ipi_ip, Vt_ip, Abuseipdb, Kaspersky, CriminalIP, Alienvault
-from database.orm_query import orm_add_file_history, orm_add_vt_ip, orm_check_ip_in_table, orm_check_ip_in_table_updated, orm_check_ip_in_vt, orm_check_ip_in_vt_updated, orm_get_ipi_ip_data, orm_get_vt_ip, orm_get_abuseipdb_data, orm_get_kaspersky_data, orm_get_criminalip_data, orm_get_alienvault_data
+from database import orm_query
 
-from ipcheckers.format import dict_to_string, format_to_output_dict_ipi, format_to_output_dict_vt, listdict_to_string, listdict_to_string_vt, format_to_output_dict_adb, format_to_output_dict_ksp, format_to_output_dict_cip, format_to_output_dict_alv
+from ipcheckers import format
 from ipcheckers.valid_ip import extract_and_validate
 
 from states import VT_states, IPI_states, ADB_states, KSP_states, CIP_states, ALV_states
@@ -16,7 +16,6 @@ from sqlalchemy.ext.asyncio import AsyncSession
 import os
 
 from typing import Callable, List, Dict, Union, Tuple
-
 async def process_db_ip(ips: List[str], dnss: List[str], session: AsyncSession, table_model) -> Tuple[List[Dict], List[Dict]]:
     """
     Обработка IP-адресов и DNS, проверка их в базе данных и получение информации.
@@ -33,25 +32,25 @@ async def process_db_ip(ips: List[str], dnss: List[str], session: AsyncSession, 
     db_dnss = []
 
     orm_func = {
-        Vt_ip: orm_check_ip_in_vt,
-        Ipi_ip: orm_get_ipi_ip_data,
-        Abuseipdb: orm_get_abuseipdb_data,
-        Kaspersky: orm_get_kaspersky_data,
-        CriminalIP: orm_get_criminalip_data,
-        Alienvault: orm_get_alienvault_data,
+        Vt_ip: orm_query.orm_check_ip_in_vt,
+        Ipi_ip: orm_query.orm_get_ipi_ip_data,
+        Abuseipdb: orm_query.orm_get_abuseipdb_data,
+        Kaspersky: orm_query.orm_get_kaspersky_data,
+        CriminalIP: orm_query.orm_get_criminalip_data,
+        Alienvault: orm_query.orm_get_alienvault_data,
     }[table_model]
 
     for ip, dns in zip_longest(ips[:], dnss[:]):
-        if ip and await orm_check_ip_in_table(session, ip, table_model = table_model):
-            if await orm_check_ip_in_table_updated(session, ip, table_model):
+        if ip and await orm_query.orm_check_ip_in_table(session, ip, table_model = table_model):
+            if await orm_query.orm_check_ip_in_table_updated(session, ip, table_model):
                 ips.remove(ip)
                 data_ip = await orm_func(session,ip)
                 db_ips.append(data_ip)
 
-        if dns and await orm_check_ip_in_table(session, dns, table_model) and table_model == Vt_ip:
-            if await orm_check_ip_in_table_updated(session, dns, table_model):
+        if dns and await orm_query.orm_check_ip_in_table(session, dns, table_model) and table_model == Vt_ip:
+            if await orm_query.orm_check_ip_in_table_updated(session, dns, table_model):
                 dnss.remove(dns)
-                data_dns = await orm_get_vt_ip(session, dns)
+                data_dns = await orm_query.orm_get_vt_ip(session, dns)
                 db_dnss.append(data_dns)
 
     return db_ips, db_dnss
@@ -86,37 +85,21 @@ async def process_ip(msg: Message, info_function: Callable[[str], List[Dict[str,
 
     if current_state == VT_states.check_ip:
         if len(combined_reports) > 1:
-            answer = listdict_to_string_vt(combined_reports)
+            answer = format.listdict_to_string_vt(combined_reports)
         else:
-            format_dict = format_to_output_dict_vt(combined_reports[0])
-            answer = dict_to_string(format_dict)
-    if current_state == IPI_states.check_ip:
-        format_reports = []
-        for report in combined_reports:
-            format_reports.append(format_to_output_dict_ipi(report))
-        answer = listdict_to_string(format_reports)
-    if current_state == ADB_states.check_ip:
-        format_reports = []
-        for report in combined_reports:
-                format_reports.append(format_to_output_dict_adb(report))
-        answer = listdict_to_string(format_reports)
-    if current_state == KSP_states.check_ip:
-        format_reports = []
-        for report in combined_reports:
-            format_reports.append(format_to_output_dict_ksp(report))
-        answer = listdict_to_string(format_reports)
-    if current_state == CIP_states.check_ip:
-        format_reports = []
-        for report in combined_reports:
-            format_reports.append(format_to_output_dict_cip(report))
-        answer = listdict_to_string(format_reports)
-    if current_state == ALV_states.check_ip:
-        format_reports = []
-        for report in combined_reports:
-            format_reports.append(format_to_output_dict_alv(report))
-        answer = listdict_to_string(format_reports)
-    return True, answer
+            format_dict = format.format_to_output_dict_vt(combined_reports[0])
+            answer = format.dict_to_string(format_dict)
 
+    format_dict_func = {
+        IPI_states.check_ip: format.format_to_output_dict_ipi,
+        ADB_states.check_ip: format.format_to_output_dict_adb,
+        KSP_states.check_ip: format.format_to_output_dict_ksp,
+        CIP_states.check_ip: format.format_to_output_dict_cip,
+        ALV_states.check_ip: format.format_to_output_dict_alv,
+    }
+    format_reports = [format_dict_func[current_state](report) for report in combined_reports]
+    answer = format.listdict_to_string(format_reports)
+    return True, answer
 
 async def handle_file_request(
     msg_or_callback: Message | CallbackQuery, state: FSMContext, request_text: str, back_kb: ReplyKeyboardMarkup, gen_state_inline, gen_state_command
@@ -181,7 +164,7 @@ async def process_document(
         increment += 1
 
     await bot.download_file(file.file_path, file_name)
-    await orm_add_file_history(session, msg.message_id, file_name)
+    await orm_query.orm_queryorm_add_file_history(session, msg.message_id, file_name)
 
     with open(file_name, 'r', encoding='UTF-8') as file:
         text_file = file.read()
@@ -204,33 +187,22 @@ async def process_document(
 
     if current_state == VT_states.check_ip_file or current_state == VT_states.check_ip_file_command:
         if len(combined_reports) > 1:
-            answer = listdict_to_string_vt(combined_reports)
+            answer = format.listdict_to_string_vt(combined_reports)
         else:
-            format_dict = format_to_output_dict_vt(combined_reports[0])
-            answer = dict_to_string(format_dict)
-    if current_state == IPI_states.check_ip_file or current_state ==IPI_states.check_ip_file_command:
-        format_reports = []
-        for report in combined_reports:
-            format_reports.append(format_to_output_dict_ipi(report))
-        answer = listdict_to_string(format_reports)
-    if current_state == ADB_states.check_ip_file or current_state == ADB_states.check_ip_file_command:
-        format_reports = []
-        for report in combined_reports:
-            format_reports.append(format_to_output_dict_adb(report))
-        answer = listdict_to_string(format_reports)
-    if current_state == KSP_states.check_ip_file or current_state == KSP_states.check_ip_file_command:
-        format_reports = []
-        for report in combined_reports:
-            format_reports.append(format_to_output_dict_ksp(report))
-        answer = listdict_to_string(format_reports)
-    if current_state == CIP_states.check_ip_file or current_state == CIP_states.check_ip_file_command:
-        format_reports = []
-        for report in combined_reports:
-            format_reports.append(format_to_output_dict_cip(report))
-        answer = listdict_to_string(format_reports)
-    if current_state == ALV_states.check_ip_file or current_state == ALV_states.check_ip_file_command:
-        format_reports = []
-        for report in combined_reports:
-            format_reports.append(format_to_output_dict_alv(report))
-        answer = listdict_to_string(format_reports)
+            format_dict = format.format_to_output_dict_vt(combined_reports[0])
+            answer = format.dict_to_string(format_dict)
+    format_dict_func = {
+        IPI_states.check_ip_file: format.format_to_output_dict_ipi,
+        IPI_states.check_ip_file_command: format.format_to_output_dict_ipi,
+        ADB_states.check_ip_file: format.format_to_output_dict_adb,
+        ADB_states.check_ip_file_command: format.format_to_output_dict_adb,
+        KSP_states.check_ip_file: format.format_to_output_dict_ksp,
+        KSP_states.check_ip_file_command: format.format_to_output_dict_ksp,
+        CIP_states.check_ip_file: format.format_to_output_dict_cip,
+        CIP_states.check_ip_file_command: format.format_to_output_dict_cip,
+        ALV_states.check_ip_file: format.format_to_output_dict_alv,
+        ALV_states.check_ip_file_command: format.format_to_output_dict_alv,
+    }
+    format_reports = [format_dict_func[current_state](report) for report in combined_reports]
+    answer = format.listdict_to_string(format_reports)
     return True, answer

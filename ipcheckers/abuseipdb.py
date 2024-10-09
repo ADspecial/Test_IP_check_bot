@@ -77,6 +77,5 @@ def gen_result(response: Dict[str, Union[str, int]]) -> Dict[str, Union[str, int
         "domain": response["domain"],
         "total_reports": response["totalReports"],
         "num_distinct_users": response["numDistinctUsers"],
-        #"last_reported_at":response.get("lastReportedAt")
     }
     return result

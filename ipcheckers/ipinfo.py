@@ -3,7 +3,6 @@ import flag
 import datetime
 
 from config.config import KEYS
-from ipcheckers.valid_ip import extract_and_validate
 
 from typing import List, Dict, Union, Tuple
 
