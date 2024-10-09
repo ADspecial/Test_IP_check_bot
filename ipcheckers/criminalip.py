@@ -6,7 +6,7 @@ import requests
 from config.config import KEYS
 from ipcheckers.format import get_country_flag
 
-from typing import List, Dict, Union, Tuple
+from typing import List, Dict, Union, Tuple, Literal
 from datetime import datetime
 
 from config.config import KEYS, URLS
@@ -51,12 +51,50 @@ def gen_result(ip:str ,response: Dict[str, Union[str, int]]) -> Dict[str, Union[
     """
     result = {
         'ip_address': ip,
-        'inbound': response['ip_scoring']['inbound'],
-        'outbound': response['ip_scoring']['outbound'],
-        'is_malicious': response['ip_scoring']['is_malicious'],
+        'verdict': determine_verdict_criminalip(response['ip_scoring']['inbound'], response['ip_scoring']['outbound'], response['ip_scoring']['is_malicious']),
         'open_ports': response['current_open_ports'],
         'hostname': response['summary']['connection']['hostname'],
         'country': get_country_flag(response['summary']['connection']['country']),
-        'security': response['summary']['security'],
     }
     return result
+
+def determine_verdict_criminalip(
+    inbound: Literal['Critical', 'Moderate', 'Low', 'Safe'],
+    outbound: Literal['Critical', 'Moderate', 'Low', 'Safe'],
+    is_malicious: bool
+) -> Literal['🔴 malicious', '🟡 suspicious', '🟢 harmless', '⚫️ undetected']:
+    """
+    Определение вердикта на основе результатов CriminalIP
+
+    Аргументы:
+        inbound (Literal['Critical', 'Moderate', 'Low', 'Safe']):
+            Оценка входящего трафика
+        outbound (Literal['Critical', 'Moderate', 'Low', 'Safe']):
+            Оценка исходящего трафика
+        is_malicious (bool):
+            Флаг, указывающий на то, является ли IP-адрес вредоносным
+
+    Возвращает:
+        Literal[' malicious', ' suspicious', ' harmless', ' undetected']:
+            Вердикт, вынесенный на основе результатов
+    """
+    if is_malicious:
+        return '🔴 malicious'
+
+    # Определяем вердикт на основе значений inbound и outbound
+    if inbound == 'Critical' or outbound == 'Critical':
+        verdict = '🔴 malicious'
+    elif inbound == 'Moderate' and outbound == 'Moderate':
+        verdict = '🔴 malicious'
+    elif (inbound == 'Low' and outbound == 'Moderate') or (inbound == 'Moderate' and outbound == 'Low'):
+        verdict = '🟡 suspicious'
+    elif inbound == 'Low' and outbound == 'Low':
+        verdict = '🟡 suspicious'
+    elif inbound == 'Safe' and outbound == 'Safe':
+        verdict = '🟢 harmless'
+    elif (inbound == 'Low' and outbound == 'Safe') or (inbound == 'Safe' and outbound == 'Low'):
+        verdict = '🟡 suspicious'
+    else:
+        verdict = '⚫️ undetected'
+
+    return verdict

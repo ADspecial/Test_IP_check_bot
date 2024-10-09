@@ -96,6 +96,12 @@ async def view_adbuseip_menu(clbck: CallbackQuery, state: FSMContext):
     await clbck.answer('CriminalIP menu')
     await clbck.message.edit_text(text.criminalip_menu, reply_markup=kb.criminalip_menu)
 
+@menu_router.callback_query(F.data == "alienvault_menu")
+async def view_adbuseip_menu(clbck: CallbackQuery, state: FSMContext):
+    await state.set_state(Base_states.alienvault_menu)
+    await clbck.answer('AlienVault menu')
+    await clbck.message.edit_text(text.alienvault_menu, reply_markup=kb.alienvault_menu)
+
 
 async def delete_last_message(msg: Message, bot: Bot):
     messages =  await bot.get_chat_history(chat_id=msg.chat.id, limit=10)

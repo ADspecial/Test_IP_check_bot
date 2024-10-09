@@ -1,5 +1,5 @@
 import datetime
-from typing import Dict, Any, List
+from typing import Dict, Any, List, Union, Literal
 
 import flag
 
@@ -133,42 +133,64 @@ def format_to_output_dict_ksp(data: Dict[str, str]) -> Dict[str, str]:
     Returns:
         A dictionary with the same keys as the input, but with the values formatted for output.
     """
-    zone = data.get('zone')
-    output_str = "🟢 harmless"
-    if zone == 'Red': output_str = "🔴 malicious"
-    elif zone == 'Orange': output_str = "🟡 suspicious"
-    elif zone == 'Yellow': output_str = "🟡 advertising"
-    elif zone == 'Grey': output_str = "⚫️ undetected"
     output = {
         'header': '🟩 Kaspersky',
         'ip address': data['ip_address'],
         'country': data['country'],
-        'verdict': output_str + f' {zone}',
+        'verdict': data['verdict'],
         'status': data['status'],
         'net name': data['net_name'],
-        'last anlyzed at': data['last_changed_at'].strftime("%Y-%m-%d %H:%M:%S"),
     }
     return output
 
-def format_to_output_dict_cip(data: Dict[str, str]) -> Dict[str, str]:
+def format_to_output_dict_cip(data: Dict[str, Union[str, List[Dict[str, Union[str, bool]]]]]) -> Dict[str, str]:
     """
     Format a dictionary from ipinfo to a dictionary with the keys formatted for output.
 
     Args:
-        data: A dictionary with the keys 'ip', 'country', 'region', 'city', 'org', and 'loc'.
-            The values for these keys are strings.
+        data: A dictionary with string keys and values that are either strings or lists of dictionaries.
+            The dictionaries have string keys and values that are either strings or booleans.
 
     Returns:
-        A dictionary with the same keys as the input, but with the values formatted for output.
+        A dictionary with string keys and values that are strings.
     """
-    output = {
+    output_lines = []
+    for protocol, ports in data['open_ports'].items():
+        output_lines.append(f"  {protocol}:")
+        for port_info in ports:
+            output_lines.append(f"      Port: {port_info['port']}, Vulnerability: {port_info['has_vulnerability']}")
+        if not ports:  # Если список пустой
+            output_lines.append("       No open ports")
+    # Объединяем строки с новой строки
+    output_ports = "\n".join(output_lines)
+
+    output: Dict[str, str] = {
         'header': '🔎 CriminalIP',
         'ip address': data['ip_address'],
         'hostname': data['hostname'],
         'country': data['country'],
-        'inbound': data['inbound'],
-        'outbound': data['outbound'],
-        'is_malicious': data['is_malicious']
+        'verdict': data['verdict'],
+        'open_ports': '\n' + output_ports,
+    }
+    return output
+
+def format_to_output_dict_alv(data: Dict[str, Union[str, List[Dict[str, Union[str, bool]]]]]) -> Dict[str, str]:
+    """
+    Format a dictionary from ipinfo to a dictionary with the keys formatted for output.
+
+    Args:
+        data: A dictionary with string keys and values that are either strings or lists of dictionaries.
+            The dictionaries have string keys and values that are either strings or booleans.
+
+    Returns:
+        A dictionary with string keys and values that are strings.
+    """
+    output: Dict[str, str] = {
+        'header': '👽 Alienvault',
+        'ip address': data['ip_address'],
+        'asn': data['asn'],
+        'country': data['country'],
+        'verdict': data['verdict'],
     }
     return output
 
@@ -203,7 +225,6 @@ def listdict_to_string(data: List[Dict[str, str]]) -> str:
     # Объединяем все записи с разделителем
     result = '\n================\n'.join(formatted_entries)
     return result
-
 
 def get_country_flag(country_code):
     if country_code == None:

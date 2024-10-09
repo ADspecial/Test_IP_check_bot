@@ -10,7 +10,7 @@ from sqlalchemy import (
     BigInteger,
     func,
 )
-from sqlalchemy.dialects.postgresql import INET
+from sqlalchemy.dialects.postgresql import ARRAY
 from sqlalchemy.orm import relationship, DeclarativeBase
 from sqlalchemy.types import JSON
 
@@ -48,6 +48,8 @@ class Address(Base):
     ipinfo = relationship('Ipi_ip', backref='Address', uselist=False)
     abuseipdb = relationship('Abuseipdb', backref='Address', uselist=False)
     kaspersky = relationship('Kaspersky', backref='Address', uselist=False)
+    vriminalip = relationship('CriminalIP', backref='Address', uselist=False)
+    alienvault = relationship('Alienvault', backref='Address', uselist=False)
 
 class Vt_ip(Base):
     __tablename__ = 'vt_ip'
@@ -103,18 +105,23 @@ class Kaspersky(Base):
     status = Column(String(32), nullable=True)
     country = Column(String(24), nullable=True)
     net_name = Column(String(255), nullable=True)
-    zone = Column(String(32), nullable=True)
-    last_changed_at = Column(DateTime, nullable=True)
+    verdict = Column(String(32), nullable=True)
 
 class CriminalIP(Base):
     __tablename__ = 'criminalip'
 
     id = Column(Integer, primary_key=True)
     address = Column(Integer, ForeignKey('address.id'),  nullable=False)
-    inbound = Column(String(32), nullable=True)
-    outbound = Column(String(32), nullable=True)
-    is_malicious = Column(Boolean, nullable=True)
+    verdict = Column(String(32), nullable=True)
     open_ports = Column(JSON, nullable=True)
     hostname = Column(String(255), nullable=True)
     country = Column(String(24), nullable=True)
-    security = Column(JSON, nullable=True)
+
+class Alienvault(Base):
+    __tablename__ = 'alienvault'
+
+    id = Column(Integer, primary_key=True)
+    address = Column(Integer, ForeignKey('address.id'),  nullable=False)
+    country = Column(String(24), nullable=True)
+    asn = Column(String(255), nullable=True)
+    verdict = Column(String(32), nullable=True)

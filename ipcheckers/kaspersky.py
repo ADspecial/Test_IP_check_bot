@@ -6,7 +6,7 @@ import requests
 from config.config import KEYS
 from ipcheckers.format import get_country_flag
 
-from typing import List, Dict, Union, Tuple
+from typing import List, Dict, Union, Tuple, Literal
 from datetime import datetime
 
 
@@ -56,7 +56,26 @@ def gen_result(response: Dict[str, Union[str, int]]) -> Dict[str, Union[str, int
         'status': response['IpGeneralInfo']['Status'],
         'country': get_country_flag(response['IpGeneralInfo']['CountryCode']),
         'net_name': response["IpWhoIs"]["Net"]["Name"],
-        'zone': response['Zone'],
-        'last_changed_at': datetime.strptime(response["IpWhoIs"]['Net']['Changed'], '%Y-%m-%dT%H:%M:%SZ'),
+        'verdict': determine_verdict_kaspersky(response['Zone']),
     }
     return result
+
+def determine_verdict_kaspersky(zone: str) -> Literal['🔴 malicious', '🟡 suspicious', '🟢 harmless', '⚫️ undetected']:
+    """
+    Определение вердикта на основе зоны Kaspersky
+
+    Аргументы:
+        zone (str):
+            Зона Kaspersky
+
+    Возвращает:
+        Literal[' malicious', ' suspicious', ' harmless', ' undetected']:
+            Вердикт, вынесенный на основе зоны
+    """
+    verdict_map: Dict[str, Literal['🔴 malicious', '🟡 suspicious', '🟢 harmless', '⚫️ undetected']] = {
+        'Red': '🔴 malicious',
+        'Orange': '🟡 suspicious',
+        'Yellow': '🟡 suspicious',
+        'Grey': '⚫️ undetected'
+    }
+    return verdict_map.get(zone, '🟢 harmless')

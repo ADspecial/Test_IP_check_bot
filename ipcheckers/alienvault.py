@@ -1,96 +1,78 @@
+import json
+import aiohttp
+import asyncio
 import requests
 
-from ipaddress import ip_address
+from config.config import KEYS
+from ipcheckers.format import get_country_flag
 
-from datetime import datetime
+from typing import List, Dict, Union, Tuple
+from datetime import datetime, timedelta
 
-# from .geo_ip import geo_ip
-
-from config import settings
-
-
-# if "passive_dns" in response["sections"]:
-#     print(requests.request(method='GET', url=(url_base+url_ip+"185.138.131.234"+"/passive_dns"), headers=headers).text)
-# else:
-#     print("there is no passive dns found")
+from config.config import KEYS, URLS
 
 
-def make_request_alien(ip_address: ip_address, endpoint="general"):
-    url = "https://otx.alienvault.com/api/v1/indicators/IPv4/"
+async def make_request_alienvault(ip_address: str, endpoint="general"):
     headers = {
         'Accept': 'application/json',
-        'Key': settings.ALIENVAULT_TOKEN
+        'Key': KEYS.ALIENVAULT_KEY
     }
-    response = requests.request(method='GET', url=(url+ip_address+"/"+endpoint), headers=headers).json()
-    return response
+    response = requests.request(method='GET', url=(URLS.API_URL_ALIENVAULT+ip_address+"/"+endpoint), headers=headers).json()
+    return gen_result(response)
 
+async def get_alienvault_info(
+    ips: List[str], dnss: List[str]
+) -> Tuple[bool, List[Dict[str, Union[str, int, datetime]]]]:
+    """
+    Gets data from Kaspersky for given IP addresses.
 
-def get_report_alien(ip_address: ip_address):
-    response = make_request_alien(ip_address=ip_address)
-    report = {}
-    try:
-        report["info"] = ', '.join(source["source"] for source in response["validation"])
-        if not report["info"]:
-            report.pop("info", None)
-        pass
-    except KeyError:
-        pass
-    try:
-        report["asn"] = response["asn"]
-    except KeyError:
-        pass
-    try:
-        tags = set()
-        for pulse in response["pulse_info"]["pulses"]:
-            for tag in pulse["tags"]:
-                tags.add(tag)
-        if tags: report["tags"] = ', '.join(tag for tag in list(tags)[:10])
-    except KeyError:
-        pass
-    try:
-        #report["country"] = geo_ip.get_geo_response(ip_address)
-        pass
-    except KeyError:
-        pass
-    try:
-        pulse_dates = set()
-        for pulse in response["pulse_info"]["pulses"]:
-            pulse_date = datetime.strptime(pulse["modified"][:10], "%Y-%m-%d")
-            pulse_dates.add(pulse_date)
-        now = datetime.now()
-        try:
-            report["otx_7days"] = True if (now - max(pulse_dates)).days <= 7 else False
-        except Exception as e:
-            report["otx_7days"] = False
-        try:
-            report["otx_30days"] = True if (now - max(pulse_dates)).days <= 7 else False
-        except Exception as e:
-            report["otx_30days"] = False
-        try:
-            report["otx_historical"] = True if (now - max(pulse_dates)).days <= 7 else False
-        except Exception as e:
-            report["otx_historical"] = False
-    except KeyError:
-        pass
-    verdict = "⚫️ no info"
-    try:
-        if report["otx_7days"] or report["otx_30days"] or ("brute" or "ssh" or "attack" or "botnet" or "scan" or "malicious") in ''.join(tag.lower() for tag in tags):
-            verdict = "🔴 malicious"
-        elif report["otx_historical"]:
-            verdict = "🟡 suspicious"
-        else:
-            verdict = "🟢 harmless"
-    except Exception as e:
-        try:
-            new_report = {}
-            new_report["detail"] = response["detail"]
-            new_report["verdict"] = verdict
-            return new_report
-        except KeyError:
-            pass
-    report["verdict"] = verdict
-    return report
+    Args:
+        ips: A list of IP addresses.
 
-# reverse dns, OTX telemetry, verdict
+    Returns:
+        A tuple containing a boolean indicating success and a list of dictionaries containing the response data.
+    """
+    results = []
+    tasks = [make_request_alienvault(ip) for ip in ips]
+    results = await asyncio.gather(*tasks, return_exceptions=True)
+    filtered_results = [
+        result for result in results if not isinstance(result, Exception)
+    ]
+    return True, filtered_results
 
-#reputation', 'url_list', 'passive_dns', 'malware', 'nids_list', 'http_scans']}
+def gen_result(response: Dict[str, Union[str, int]]) -> Dict[str, Union[str, int, datetime]]:
+    tags = 'None'
+    otx_30days = False
+    otx_historical = False
+
+    if "pulse_info" in response and "pulses" in response["pulse_info"]:
+        pulses = response["pulse_info"]["pulses"]
+
+        if pulses:
+            tags = ', '.join({tag for pulse in pulses for tag in pulse.get("tags", [])})
+
+            modified_dates = []
+            for pulse in pulses:
+                modified = pulse.get("modified")
+                if modified:
+                    modified_dates.append(datetime.strptime(modified[:10], "%Y-%m-%d"))
+
+            if modified_dates:
+                max_modified = max(modified_dates)
+                otx_30days = max_modified >= datetime.now() - timedelta(days=30)
+                otx_historical = max_modified < datetime.now() - timedelta(days=30)
+
+    if otx_30days or ("brute" or "ssh" or "attack" or "botnet" or "scan" or "malicious") in ''.join(tag.lower() for tag in tags):
+        verdict = "🔴 malicious"
+    elif otx_historical:
+        verdict = "🟡 suspicious"
+    else:
+        verdict = "🟢 harmless"
+    result = {
+        'ip_address': response.get('indicator', 'Unknown'),
+        'country': get_country_flag(response.get('country_code', 'Unknown')),
+        'asn': response.get('asn', 'Unknown'),
+        'verdict': verdict
+    }
+
+    return result

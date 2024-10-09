@@ -5,7 +5,7 @@ from sqlalchemy.future import select
 from sqlalchemy.exc import NoResultFound, IntegrityError
 
 from datetime import datetime, timedelta
-from database.models import Address, History, Vt_ip, Ipi_ip, Abuseipdb, Kaspersky, CriminalIP
+from database.models import Address, History, Vt_ip, Ipi_ip, Abuseipdb, Kaspersky, CriminalIP, Alienvault
 
 from typing import Callable, List, Dict, Union, Tuple, Any
 
@@ -608,8 +608,7 @@ async def orm_get_kaspersky_data(session: AsyncSession, ip_address: str) -> Dict
             'status': kaspersky_data.status,
             'country': kaspersky_data.country,
             'net_name': kaspersky_data.net_name,
-            'zone': kaspersky_data.zone,
-            'last_changed_at': kaspersky_data.last_changed_at,
+            'verdict': kaspersky_data.verdict,
         }
 
         return response
@@ -641,8 +640,7 @@ async def orm_add_kaspersky_data(session: AsyncSession, data: Dict[str, any]) ->
                 existing_kaspersky_record.status = data.get('status')
                 existing_kaspersky_record.country = data.get('country')
                 existing_kaspersky_record.net_name = data.get('net_name')
-                existing_kaspersky_record.zone = data.get('zone')
-                existing_kaspersky_record.last_changed_at =data.get('last_changed_at'),
+                existing_kaspersky_record.verdict = data.get('verdict')
             else:
                 # Создаем новую запись в Kaspersky
                 new_kaspersky_record = Kaspersky(
@@ -650,8 +648,7 @@ async def orm_add_kaspersky_data(session: AsyncSession, data: Dict[str, any]) ->
                     status=data.get('status'),
                     country=data.get('country'),
                     net_name=data.get('net_name'),
-                    zone=data.get('zone'),
-                    last_changed_at=data.get('last_changed_at'),
+                    verdict=data.get('verdict'),
                 )
                 session.add(new_kaspersky_record)
 
@@ -666,8 +663,7 @@ async def orm_add_kaspersky_data(session: AsyncSession, data: Dict[str, any]) ->
                 status=data.get('status'),
                 country=data.get('country'),
                 net_name=data.get('net_name'),
-                zone=data.get('zone'),
-                last_changed_at=data.get('last_changed_at'),
+                verdict=data.get('verdict'),
             )
             session.add(new_kaspersky_record)
 
@@ -703,24 +699,18 @@ async def orm_add_criminalip_data(session: AsyncSession, data: Dict[str, any]) -
 
             if existing_criminal_record:
                 # Обновляем существующую запись
-                existing_criminal_record.inbound = data.get('inbound')
-                existing_criminal_record.outbound = data.get('outbound')
-                existing_criminal_record.is_malicious = data.get('is_malicious')
+                existing_criminal_record.verdict = data.get('verdict')
                 existing_criminal_record.open_ports = data.get('open_ports')
                 existing_criminal_record.hostname = data.get('hostname')
                 existing_criminal_record.country = data.get('country')
-                existing_criminal_record.security = data.get('security')
             else:
                 # Создаем новую запись в CriminalIP
                 new_criminal_record = CriminalIP(
                     address=existing_address.id,
-                    inbound=data.get('inbound'),
-                    outbound=data.get('outbound'),
-                    is_malicious=data.get('is_malicious'),
+                    verdict=data.get('verdict'),
                     open_ports=data.get('open_ports'),
                     hostname=data.get('hostname'),
                     country=data.get('country'),
-                    security=data.get('security'),
                 )
                 session.add(new_criminal_record)
 
@@ -732,13 +722,10 @@ async def orm_add_criminalip_data(session: AsyncSession, data: Dict[str, any]) -
 
             new_criminal_record = CriminalIP(
                 address=new_address.id,
-                inbound=data.get('inbound'),
-                outbound=data.get('outbound'),
-                is_malicious=data.get('is_malicious'),
+                verdict=data.get('verdict'),
                 open_ports=data.get('open_ports'),
                 hostname=data.get('hostname'),
                 country=data.get('country'),
-                security=data.get('security'),
             )
             session.add(new_criminal_record)
 
@@ -783,13 +770,10 @@ async def orm_get_criminalip_data(session: AsyncSession, ip_address: str) -> Dic
 
         response = {
             'ip_address': ip_address,
-            'inbound': criminal_ip_data.inbound,
-            'outbound': criminal_ip_data.outbound,
-            'is_malicious': criminal_ip_data.is_malicious,
+            'verdict': criminal_ip_data.verdict,
             'open_ports': criminal_ip_data.open_ports,
             'hostname': criminal_ip_data.hostname,
             'country': criminal_ip_data.country,
-            'security': criminal_ip_data.security,
         }
 
         return response
@@ -797,3 +781,100 @@ async def orm_get_criminalip_data(session: AsyncSession, ip_address: str) -> Dic
     except Exception as e:
         print(f"Ошибка при поиске IP-адреса {ip_address} в CriminalIP: {e}")
         return {'error': str(e)}
+
+async def orm_get_alienvault_data(session: AsyncSession, ip_address: str) -> Dict[str, Any]:
+    """
+    Ищет запись в таблице Alienvault по IP-адресу и возвращает данные в виде словаря.
+
+    Аргументы:
+        session (AsyncSession): Асинхронная сессия для работы с базой данных.
+        ip_address (str): IP-адрес для поиска.
+
+    Возвращает:
+        Dict[str, Any]: Словарь, содержащий данные из таблицы Alienvault, или словарь с одним ключом 'error',
+                        содержащий сообщение об ошибке, если запись не найдена.
+    """
+    try:
+        result = await session.execute(select(Address).where(Address.ip == ip_address))
+        address = result.scalars().first()
+
+        if not address:
+            return {'error': 'IP not found in database'}
+
+        result = await session.execute(select(Alienvault).where(Alienvault.address == address.id))
+        alienvault_data = result.scalars().first()
+
+        if not alienvault_data:
+            return {'error': 'IP not found in Alienvault table'}
+
+        response = {
+            'ip_address': ip_address,
+            'verdict': alienvault_data.verdict,
+            'country': alienvault_data.country,
+            'asn': alienvault_data.asn,
+        }
+
+        return response
+
+    except Exception as e:
+        print(f"Ошибка при поиске IP-адреса {ip_address} в Alienvault: {e}")
+        return {'error': str(e)}
+
+async def orm_add_alienvault_data(session: AsyncSession, data: Dict[str, Any]) -> bool:
+    """
+    Добавляет или обновляет данные о IP-адресе в таблице Alienvault.
+
+    :param session: Асинхронная сессия для работы с базой данных.
+    :param data: Словарь с данными для добавления или обновления.
+    :return: True в случае успешного добавления или обновления, иначе False.
+    """
+    try:
+        # Поиск существующего адреса по IP
+        result = await session.execute(select(Address).where(Address.ip == data['ip_address']))
+        existing_address = result.scalars().first()
+
+        if existing_address:
+            # Поиск существующей записи в Alienvault
+            alienvault_result = await session.execute(select(Alienvault).where(Alienvault.address == existing_address.id))
+            existing_alienvault_record = alienvault_result.scalars().first()
+
+            if existing_alienvault_record:
+                # Обновляем существующую запись
+                existing_alienvault_record.verdict = data.get('verdict')
+                existing_alienvault_record.country = data.get('country')
+                existing_alienvault_record.asn = data.get('asn')
+            else:
+                # Создаем новую запись в Alienvault
+                new_alienvault_record = Alienvault(
+                    address=existing_address.id,
+                    verdict=data.get('verdict'),
+                    country=data.get('country'),
+                    asn=data.get('asn'),
+                )
+                session.add(new_alienvault_record)
+
+        else:
+            # Если адрес не найден, создаем новый адрес и новую запись в Alienvault
+            new_address = Address(ip=data['ip_address'])
+            session.add(new_address)
+            await session.commit()  # Сохраняем новый адрес
+
+            new_alienvault_record = Alienvault(
+                address=new_address.id,
+                verdict=data.get('verdict'),
+                country=data.get('country'),
+                asn=data.get('asn'),
+            )
+            session.add(new_alienvault_record)
+
+        await session.commit()  # Сохраняем изменения
+        return True
+
+    except IntegrityError as e:
+        print(f"Ошибка при добавлении/обновлении записи Alienvault для адреса {data['ip_address']}: {e}")
+        await session.rollback()
+        return False
+    except Exception as e:
+        print(f"Ошибка при добавлении/обновлении данных Alienvault: {e}")
+        await session.rollback()
+        return False

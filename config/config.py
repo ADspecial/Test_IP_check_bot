@@ -21,6 +21,7 @@ class URLS:
     API_URL_ABUSEIPDB: str = os.getenv("API_URL_ABUSEIPDB")
     API_URL_KASPERSKY: str = os.getenv("API_URL_KASPERSKY")
     API_URL_CRIMINALIP: str = os.getenv("API_URL_CRIMINALIP")
+    API_URL_ALIENVAULT: str = os.getenv("API_URL_ALIENVAULT")
 
 class DB:
     url: str = os.getenv("DB_URL")

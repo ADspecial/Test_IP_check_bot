@@ -6,6 +6,7 @@ ipinfo_menu = "🌐 Получить информацию об ip из базы 
 adbuseip_menu = "⭕️ Получить информацию об ip из базы AbuseIPDB"
 kaspersky_menu = "🟩 Получить информацию об ip из базы Kaspersky"
 criminalip_menu = "🔎 Получить информацию об ip из базы CriminalIP"
+alienvault_menu = "👽 Получить информацию об ip из базы Alienvault"
 help = "Команды бота: \n\n\
         Общие команды: \n\
         - /start - запуск бота \n\
