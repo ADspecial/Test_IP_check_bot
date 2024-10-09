@@ -1,8 +1,4 @@
-output
 data
-test
 .venv
-test/test.py
-includes/.env
 __pycache__
-middleware/.env
+temp
