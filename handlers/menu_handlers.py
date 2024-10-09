@@ -17,9 +17,7 @@ last_user_message_id = {}
 # Обработчик вывода меню
 @menu_router.message(Command("start"))
 async def start_handler(msg: Message, state: FSMContext, bot: Bot):
-    #last_user_message_id[msg.chat.id] = msg.message_id
     await state.set_state(Base_states.start)
-    await bot.delete_message(msg.chat.id, msg.message_id)
     await msg.answer(text.greetings.format(name=msg.from_user.full_name), reply_markup=kb.start_menu)
 
 # Обработчик вывода освновного меню
