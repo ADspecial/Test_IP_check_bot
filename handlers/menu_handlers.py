@@ -48,10 +48,10 @@ async def menu_handler(msg_or_callback: Message | CallbackQuery, state: FSMConte
 async def help_handler(msg_or_callback: Message | CallbackQuery, state: FSMContext, bot: Bot):
     await state.set_state(Base_states.help)
     if isinstance(msg_or_callback, CallbackQuery):
-        await msg_or_callback.message.edit_text(help, reply_markup=kb.iexit_kb)
+        await msg_or_callback.message.edit_text(text.help_private, reply_markup=kb.iexit_kb)
         await msg_or_callback.answer('Помощь')
     else:
-        await msg_or_callback.answer(help)
+        await msg_or_callback.answer(text.help_private)
 
 # Обработчик вывода меню проверки IP
 @menu_router.callback_query(F.data == "check_menu")
