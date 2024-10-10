@@ -3,7 +3,7 @@ from aiogram import Bot
 from aiogram.fsm.context import FSMContext
 from aiogram.types import CallbackQuery, Message, ReplyKeyboardMarkup
 
-from database.models import Ipi_ip, Vt_ip, Abuseipdb, Kaspersky, CriminalIP, Alienvault
+from database.models import Ipinfo, Virustotal, Abuseipdb, Kaspersky, CriminalIP, Alienvault
 from database import orm_query
 
 from ipcheckers import format
@@ -16,6 +16,44 @@ from sqlalchemy.ext.asyncio import AsyncSession
 import os
 
 from typing import Callable, List, Dict, Union, Tuple
+
+STATE_TABLE_MAP = {
+    VT_states.check_ip: (Virustotal, format.format_to_output_dict_vt),
+    IPI_states.check_ip: (Ipinfo, format.format_to_output_dict_ipi),
+    ADB_states.check_ip: (Abuseipdb, format.format_to_output_dict_adb),
+    KSP_states.check_ip: (Kaspersky, format.format_to_output_dict_ksp),
+    CIP_states.check_ip: (CriminalIP, format.format_to_output_dict_cip),
+    ALV_states.check_ip: (Alienvault, format.format_to_output_dict_alv),
+    VT_states.check_ip_file: (Virustotal, format.format_to_output_dict_vt),
+    IPI_states.check_ip_file: (Ipinfo, format.format_to_output_dict_ipi),
+    ADB_states.check_ip_file: (Abuseipdb, format.format_to_output_dict_adb),
+    KSP_states.check_ip_file: (Kaspersky, format.format_to_output_dict_ksp),
+    CIP_states.check_ip_file: (CriminalIP, format.format_to_output_dict_cip),
+    ALV_states.check_ip_file: (Alienvault, format.format_to_output_dict_alv),
+    VT_states.check_ip_file_command: (Virustotal, format.format_to_output_dict_vt),
+    IPI_states.check_ip_file_command: (Ipinfo, format.format_to_output_dict_ipi),
+    ADB_states.check_ip_file_command: (Abuseipdb, format.format_to_output_dict_adb),
+    KSP_states.check_ip_file_command: (Kaspersky, format.format_to_output_dict_ksp),
+    CIP_states.check_ip_file_command: (CriminalIP, format.format_to_output_dict_cip),
+    ALV_states.check_ip_file_command: (Alienvault, format.format_to_output_dict_alv),
+}
+
+STATE_FILE_MAP = {
+
+    VT_states.check_ip_file: ('virustotal', Virustotal),
+    IPI_states.check_ip_file: ('ipinfo', Ipinfo),
+    ADB_states.check_ip_file: ('abuseipdb', Abuseipdb),
+    KSP_states.check_ip_file: ('kaspersky', Kaspersky),
+    CIP_states.check_ip_file: ('criminalip', CriminalIP),
+    ALV_states.check_ip_file: ('alienvault', Alienvault),
+    VT_states.check_ip_file_command: ('virustotal', Virustotal),
+    IPI_states.check_ip_file_command: ('ipinfo', Ipinfo),
+    ADB_states.check_ip_file_command: ('abuseipdb', Abuseipdb),
+    KSP_states.check_ip_file_command: ('kaspersky', Kaspersky),
+    CIP_states.check_ip_file_command: ('criminalip', CriminalIP),
+    ALV_states.check_ip_file_command: ('alienvault', Alienvault),
+}
+
 async def process_db_ip(ips: List[str], dnss: List[str], session: AsyncSession, table_model) -> Tuple[List[Dict], List[Dict]]:
     """
     Обработка IP-адресов и DNS, проверка их в базе данных и получение информации.
@@ -31,27 +69,16 @@ async def process_db_ip(ips: List[str], dnss: List[str], session: AsyncSession, 
     db_ips = []
     db_dnss = []
 
-    orm_func = {
-        Vt_ip: orm_query.orm_check_ip_in_vt,
-        Ipi_ip: orm_query.orm_get_ipi_ip_data,
-        Abuseipdb: orm_query.orm_get_abuseipdb_data,
-        Kaspersky: orm_query.orm_get_kaspersky_data,
-        CriminalIP: orm_query.orm_get_criminalip_data,
-        Alienvault: orm_query.orm_get_alienvault_data,
-    }[table_model]
-
     for ip, dns in zip_longest(ips[:], dnss[:]):
         if ip and await orm_query.orm_check_ip_in_table(session, ip, table_model = table_model):
             if await orm_query.orm_check_ip_in_table_updated(session, ip, table_model):
                 ips.remove(ip)
-                data_ip = await orm_func(session,ip)
-                db_ips.append(data_ip)
+                db_ips.append(await orm_query.orm_get_data_ip(session, table_model, ip))
 
-        if dns and await orm_query.orm_check_ip_in_table(session, dns, table_model) and table_model == Vt_ip:
+        if dns and await orm_query.orm_check_ip_in_table(session, dns, table_model) and table_model == Virustotal:
             if await orm_query.orm_check_ip_in_table_updated(session, dns, table_model):
                 dnss.remove(dns)
-                data_dns = await orm_query.orm_get_vt_ip(session, dns)
-                db_dnss.append(data_dns)
+                db_dnss.append(await orm_query.orm_get_data_ip(session, table_model, ip))
 
     return db_ips, db_dnss
 
@@ -68,7 +95,7 @@ async def process_ip(msg: Message, info_function: Callable[[str], List[Dict[str,
     """
     current_state = await state.get_state()
 
-    table_name = {VT_states.check_ip: Vt_ip, IPI_states.check_ip: Ipi_ip, ADB_states.check_ip: Abuseipdb, KSP_states.check_ip: Kaspersky, CIP_states.check_ip: CriminalIP, ALV_states.check_ip: Alienvault}[current_state]
+    table_name, format_func = STATE_TABLE_MAP.get(current_state)
 
     ips, dnss = extract_and_validate(msg.text)
     if not ips and not dnss: return False, None
@@ -83,23 +110,10 @@ async def process_ip(msg: Message, info_function: Callable[[str], List[Dict[str,
     for report in reports:
         await db_function(session, report)
 
-    if current_state == VT_states.check_ip:
-        if len(combined_reports) > 1:
-            answer = format.listdict_to_string_vt(combined_reports)
-        else:
-            format_dict = format.format_to_output_dict_vt(combined_reports[0])
-            answer = format.dict_to_string(format_dict)
-
-    format_dict_func = {
-        IPI_states.check_ip: format.format_to_output_dict_ipi,
-        ADB_states.check_ip: format.format_to_output_dict_adb,
-        KSP_states.check_ip: format.format_to_output_dict_ksp,
-        CIP_states.check_ip: format.format_to_output_dict_cip,
-        ALV_states.check_ip: format.format_to_output_dict_alv,
-    }
-    format_reports = [format_dict_func[current_state](report) for report in combined_reports]
+    format_reports = [format_func(report) for report in combined_reports]
     answer = format.listdict_to_string(format_reports)
     return True, answer
+
 
 async def handle_file_request(
     msg_or_callback: Message | CallbackQuery, state: FSMContext, request_text: str, back_kb: ReplyKeyboardMarkup, gen_state_inline, gen_state_command
@@ -132,39 +146,17 @@ async def process_document(
         Кортеж, где первый элемент - это булево значение, указывающее, была ли функция успешной, а второй элемент - это строка, содержащая результат функции.
     """
     current_state = await state.get_state()
+    dir_name, table_name = STATE_FILE_MAP.get(current_state)
+
+    os.makedirs(f'data/{dir_name}', exist_ok=True)
     file_id = msg.document.file_id
     file = await bot.get_file(file_id)
 
 
-    print(msg.from_user.id,msg.document.file_id, msg.chat.id, msg.message_id)
-    print(str(VT_states.check_ip_file))
-    print(current_state)
-    dir_name, table_name = {
-        VT_states.check_ip_file: ('virustotal', Vt_ip),
-        VT_states.check_ip_file_command: ('virustotal', Vt_ip),
-        IPI_states.check_ip_file: ('ipinfo', Ipi_ip),
-        IPI_states.check_ip_file_command: ('ipinfo', Ipi_ip),
-        ADB_states.check_ip_file: ('abuseipdb', Abuseipdb),
-        ADB_states.check_ip_file_command: ('abuseipdb', Abuseipdb),
-        KSP_states.check_ip_file: ('kaspersky', Kaspersky),
-        KSP_states.check_ip_file_command: ('kaspersky', Kaspersky),
-        CIP_states.check_ip_file: ('criminalip', CriminalIP),
-        CIP_states.check_ip_file_command: ('criminalip', CriminalIP),
-        ALV_states.check_ip_file: ('alienvault', Alienvault),
-        ALV_states.check_ip_file_command: ('alienvault', Alienvault),
-    }[current_state]
-
-    os.makedirs(f'data/{dir_name}', exist_ok=True)
-
-    increment = 1
-    while True:
-        file_name = f'data/{dir_name}/ip{increment}.txt'
-        if not os.path.exists(file_name):
-            break
-        increment += 1
+    file_name = next(f'data/{dir_name}/ip{num}.txt' for num in range(1, 1000) if not os.path.exists(f'data/{dir_name}/ip{num}.txt'))
 
     await bot.download_file(file.file_path, file_name)
-    await orm_query.orm_queryorm_add_file_history(session, msg.message_id, file_name)
+    await orm_query.orm_add_file_history(session, msg.message_id, file_name)
 
     with open(file_name, 'r', encoding='UTF-8') as file:
         text_file = file.read()
@@ -175,34 +167,16 @@ async def process_document(
         return False, None
 
     db_ips, db_dnss = await process_db_ip(ips, dnss, session, table_name)
-
     result, reports = await info_function(ips, dnss)
 
     combined_reports  = db_ips + db_dnss + reports
-
-    if not combined_reports : return False, None
+    if not combined_reports :
+        return False, None
 
     for report in reports:
         await db_function(session, report)
 
-    if current_state == VT_states.check_ip_file or current_state == VT_states.check_ip_file_command:
-        if len(combined_reports) > 1:
-            answer = format.listdict_to_string_vt(combined_reports)
-        else:
-            format_dict = format.format_to_output_dict_vt(combined_reports[0])
-            answer = format.dict_to_string(format_dict)
-    format_dict_func = {
-        IPI_states.check_ip_file: format.format_to_output_dict_ipi,
-        IPI_states.check_ip_file_command: format.format_to_output_dict_ipi,
-        ADB_states.check_ip_file: format.format_to_output_dict_adb,
-        ADB_states.check_ip_file_command: format.format_to_output_dict_adb,
-        KSP_states.check_ip_file: format.format_to_output_dict_ksp,
-        KSP_states.check_ip_file_command: format.format_to_output_dict_ksp,
-        CIP_states.check_ip_file: format.format_to_output_dict_cip,
-        CIP_states.check_ip_file_command: format.format_to_output_dict_cip,
-        ALV_states.check_ip_file: format.format_to_output_dict_alv,
-        ALV_states.check_ip_file_command: format.format_to_output_dict_alv,
-    }
-    format_reports = [format_dict_func[current_state](report) for report in combined_reports]
+    table_name,format_func = STATE_TABLE_MAP.get(current_state)
+    format_reports = [format_func(report) for report in combined_reports]
     answer = format.listdict_to_string(format_reports)
     return True, answer

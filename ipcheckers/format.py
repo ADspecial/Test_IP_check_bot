@@ -23,55 +23,30 @@ def dict_to_string(data: Dict[str, Any], indent: int = 0) -> str:
                 for line in dict_to_string(value, indent + 2).splitlines())
     return "\n".join(lines)
 
-def listdict_to_string_vt(data_list: List[Dict[str, Any]]) -> str:
-    """
-    Convert a list of dictionaries to a string representation.
+def format_to_output_dict_vt(data: Dict[str, str]) -> Dict[str, str]:
 
-    Args:
-        data_list: The list of dictionaries to convert.
+    # Объединяем строки с новой строки\
+    stats_line = "\n"
+    for key, value in data['stats'].items():
+        stats_line += f"         - {key}: {value}\n"
 
-    Returns:
-        The string representation of the list of dictionaries.
-    """
-    return "\n".join(dict_summary(data) for data in data_list)
+    try:
+        votes = data['votes']['malicious']/data['votes']['malicious']+data['votes']['harmless']
+    except ZeroDivisionError:
+        votes = 0
 
-def dict_summary(data):
-    verdict = '✅' if data['verdict'] else '❌'
-    ip = data['ip']
-    country = data['country']
-    stats = data['stats']
-
-    malicious_count = stats.get('malicious', 0)
-    suspicious_count = stats.get('suspicious', 0)
-    harmless_count = stats.get('harmless', 0)
-    undetected_count = stats.get('undetected', 0)
-
-    summary = f"{verdict} IP: {ip} | Country: {country} \nMalicious: {malicious_count} \nHarmless: {harmless_count} \nSuspicious: {suspicious_count} \nUndetected: {undetected_count} \n ================ "
-
-    return summary
-
-def format_to_output_dict_vt(data):
-    votes = data['users_votes']
-    stats = data['stats']
-    output = {
-        'verdict': '❌' if data['verdict'] == False else '✅',
-        'ip': data['ip'],
+    output: Dict[str, str] = {
+        'header': '🔷 Virustotal',
+        'address': data['ip_address'],
+        'country': data['country'],
+        'verdict': data['verdict'],
         'network': data['network'],
         'owner': data['owner'],
-        'country': data['country'],
-        'rep_score': data['rep_score'],
-        'users_votes': {'🔴 malicious': votes['malicious'],
-                        '🟢 harmless': votes['harmless']},
-        'stats': {'total engines' : stats['total engines'],
-                  '🔴 malicious' : stats['malicious'],
-                  '🟡 suspicious' : stats['suspicious'],
-                  '🟢 harmless' : stats['harmless'],
-                  '⚫️ undetected' : stats['undetected']},
-        'last_analysis_date': data['last_analysis_date']
+        'reputationscore': data['rep_score'],
+        'users votes': votes,
+        'stats agregation': stats_line
     }
     return output
-
-from typing import Dict
 
 def format_to_output_dict_ipi(data: Dict[str, str]) -> Dict[str, str]:
     """
@@ -85,8 +60,8 @@ def format_to_output_dict_ipi(data: Dict[str, str]) -> Dict[str, str]:
         A dictionary with the same keys as the input, but with the values formatted for output.
     """
     output = {
-        'header': '🌐',
-        'ip': data['ip'],
+        'header': '🌐 IPinfo',
+        'ip_address': data['ip'],
         'country': get_country_flag(data['country']),
         'region': data['region'],
         'city': data['city'],
@@ -223,7 +198,7 @@ def listdict_to_string(data: List[Dict[str, str]]) -> str:
         formatted_entries.append(formatted_entry)
 
     # Объединяем все записи с разделителем
-    result = '\n================\n'.join(formatted_entries)
+    result = '\n=======================\n'.join(formatted_entries)
     return result
 
 def get_country_flag(country_code):

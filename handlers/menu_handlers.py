@@ -4,6 +4,8 @@ from aiogram.types import Message, CallbackQuery
 from aiogram.fsm.context import FSMContext
 from aiogram.exceptions import TelegramBadRequest
 
+from filters.chat_type import ChatTypeFilter
+
 from states import Base_states
 
 import kb
@@ -15,10 +17,19 @@ message_ids_to_delete = []
 last_user_message_id = {}
 
 # Обработчик вывода меню
-@menu_router.message(Command("start"))
-async def start_handler(msg: Message, state: FSMContext, bot: Bot):
+@menu_router.message(
+    Command("start"),
+    ChatTypeFilter(chat_type=["private"]))
+async def start_handler(msg: Message, state: FSMContext):
     await state.set_state(Base_states.start)
     await msg.answer(text.greetings.format(name=msg.from_user.full_name), reply_markup=kb.start_menu)
+
+@menu_router.message(
+    Command("start"),
+    ChatTypeFilter(chat_type=["group", "supergroup"]))
+async def start_handler(msg: Message, state: FSMContext):
+    await state.set_state(Base_states.start)
+    await msg.answer(text.greetings_group.format(name=msg.from_user.full_name))
 
 # Обработчик вывода освновного меню
 @menu_router.message(Command("menu"))
@@ -37,10 +48,10 @@ async def menu_handler(msg_or_callback: Message | CallbackQuery, state: FSMConte
 async def help_handler(msg_or_callback: Message | CallbackQuery, state: FSMContext, bot: Bot):
     await state.set_state(Base_states.help)
     if isinstance(msg_or_callback, CallbackQuery):
-        await msg_or_callback.message.edit_text(text.help, reply_markup=kb.iexit_kb)
+        await msg_or_callback.message.edit_text(help, reply_markup=kb.iexit_kb)
         await msg_or_callback.answer('Помощь')
     else:
-        await msg_or_callback.answer(text.help)
+        await msg_or_callback.answer(help)
 
 # Обработчик вывода меню проверки IP
 @menu_router.callback_query(F.data == "check_menu")
@@ -52,15 +63,6 @@ async def check_menu_handler(msg_or_callback: Message | CallbackQuery, state: FS
         await msg_or_callback.answer('Проверка IP')
     else:
         await msg_or_callback.answer(text.check_menu, reply_markup=kb.check_menu)
-
-@menu_router.message(Command("clear"))
-async def cmd_clear(message: Message, bot: Bot) -> None:
-    try:
-        for i in range(message.message_id, 0, -1):
-            await bot.delete_message(message.from_user.id, i)
-    except TelegramBadRequest as ex:
-        if ex.message == "Bad Request: message to delete not found":
-            print("Все сообщения удалены")
 
 # Обработчик вывода меню virustotal
 @menu_router.callback_query(F.data == "virustotal_menu")
@@ -99,10 +101,3 @@ async def view_adbuseip_menu(clbck: CallbackQuery, state: FSMContext):
     await state.set_state(Base_states.alienvault_menu)
     await clbck.answer('AlienVault menu')
     await clbck.message.edit_text(text.alienvault_menu, reply_markup=kb.alienvault_menu)
-
-
-async def delete_last_message(msg: Message, bot: Bot):
-    messages =  await bot.get_chat_history(chat_id=msg.chat.id, limit=10)
-    if len(messages) > 1:
-        last_message = messages[-1]
-        await last_message.delete()

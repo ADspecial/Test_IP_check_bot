@@ -3,11 +3,12 @@ from sqlalchemy import Column, func
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.future import select
 from sqlalchemy.exc import NoResultFound, IntegrityError
+from sqlalchemy.orm import InstrumentedAttribute
 
 from datetime import datetime, timedelta
-from database.models import Address, History, Vt_ip, Ipi_ip, Abuseipdb, Kaspersky, CriminalIP, Alienvault
+from database.models import Address, History, Virustotal, Ipinfo, Abuseipdb, Kaspersky, CriminalIP, Alienvault
 
-from typing import Callable, List, Dict, Union, Tuple, Any
+from typing import Callable, List, Dict, Union, Tuple, Any, Type
 
 async def orm_check_ip_in_db(session: AsyncSession, ip_address: str) -> bool:
     """
@@ -31,100 +32,6 @@ async def orm_check_ip_in_db(session: AsyncSession, ip_address: str) -> bool:
         print(f"Ошибка при проверке IP-адреса {ip_address}: {e}")
         return False
 
-async def orm_check_ip_in_vt(session: AsyncSession, ip_address: str) -> bool:
-    """
-    Проверяет, существует ли указанный IP-адрес в таблице Vt_ip.
-
-    :param session: Асинхронная сессия для работы с базой данных.
-    :param ip_address: IP-адрес для проверки.
-    :return: True, если IP-адрес существует в таблице Vt_ip, иначе False.
-    """
-    try:
-        # Выполняем запрос к таблице Address для получения ID адреса
-        result = await session.execute(select(Address).where(Address.ip == ip_address))
-        existing_address = result.scalars().first()
-
-        # Если адрес не найден, возвращаем False
-        if not existing_address:
-            return False
-
-        # Выполняем запрос к таблице Vt_ip по ID адреса
-        result = await session.execute(select(Vt_ip).where(Vt_ip.address == existing_address.id))
-        existing_vt_record = result.scalars().first()
-
-        # Возвращаем результат проверки
-        return existing_vt_record is not None
-
-    except Exception as e:
-        # Логируем ошибку (можно использовать logging)
-        print(f"Ошибка при проверке IP-адреса {ip_address} в Vt_ip: {e}")
-        return False
-
-async def orm_check_ip_in_vt_updated(session: AsyncSession, ip_address: str) -> bool:
-    try:
-        result = await session.execute(select(Address).where(Address.ip == ip_address))
-        existing_address = result.scalars().first()
-
-        if not existing_address:
-            return False
-
-        result = await session.execute(select(Vt_ip).where(Vt_ip.address == existing_address.id))
-        existing_vt_record = result.scalars().first()
-
-        if not existing_vt_record:
-            return False
-
-        if existing_vt_record.updated:
-            current_time = datetime.utcnow()
-            if (current_time - existing_vt_record.updated) <= timedelta(days=7):
-                return True
-
-        return False
-
-    except Exception as e:
-        print(f"Ошибка при проверке IP-адреса {ip_address} в Vt_ip: {e}")
-        return False
-
-async def orm_get_vt_ip(session: AsyncSession, ip_address: str) -> Dict[str, any]:
-    """
-    Ищет запись в таблице Vt_ip по IP-адресу.
-
-    Аргументы:
-        session (AsyncSession): Асинхронная сессия для работы с базой данных.
-        ip_address (str): IP-адрес для поиска.
-
-    Возвращает:
-        Dict[str, any]: Словарь, содержащий данные из таблицы Vt_ip, или словарь с одним ключом 'error' содержащий сообщение об ошибке, если запись не найдена.
-    """
-    try:
-        result = await session.execute(select(Address).where(Address.ip == ip_address))
-        address = result.scalars().first()
-        result = await session.execute(select(Vt_ip).where(Vt_ip.address == address.id))
-        vt_ip_data = result.scalars().first()
-        response = {
-            'ip': address.ip,
-            'verdict': vt_ip_data.verdict,
-            'network': vt_ip_data.network,
-            'owner': vt_ip_data.owner,
-            'country': vt_ip_data.country,
-            'rep_score': vt_ip_data.rep_score,
-            'users_votes': {
-                'malicious': vt_ip_data.vote_malicious,
-                'harmless': vt_ip_data.vote_harmless
-            },
-            'stats': {
-                'total engines': vt_ip_data.stat_malicious + vt_ip_data.stat_suspicious + vt_ip_data.stat_harmless + vt_ip_data.stat_undetected,
-                'malicious': vt_ip_data.stat_malicious,
-                'suspicious': vt_ip_data.stat_suspicious,
-                'harmless': vt_ip_data.stat_harmless,
-                'undetected': vt_ip_data.stat_undetected
-            },
-            'last_analysis_date': vt_ip_data.last_analysis_date
-        }
-        return response
-    except NoResultFound:
-        return {'error': 'IP not found in database'}
-
 async def orm_add_vt_ip(session: AsyncSession, data: dict) -> bool:
     """
     Добавляет или обновляет IP-адрес и связанные данные в базе данных.
@@ -135,12 +42,12 @@ async def orm_add_vt_ip(session: AsyncSession, data: dict) -> bool:
     """
     try:
         # Проверяем, существует ли адрес
-        result = await session.execute(select(Address).where(Address.ip == data['ip']))
+        result = await session.execute(select(Address).where(Address.ip == data['ip_address']))
         existing_address = result.scalars().first()
 
         if existing_address:
             # Если адрес существует, обновляем данные Vt_ip
-            vt_ip_result = await session.execute(select(Vt_ip).where(Vt_ip.address == existing_address.id))
+            vt_ip_result = await session.execute(select(Virustotal).where(Virustotal.address == existing_address.id))
             existing_vt_ip = vt_ip_result.scalars().first()
 
             if existing_vt_ip:
@@ -149,52 +56,38 @@ async def orm_add_vt_ip(session: AsyncSession, data: dict) -> bool:
                 existing_vt_ip.network = data['network']
                 existing_vt_ip.owner = data['owner']
                 existing_vt_ip.country = data['country']
-                existing_vt_ip.vote_malicious = data['stats']['malicious']
-                existing_vt_ip.vote_harmless = data['stats']['harmless']
-                existing_vt_ip.stat_malicious = data['stats']['malicious']
-                existing_vt_ip.stat_suspicious = data['stats']['suspicious']
-                existing_vt_ip.stat_harmless = data['stats']['harmless']
-                existing_vt_ip.stat_undetected = data['stats']['undetected']
-                existing_vt_ip.last_analysis_date = datetime.strptime(data['last_analysis_date'], '%Y-%m-%d %H:%M:%S')
+                existing_vt_ip.rep_score = data['rep_score']
+                existing_vt_ip.votes = data['votes']
+                existing_vt_ip.stats = data['stats']
                 existing_vt_ip.updated = func.current_timestamp()
-                #update(session, Vt_ip, existing_vt_ip)
             else:
                 # Если записи Vt_ip не существует, создаем новую
-                new_vt_ip = Vt_ip(
+                new_vt_ip = Virustotal(
                     address=existing_address.id,
                     verdict=data['verdict'],
                     network=data['network'],
                     owner=data['owner'],
                     country=data['country'],
-                    vote_malicious=data['stats']['malicious'],
-                    vote_harmless=data['stats']['harmless'],
-                    stat_malicious=data['stats']['malicious'],
-                    stat_suspicious=data['stats']['suspicious'],
-                    stat_harmless=data['stats']['harmless'],
-                    stat_undetected=data['stats']['undetected'],
-                    last_analysis_date=datetime.strptime(data['last_analysis_date'], '%Y-%m-%d %H:%M:%S'),
+                    rep_score=data['rep_score'],
+                    votes=data['votes'],
+                    stats=data['stats'],
                 )
                 session.add(new_vt_ip)
 
         else:
             # Если адрес не существует, создаем новый адрес и новую запись Vt_ip
-            new_address = Address(ip=data['ip'])
+            new_address = Address(ip=data['ip_address'])
             session.add(new_address)
             await session.commit()  # Сохраняем новый адрес
 
-            new_vt_ip = Vt_ip(
+            new_vt_ip = Virustotal(
                 verdict=data['verdict'],
                 network=data['network'],
                 owner=data['owner'],
                 country=data['country'],
-                vote_malicious=data['stats']['malicious'],
-                vote_harmless=data['stats']['harmless'],
-                rep_score=data['stats']['malicious']/(data['stats']['harmless']+data['stats']['malicious']),
-                stat_malicious=data['stats']['malicious'],
-                stat_suspicious=data['stats']['suspicious'],
-                stat_harmless=data['stats']['harmless'],
-                stat_undetected=data['stats']['undetected'],
-                last_analysis_date=datetime.strptime(data['last_analysis_date'], '%Y-%m-%d %H:%M:%S'),
+                rep_score=data['rep_score'],
+                votes=data['votes'],
+                stats=data['stats'],
                 address=new_address.id
             )
             session.add(new_vt_ip)
@@ -208,40 +101,6 @@ async def orm_add_vt_ip(session: AsyncSession, data: dict) -> bool:
         return False
     except Exception as e:
         print(f"Ошибка при добавлении/обновлении данных: {e}")
-        await session.rollback()
-        return False
-
-async def orm_delete_vt_ip(session: AsyncSession, ip_address: str) -> bool:
-    """
-    Удаляет IP-адрес и связанные данные из базы данных.
-
-    :param session: Асинхронная сессия для работы с базой данных.
-    :param ip_address: IP-адрес для удаления.
-    :return: True в случае успешного удаления, иначе False.
-    """
-    try:
-        result = await session.execute(select(Address).where(Address.ip == ip_address))
-        address = result.scalars().one_or_none()
-
-        if not address:
-            print(f"IP-адрес {ip_address} не найден.")
-            return False
-
-        if address.vt_ip:
-            await session.delete(address.vt_ip)
-
-        await session.delete(address)
-        await session.commit()
-
-        return True
-
-    except IntegrityError as e:
-        print(f"Ошибка при удалении IP-адреса {ip_address}: {e}")
-        await session.rollback()
-        return False
-
-    except Exception as e:
-        print(f"Ошибка при удалении данных: {e}")
         await session.rollback()
         return False
 
@@ -286,7 +145,7 @@ async def orm_add_ipi_ip(session: AsyncSession, data: dict) -> bool:
 
         if existing_address:
             # Если адрес существует, проверяем, существует ли запись Ipi_ip
-            ipi_ip_result = await session.execute(select(Ipi_ip).where(Ipi_ip.address == existing_address.id))
+            ipi_ip_result = await session.execute(select(Ipinfo).where(Ipinfo.address == existing_address.id))
             existing_ipi_ip = ipi_ip_result.scalars().first()
 
             if existing_ipi_ip:
@@ -299,7 +158,7 @@ async def orm_add_ipi_ip(session: AsyncSession, data: dict) -> bool:
                 existing_ipi_ip.updated = func.current_timestamp()
             else:
                 # Если записи Ipi_ip не существует, создаем новую
-                new_ipi_ip = Ipi_ip(
+                new_ipi_ip = Ipinfo(
                     address=existing_address.id,
                     country=data.get('country'),
                     region=data.get('region'),
@@ -316,7 +175,7 @@ async def orm_add_ipi_ip(session: AsyncSession, data: dict) -> bool:
             await session.commit()  # Сохраняем новый адрес
 
             # Создаем новую запись Ipi_ip
-            new_ipi_ip = Ipi_ip(
+            new_ipi_ip = Ipinfo(
                 address=new_address.id,
                 country=data.get('country'),
                 region=data.get('region'),
@@ -406,49 +265,6 @@ async def orm_check_ip_in_table_updated(session: AsyncSession, ip_address: str, 
         print(f"Ошибка при проверке IP-адреса {ip_address} в {table_model.__tablename__}: {e}")
         return False
 
-async def orm_get_ipi_ip_data(session: AsyncSession, ip_address: str) -> Dict[str, any]:
-    """
-    Ищет запись в таблице Ipi_ip по IP-адресу и возвращает данные в виде словаря.
-
-    Аргументы:
-        session (AsyncSession): Асинхронная сессия для работы с базой данных.
-        ip_address (str): IP-адрес для поиска.
-
-    Возвращает:
-        Dict[str, any]: Словарь, содержащий данные из таблицы Ipi_ip, или словарь с одним ключом 'error',
-                        содержащий сообщение об ошибке, если запись не найдена.
-    """
-    try:
-        # Выполняем запрос к таблице Address для получения ID адреса
-        result = await session.execute(select(Address).where(Address.ip == ip_address))
-        address = result.scalars().first()
-
-        if not address:
-            return {'error': 'IP not found in database'}
-
-        # Выполняем запрос к таблице Ipi_ip по ID адреса
-        result = await session.execute(select(Ipi_ip).where(Ipi_ip.address == address.id))
-        ipi_ip_data = result.scalars().first()
-
-        if not ipi_ip_data:
-            return {'error': 'IP not found in Ipi_ip table'}
-
-        # Формируем ответ
-        response = {
-            'ip': ip_address,
-            'country': ipi_ip_data.country,
-            'region': ipi_ip_data.region,
-            'city': ipi_ip_data.city,
-            'org': ipi_ip_data.org,
-            'loc': ipi_ip_data.loc
-        }
-
-        return response
-
-    except Exception as e:
-        print(f"Ошибка при поиске IP-адреса {ip_address} в Ipi_ip: {e}")
-        return {'error': str(e)}
-
 async def orm_add_abuseipdb(session: AsyncSession, data: dict) -> bool:
     """
     Добавляет или обновляет данные о злоупотреблении IP-адресом в таблице Abuseipdb.
@@ -477,7 +293,6 @@ async def orm_add_abuseipdb(session: AsyncSession, data: dict) -> bool:
                 existing_abuse_record.domain = data.get('domain')
                 existing_abuse_record.total_reports = data.get('total_reports')
                 existing_abuse_record.num_distinct_users = data.get('num_distinct_users')
-                #existing_abuse_record.last_reported_at =data.get('last_reported_at'),
                 existing_abuse_record.updated = func.current_timestamp()
             else:
                 new_abuse_record = Abuseipdb(
@@ -641,6 +456,7 @@ async def orm_add_kaspersky_data(session: AsyncSession, data: Dict[str, any]) ->
                 existing_kaspersky_record.country = data.get('country')
                 existing_kaspersky_record.net_name = data.get('net_name')
                 existing_kaspersky_record.verdict = data.get('verdict')
+                existing_kaspersky_record.updated = func.current_timestamp()
             else:
                 # Создаем новую запись в Kaspersky
                 new_kaspersky_record = Kaspersky(
@@ -703,6 +519,7 @@ async def orm_add_criminalip_data(session: AsyncSession, data: Dict[str, any]) -
                 existing_criminal_record.open_ports = data.get('open_ports')
                 existing_criminal_record.hostname = data.get('hostname')
                 existing_criminal_record.country = data.get('country')
+                existing_criminal_record.updated = func.current_timestamp()
             else:
                 # Создаем новую запись в CriminalIP
                 new_criminal_record = CriminalIP(
@@ -843,6 +660,7 @@ async def orm_add_alienvault_data(session: AsyncSession, data: Dict[str, Any]) -
                 existing_alienvault_record.verdict = data.get('verdict')
                 existing_alienvault_record.country = data.get('country')
                 existing_alienvault_record.asn = data.get('asn')
+                existing_alienvault_record.updated = func.current_timestamp()
             else:
                 # Создаем новую запись в Alienvault
                 new_alienvault_record = Alienvault(
@@ -878,3 +696,40 @@ async def orm_add_alienvault_data(session: AsyncSession, data: Dict[str, Any]) -
         print(f"Ошибка при добавлении/обновлении данных Alienvault: {e}")
         await session.rollback()
         return False
+
+async def orm_get_data_ip(
+    session: AsyncSession,
+    table_name: Type,
+    ip_address: str,
+) -> Dict[str, Any]:
+    """
+    Универсальная функция для получения информации из любой таблицы по IP-адресу.
+
+    Аргументы:
+        session (AsyncSession): Асинхронная сессия для работы с базой данных.
+        table_model (Type): Модель таблицы базы данных.
+        ip_address (str): IP-адрес для поиска.
+
+    Возвращает:
+        Dict[str, Any]: Словарь с данными из таблицы или ошибкой, если запись не найдена.
+    """
+    try:
+        # Ищем запись в таблице по IP-адресу
+        result = await session.execute(select(Address).where(Address.ip == ip_address))
+        adress = result.scalars().first()
+
+        if not adress:
+            return {'error': f'IP {ip_address} not found in {Address.__name__} table'}
+
+        result = await session.execute(select(table_name).where(table_name.address == adress.id))
+        record = result.scalars().first()
+
+        # Преобразуем объект записи в словарь
+        response = {column.name: getattr(record, column.name) for column in table_name.__table__.columns}
+        response['ip_address'] = ip_address
+
+        return response
+
+    except Exception as e:
+        print(f"Ошибка при поиске IP-адреса {ip_address} в таблице {table_name.__name__}: {e}")
+        return {'error': str(e)}

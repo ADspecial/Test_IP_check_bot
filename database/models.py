@@ -44,33 +44,28 @@ class Address(Base):
     ip = Column(String(256), nullable=True)
     block = Column(Boolean, nullable=True)
     user_id_blocker = Column(Integer, ForeignKey('users.id'), nullable=True)
-    virustotal = relationship('Vt_ip', backref='Address', uselist=False)
-    ipinfo = relationship('Ipi_ip', backref='Address', uselist=False)
+    virustotal = relationship('Virustotal', backref='Address', uselist=False)
+    ipinfo = relationship('Ipinfo', backref='Address', uselist=False)
     abuseipdb = relationship('Abuseipdb', backref='Address', uselist=False)
     kaspersky = relationship('Kaspersky', backref='Address', uselist=False)
     vriminalip = relationship('CriminalIP', backref='Address', uselist=False)
     alienvault = relationship('Alienvault', backref='Address', uselist=False)
 
-class Vt_ip(Base):
-    __tablename__ = 'vt_ip'
+class Virustotal(Base):
+    __tablename__ = 'virustotal'
 
     id = Column(Integer, primary_key=True)
     address = Column(Integer, ForeignKey('address.id'),  nullable=False)
-    verdict = Column(Boolean, nullable=False)
+    verdict = Column(String(32), nullable=True)
     network = Column(String(20), nullable=True)
     owner = Column(String(255), nullable=True)
     country = Column(String(24), nullable=True)
     rep_score = Column(Float, nullable=True)
-    vote_malicious = Column(Integer, nullable=True)
-    vote_harmless = Column(Integer, nullable=True)
-    stat_malicious = Column(Integer, nullable=True)
-    stat_suspicious = Column(Integer, nullable=True)
-    stat_harmless = Column(Integer, nullable=True)
-    stat_undetected = Column(Integer, nullable=True)
-    last_analysis_date = Column(DateTime, nullable=True)
+    votes = Column(JSON, nullable=True)
+    stats = Column(JSON, nullable=True)
 
-class Ipi_ip(Base):
-    __tablename__ = 'ipi_ip'
+class Ipinfo(Base):
+    __tablename__ = 'ipinfo'
 
     id = Column(Integer, primary_key=True)
     address = Column(Integer, ForeignKey('address.id'),  nullable=False)
@@ -95,7 +90,6 @@ class Abuseipdb(Base):
     domain = Column(String(255), nullable=True)
     total_reports = Column(Integer, nullable=True)
     num_distinct_users = Column(Integer, nullable=True)
-    #last_reported_at = Column(DateTime, nullable=True)
 
 class Kaspersky(Base):
     __tablename__ = 'kaspersky'

@@ -24,7 +24,7 @@ from middleware.db import DataBaseSession
 from middleware.logs import LogMessageMiddleware
 
 async def on_startup(bot):
-    run_param = False
+    run_param = True
     if run_param:
         await drop_db()
     await create_db()
@@ -32,17 +32,7 @@ async def on_startup(bot):
 async def on_shutdown(bot):
     print('bot shutdown')
 
-async def main() -> None:
-    """Main entry point for the bot."""
-    bot = Bot(token=KEYS.TG_KEY, default=DefaultBotProperties(parse_mode=ParseMode.HTML))
-    dp = Dispatcher(storage=MemoryStorage())
-    dp.startup.register(on_startup)
-    dp.shutdown.register(on_shutdown)
-
-    dp.message.middleware(DataBaseSession(session_pool=session_maker))
-    dp.message.middleware(ChatActionMiddleware())
-    dp.message.middleware(LogMessageMiddleware(session_pool=session_maker))
-
+def register_routers(dp: Dispatcher):
     dp.include_router(ipi_router)
     dp.include_router(menu_router)
     dp.include_router(vt_router)
@@ -51,9 +41,25 @@ async def main() -> None:
     dp.include_router(cip_router)
     dp.include_router(alv_router)
 
-    await bot.delete_webhook(drop_pending_updates=True)
+async def main() -> None:
+    """Main entry point for the bot."""
+    async with Bot(token=KEYS.TG_KEY, default=DefaultBotProperties(parse_mode=ParseMode.HTML)) as bot:
+        private_dp = Dispatcher(storage=MemoryStorage())
+        group_dp = Dispatcher(storage=MemoryStorage())
 
-    await dp.start_polling(bot, allowed_updates=dp.resolve_used_update_types(), fast=True)
+        dp = Dispatcher(storage=MemoryStorage())
+        dp.startup.register(on_startup)
+        dp.shutdown.register(on_shutdown)
+
+        dp.message.middleware(DataBaseSession(session_pool=session_maker))
+        dp.message.middleware(ChatActionMiddleware())
+        dp.message.middleware(LogMessageMiddleware(session_pool=session_maker))
+
+        register_routers(dp)
+
+        await bot.delete_webhook(drop_pending_updates=True)
+
+        await dp.start_polling(bot, allowed_updates=dp.resolve_used_update_types(), fast=True)
 
 if __name__ == "__main__":
     logging.basicConfig(level=logging.INFO)
