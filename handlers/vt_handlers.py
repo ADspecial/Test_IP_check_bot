@@ -12,6 +12,8 @@ from handlers import process
 
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from filters.chat_type import ChatTypeFilter
+
 import kb
 import re
 import text
@@ -20,7 +22,10 @@ import database.orm_query as orm_query
 
 vt_router = Router()
 
-@vt_router.callback_query(F.data == "vt_ip")
+@vt_router.callback_query(
+    F.data == "vt_ip",
+    ChatTypeFilter(chat_type=["private"])
+)
 async def input_about_ip(clbck: CallbackQuery, state: FSMContext):
     await state.set_state(VT_states.check_ip)
     await clbck.message.edit_text(text.about_check_ip,reply_markup=kb.back_vt)
@@ -57,10 +62,16 @@ async def check_ip_command(msg: Message, state: FSMContext, bot: Bot, session: A
         await msg.answer('Не введен ip адрес\n')
     await state.set_state(Base_states.start)
 
-@vt_router.callback_query(F.data == "vt_file")
-@vt_router.message(Command("vtfile"))
+@vt_router.callback_query(
+    F.data == "vt_file",
+    ChatTypeFilter(chat_type=["private"])
+)
 async def get_file(msg_or_callback: Message | CallbackQuery, state: FSMContext):
     await process.handle_file_request(msg_or_callback, state, text.send_text_file, kb.back_vt, VT_states.check_ip_file, VT_states.check_ip_file_command)
+
+@vt_router.message(Command("vtfile"))
+async def get_file(msg_or_callback: Message | CallbackQuery, state: FSMContext):
+    await process.handle_file_request(msg_or_callback, state, text.send_text_file, None, VT_states.check_ip_file, VT_states.check_ip_file_command)
 
 @vt_router.message(VT_states.check_ip_file)
 @flags.chat_action("typing")
