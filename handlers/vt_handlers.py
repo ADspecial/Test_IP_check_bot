@@ -95,6 +95,9 @@ async def handle_document(msg: Message,  bot: Bot, state: FSMContext, session: A
 @flags.chat_action("typing")
 async def handle_document(msg: Message, bot: Bot, state: FSMContext, session: AsyncSession):
     await bot.delete_message(msg.chat.id, msg.message_id-1,request_timeout=0)
+    if not msg.document:
+        await state.set_state(Base_states.start)
+        await msg.answer("Вы не отправили файл")
     if msg.document.mime_type != 'text/plain':
         await msg.answer("Пожалуйста, отправьте текстовый файл (.txt).")
     else:

@@ -3,6 +3,7 @@ from aiogram.filters import Command
 from aiogram.types import Message, CallbackQuery
 from aiogram.fsm.context import FSMContext
 from aiogram.exceptions import TelegramBadRequest
+from aiogram.enums import ParseMode
 
 from filters.chat_type import ChatTypeFilter
 
@@ -55,10 +56,10 @@ async def menu_handler(msg_or_callback: Message | CallbackQuery, state: FSMConte
 async def help_handler(msg_or_callback: Message | CallbackQuery, state: FSMContext, bot: Bot):
     await state.set_state(Base_states.help)
     if isinstance(msg_or_callback, CallbackQuery):
-        await msg_or_callback.message.edit_text(text.help_private, reply_markup=kb.iexit_kb)
+        await msg_or_callback.message.edit_text(text.help_private,parse_mode=ParseMode.MARKDOWN, reply_markup=kb.iexit_kb)
         await msg_or_callback.answer('Помощь')
     else:
-        await msg_or_callback.answer(text.help_private)
+        await msg_or_callback.answer(text.help_private, parse_mode=ParseMode.MARKDOWN)
 
 # Обработчик вывода помощи для группового чата
 @menu_router.callback_query(F.data.in_({"help", "помощь", "Помощь"}))
@@ -68,7 +69,7 @@ async def help_handler(msg_or_callback: Message | CallbackQuery, state: FSMConte
 )
 async def help_handler(msg_or_callback: Message | CallbackQuery, state: FSMContext, bot: Bot):
     await state.set_state(Base_states.help)
-    await msg_or_callback.answer(text.help_group)
+    await msg_or_callback.answer(text.help_group, parse_mode=ParseMode.MARKDOWN)
 
 # Обработчик вывода меню проверки IP
 @menu_router.callback_query(F.data == "check_menu")
