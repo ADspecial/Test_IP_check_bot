@@ -29,6 +29,7 @@ class LogMessageMiddleware(BaseMiddleware):
                 first_name=msg.from_user.first_name,
                 last_name=msg.from_user.last_name,
                 username=msg.from_user.username,
+                admin_rights=False
             )
             session.add(user)
             await session.commit()

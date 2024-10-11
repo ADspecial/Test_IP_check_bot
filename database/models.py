@@ -25,6 +25,7 @@ class User(Base):
     first_name = Column(String(32), nullable=True)
     last_name = Column(String(32), nullable=True)
     username = Column(String(32), nullable=False)
+    admin_rights = Column(Boolean, nullable=False)
     history_command = relationship('History', backref='user')
     blcok_ip = relationship('Address', backref='user')
 

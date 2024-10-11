@@ -6,7 +6,7 @@ from sqlalchemy.exc import NoResultFound, IntegrityError
 from sqlalchemy.orm import InstrumentedAttribute
 
 from datetime import datetime, timedelta
-from database.models import Address, History, Virustotal, Ipinfo, Abuseipdb, Kaspersky, CriminalIP, Alienvault, Ipqualityscore
+from database.models import Address, History, Virustotal, Ipinfo, Abuseipdb, Kaspersky, CriminalIP, Alienvault, Ipqualityscore, User
 
 from typing import Callable, List, Dict, Union, Tuple, Any, Type
 
@@ -890,3 +890,27 @@ async def get_verdicts_by_ip(session: AsyncSession, ip_address: str) -> Dict[str
     except Exception as e:
         print(f"Ошибка при получении данных verdict для IP {ip_address}: {e}")
         return {}
+
+async def check_admin_rights(session: AsyncSession, user_id: int) -> bool:
+    """
+    Проверяет, есть ли у пользователя права администратора.
+
+    :param session: Асинхронная сессия для работы с базой данных.
+    :param user_id: Идентификатор пользователя для проверки.
+    :return: True, если у пользователя есть права администратора, иначе False.
+    """
+    try:
+        # Выполняем запрос для получения пользователя по ID
+        result = await session.execute(select(User).where(User.id == user_id))
+        user = result.scalars().first()
+
+        # Проверяем наличие пользователя и его права администратора
+        if user:
+            return user.admin_rights
+        else:
+            print(f"Пользователь с ID {user_id} не найден.")
+            return False
+
+    except Exception as e:
+        print(f"Ошибка при проверке прав администратора для пользователя с ID {user_id}: {e}")
+        return False

@@ -66,6 +66,13 @@ ipqualityscore_menu = [
 ]
 ipqualityscore_menu = InlineKeyboardMarkup(inline_keyboard=ipqualityscore_menu)
 
+admin_menu = [
+    [InlineKeyboardButton(text="👨‍🔧Пользователи", callback_data="users_menu")],
+    [InlineKeyboardButton(text="📄 Отчет об использовании бота", callback_data="report_menu")],
+    [InlineKeyboardButton(text="◀️ Назад", callback_data="start_menu")],
+]
+admin_menu = InlineKeyboardMarkup(inline_keyboard=admin_menu)
+
 exit_kb = ReplyKeyboardMarkup(keyboard=[[KeyboardButton(text="◀️ Выйти в меню")]], resize_keyboard=True, input_field_placeholder='Выберите пункт меню...')
 back_vt = InlineKeyboardMarkup(inline_keyboard=[[InlineKeyboardButton(text="◀️ Назад", callback_data="virustotal_menu")]])
 back_ipinfo = InlineKeyboardMarkup(inline_keyboard=[[InlineKeyboardButton(text="◀️ Назад", callback_data="ipinfo_menu")]])
