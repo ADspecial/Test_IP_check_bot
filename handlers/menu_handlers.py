@@ -87,8 +87,7 @@ async def check_menu_handler(msg_or_callback: Message | CallbackQuery, state: FS
 
 # Обработчик вывода меню virustotal
 @menu_router.callback_query(
-    F.data == "virustotal_menu",
-    ChatTypeFilter(chat_type=["private"])
+    F.data == "virustotal_menu"
 )
 async def view_virustotal_menu(clbck: CallbackQuery, state: FSMContext):
     await state.set_state(Base_states.virustotal_menu)
@@ -97,8 +96,7 @@ async def view_virustotal_menu(clbck: CallbackQuery, state: FSMContext):
 
 # Обработчик вывода меню ipinfo
 @menu_router.callback_query(
-    F.data == "ipinfo_menu",
-    ChatTypeFilter(chat_type=["private"])
+    F.data == "ipinfo_menu"
 )
 async def view_ipinfo_menu(clbck: CallbackQuery, state: FSMContext):
     await state.set_state(Base_states.ipinfo_menu)
@@ -107,8 +105,7 @@ async def view_ipinfo_menu(clbck: CallbackQuery, state: FSMContext):
 
 # Обработчик вывода меню abuseipdb
 @menu_router.callback_query(
-    F.data == "adbuseip_menu",
-    ChatTypeFilter(chat_type=["private"])
+    F.data == "adbuseip_menu"
 )
 async def view_adbuseip_menu(clbck: CallbackQuery, state: FSMContext):
     await state.set_state(Base_states.adbuseip_menu)
@@ -117,8 +114,7 @@ async def view_adbuseip_menu(clbck: CallbackQuery, state: FSMContext):
 
 # Обработчик вывода меню kaspersky
 @menu_router.callback_query(
-    F.data == "kaspersky_menu",
-    ChatTypeFilter(chat_type=["private"])
+    F.data == "kaspersky_menu"
 )
 async def view_adbuseip_menu(clbck: CallbackQuery, state: FSMContext):
     await state.set_state(Base_states.kaspersky_menu)
@@ -127,8 +123,7 @@ async def view_adbuseip_menu(clbck: CallbackQuery, state: FSMContext):
 
 # Обработчик вывода меню criminalip
 @menu_router.callback_query(
-    F.data == "criminalip_menu",
-    ChatTypeFilter(chat_type=["private"])
+    F.data == "criminalip_menu"
 )
 async def view_adbuseip_menu(clbck: CallbackQuery, state: FSMContext):
     await state.set_state(Base_states.criminalip_menu)
@@ -137,10 +132,17 @@ async def view_adbuseip_menu(clbck: CallbackQuery, state: FSMContext):
 
 # Обработчик вывода меню alienvault
 @menu_router.callback_query(
-    F.data == "alienvault_menu",
-    ChatTypeFilter(chat_type=["private"])
+    F.data == "alienvault_menu"
 )
 async def view_adbuseip_menu(clbck: CallbackQuery, state: FSMContext):
     await state.set_state(Base_states.alienvault_menu)
     await clbck.answer('AlienVault menu')
     await clbck.message.edit_text(text.alienvault_menu, reply_markup=kb.alienvault_menu)
+
+@menu_router.callback_query(
+    F.data == "ipqualityscore_menu"
+)
+async def view_adbuseip_menu(clbck: CallbackQuery, state: FSMContext):
+    await state.set_state(Base_states.ipqualityscore_menu)
+    await clbck.answer('IPQS menu')
+    await clbck.message.edit_text(text.ipqualityscore_menu, reply_markup=kb.ipqualityscore_menu)

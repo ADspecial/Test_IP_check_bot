@@ -50,6 +50,7 @@ class Address(Base):
     kaspersky = relationship('Kaspersky', backref='Address', uselist=False)
     vriminalip = relationship('CriminalIP', backref='Address', uselist=False)
     alienvault = relationship('Alienvault', backref='Address', uselist=False)
+    ipqualityscore = relationship('Ipqualityscore', backref='Address', uselist=False)
 
 class Virustotal(Base):
     __tablename__ = 'virustotal'
@@ -119,3 +120,21 @@ class Alienvault(Base):
     country = Column(String(24), nullable=True)
     asn = Column(String(255), nullable=True)
     verdict = Column(String(32), nullable=True)
+
+class Ipqualityscore(Base):
+    __tablename__ = 'ipqualityscore'
+
+    id = Column(Integer, primary_key=True)
+    address = Column(Integer, ForeignKey('address.id'),  nullable=False)
+    country = Column(String(24), nullable=True)
+    host = Column(String(255), nullable=True)
+    isp = Column(String(255), nullable=True)
+    verdict = Column(String(32), nullable=True)
+    fraud_score = Column(Integer, nullable=True)
+    proxy = Column(Boolean, nullable=True)
+    vpn = Column(Boolean, nullable=True)
+    tor = Column(Boolean, nullable=True)
+    active_vpn = Column(Boolean, nullable=True)
+    active_tor = Column(Boolean, nullable=True)
+    recent_abuse = Column(Boolean, nullable=True)
+    bot_status = Column(Boolean, nullable=True)

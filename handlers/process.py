@@ -3,13 +3,13 @@ from aiogram import Bot
 from aiogram.fsm.context import FSMContext
 from aiogram.types import CallbackQuery, Message, ReplyKeyboardMarkup
 
-from database.models import Ipinfo, Virustotal, Abuseipdb, Kaspersky, CriminalIP, Alienvault
+from database.models import Ipinfo, Virustotal, Abuseipdb, Kaspersky, CriminalIP, Alienvault, Ipqualityscore
 from database import orm_query
 
 from ipcheckers import format
 from ipcheckers.valid_ip import extract_and_validate
 
-from states import VT_states, IPI_states, ADB_states, KSP_states, CIP_states, ALV_states
+from states import VT_states, IPI_states, ADB_states, KSP_states, CIP_states, ALV_states, IPQS_states
 
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -24,18 +24,21 @@ STATE_TABLE_MAP = {
     KSP_states.check_ip: (Kaspersky, format.format_to_output_dict_ksp),
     CIP_states.check_ip: (CriminalIP, format.format_to_output_dict_cip),
     ALV_states.check_ip: (Alienvault, format.format_to_output_dict_alv),
+    IPQS_states.check_ip: (Ipqualityscore, format.format_to_output_dict_ipqs),
     VT_states.check_ip_file: (Virustotal, format.format_to_output_dict_vt),
     IPI_states.check_ip_file: (Ipinfo, format.format_to_output_dict_ipi),
     ADB_states.check_ip_file: (Abuseipdb, format.format_to_output_dict_adb),
     KSP_states.check_ip_file: (Kaspersky, format.format_to_output_dict_ksp),
     CIP_states.check_ip_file: (CriminalIP, format.format_to_output_dict_cip),
     ALV_states.check_ip_file: (Alienvault, format.format_to_output_dict_alv),
+    IPQS_states.check_ip_file: (Ipqualityscore, format.format_to_output_dict_ipqs),
     VT_states.check_ip_file_command: (Virustotal, format.format_to_output_dict_vt),
     IPI_states.check_ip_file_command: (Ipinfo, format.format_to_output_dict_ipi),
     ADB_states.check_ip_file_command: (Abuseipdb, format.format_to_output_dict_adb),
     KSP_states.check_ip_file_command: (Kaspersky, format.format_to_output_dict_ksp),
     CIP_states.check_ip_file_command: (CriminalIP, format.format_to_output_dict_cip),
     ALV_states.check_ip_file_command: (Alienvault, format.format_to_output_dict_alv),
+    IPQS_states.check_ip_file_command: (Ipqualityscore, format.format_to_output_dict_ipqs),
 }
 
 STATE_FILE_MAP = {
@@ -46,12 +49,14 @@ STATE_FILE_MAP = {
     KSP_states.check_ip_file: ('kaspersky', Kaspersky),
     CIP_states.check_ip_file: ('criminalip', CriminalIP),
     ALV_states.check_ip_file: ('alienvault', Alienvault),
+    IPQS_states.check_ip_file: ('ipqualityscore',Ipqualityscore),
     VT_states.check_ip_file_command: ('virustotal', Virustotal),
     IPI_states.check_ip_file_command: ('ipinfo', Ipinfo),
     ADB_states.check_ip_file_command: ('abuseipdb', Abuseipdb),
     KSP_states.check_ip_file_command: ('kaspersky', Kaspersky),
     CIP_states.check_ip_file_command: ('criminalip', CriminalIP),
     ALV_states.check_ip_file_command: ('alienvault', Alienvault),
+    IPQS_states.check_ip_file_command: ('ipqualityscore', Ipqualityscore),
 }
 
 async def process_db_ip(ips: List[str], dnss: List[str], session: AsyncSession, table_model) -> Tuple[List[Dict], List[Dict]]:

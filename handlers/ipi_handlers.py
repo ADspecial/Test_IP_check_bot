@@ -4,7 +4,6 @@ from aiogram.types import Message, CallbackQuery
 from aiogram import flags
 from aiogram.fsm.context import FSMContext
 
-
 from states import IPI_states, Base_states
 
 from ipcheckers import ipinfo
@@ -12,6 +11,8 @@ from ipcheckers import ipinfo
 from handlers import process
 
 from sqlalchemy.ext.asyncio import AsyncSession
+
+from filters.chat_type import ChatTypeFilter
 
 import kb
 import re
@@ -43,7 +44,7 @@ async def check_single_ip(msg: Message, bot: Bot, state: FSMContext, session: As
 @ipi_router.message(Command("ipicheck"))
 async def check_ip_command(msg: Message, state: FSMContext, bot: Bot, session: AsyncSession):
     await state.set_state(IPI_states.check_ip)
-    pattern = r'^/ipicheck (?:(?:25[0-5]|2[0-4][0-9]|1[0-9][0-9]|[1-9]?[0-9])\.(?:25[0-5]|2[0-4][0-9]|1[0-9][0-9]|[1-9]?[0-9])\.(?:25[0-5]|2[0-4][0-9]|1[0-9][0-9]|[1-9]?[0-9])\.(?:25[0-5]|2[0-4][0-9]|1[0-9][0-9]|[1-9]?[0-9])(?:\s+|$))+$'
+    pattern = r'^/ipicheck\s+((\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3})(\s+|$))+$'
     match = re.match(pattern, msg.text)
     if match:
         result, report = await process.process_ip(msg, ipinfo.get_ipi_info, orm_query.orm_add_ipi_ip, state, session)
@@ -59,9 +60,13 @@ async def check_ip_command(msg: Message, state: FSMContext, bot: Bot, session: A
     await state.set_state(Base_states.start)
 
 @ipi_router.callback_query(F.data == "ipi_file")
-@ipi_router.message(Command("ipifile"))
 async def get_file(msg_or_callback: Message | CallbackQuery, state: FSMContext):
     await process.handle_file_request(msg_or_callback, state, text.send_text_file, kb.back_ipinfo,IPI_states.check_ip_file, IPI_states.check_ip_file_command)
+
+@ipi_router.message(Command("ipifile"))
+async def get_file(msg_or_callback: Message | CallbackQuery, state: FSMContext):
+    await process.handle_file_request(msg_or_callback, state, text.send_text_file, None, IPI_states.check_ip_file, IPI_states.check_ip_file_command)
+
 
 @ipi_router.message(IPI_states.check_ip_file)
 @flags.chat_action("typing")
@@ -85,6 +90,10 @@ async def handle_document(msg: Message, bot: Bot, state: FSMContext, session: As
 @flags.chat_action("typing")
 async def handle_document(msg: Message, bot: Bot, state: FSMContext, session: AsyncSession):
     await bot.delete_message(msg.chat.id, msg.message_id-1,request_timeout=0)
+    if not msg.document:
+        await state.set_state(Base_states.start)
+        await msg.answer("Вы не отправили файл")
+        return
     if msg.document.mime_type != 'text/plain':
         await msg.answer("Пожалуйста, отправьте текстовый файл (.txt).")
     else:

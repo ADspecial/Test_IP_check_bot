@@ -6,7 +6,7 @@ from sqlalchemy.exc import NoResultFound, IntegrityError
 from sqlalchemy.orm import InstrumentedAttribute
 
 from datetime import datetime, timedelta
-from database.models import Address, History, Virustotal, Ipinfo, Abuseipdb, Kaspersky, CriminalIP, Alienvault
+from database.models import Address, History, Virustotal, Ipinfo, Abuseipdb, Kaspersky, CriminalIP, Alienvault, Ipqualityscore
 
 from typing import Callable, List, Dict, Union, Tuple, Any, Type
 
@@ -697,6 +697,94 @@ async def orm_add_alienvault_data(session: AsyncSession, data: Dict[str, Any]) -
         await session.rollback()
         return False
 
+async def orm_add_ipqs_data(session: AsyncSession, data: Dict[str, Any]) -> bool:
+    """
+    Добавляет или обновляет данные о IP-адресе в таблице Ipqualityscore.
+
+    :param session: Асинхронная сессия для работы с базой данных.
+    :param data: Словарь с данными для добавления или обновления.
+    :return: True в случае успешного добавления или обновления, иначе False.
+    """
+    try:
+        # Поиск существующего адреса по IP
+        result = await session.execute(select(Address).where(Address.ip == data['ip_address']))
+        existing_address = result.scalars().first()
+
+        if existing_address:
+            # Поиск существующей записи в Ipqualityscore
+            ipqualityscore_result = await session.execute(select(Ipqualityscore).where(Ipqualityscore.address == existing_address.id))
+            existing_ipqualityscore_record = ipqualityscore_result.scalars().first()
+
+            if existing_ipqualityscore_record:
+                # Обновляем существующую запись
+                existing_ipqualityscore_record.verdict = data.get('verdict')
+                existing_ipqualityscore_record.country = data.get('country')
+                existing_ipqualityscore_record.host = data.get('host')
+                existing_ipqualityscore_record.isp = data.get('isp')
+                existing_ipqualityscore_record.fraud_score = data.get('fraud_score')
+                existing_ipqualityscore_record.proxy = data.get('proxy')
+                existing_ipqualityscore_record.vpn = data.get('vpn')
+                existing_ipqualityscore_record.tor = data.get('tor')
+                existing_ipqualityscore_record.active_vpn = data.get('active_vpn')
+                existing_ipqualityscore_record.active_tor = data.get('active_tor')
+                existing_ipqualityscore_record.recent_abuse = data.get('recent_abuse')
+                existing_ipqualityscore_record.bot_status = data.get('bot_status')
+                existing_ipqualityscore_record.updated = func.current_timestamp()
+
+            else:
+                # Создаем новую запись в Ipqualityscore
+                new_ipqualityscore_record = Ipqualityscore(
+                    address=existing_address.id,
+                    verdict=data.get('verdict'),
+                    country=data.get('country'),
+                    host=data.get('host'),
+                    isp=data.get('isp'),
+                    fraud_score=data.get('fraud_score'),
+                    proxy=data.get('proxy'),
+                    vpn=data.get('vpn'),
+                    tor=data.get('tor'),
+                    active_vpn=data.get('active_vpn'),
+                    active_tor=data.get('active_tor'),
+                    recent_abuse=data.get('recent_abuse'),
+                    bot_status=data.get('bot_status'),
+                )
+                session.add(new_ipqualityscore_record)
+
+        else:
+            # Если адрес не найден, создаем новый адрес и новую запись в Ipqualityscore
+            new_address = Address(ip=data['ip_address'])
+            session.add(new_address)
+            await session.commit()  # Сохраняем новый адрес
+
+            new_ipqualityscore_record = Ipqualityscore(
+                address=new_address.id,
+                verdict=data.get('verdict'),
+                country=data.get('country'),
+                host=data.get('host'),
+                isp=data.get('isp'),
+                fraud_score=data.get('fraud_score'),
+                proxy=data.get('proxy'),
+                vpn=data.get('vpn'),
+                tor=data.get('tor'),
+                active_vpn=data.get('active_vpn'),
+                active_tor=data.get('active_tor'),
+                recent_abuse=data.get('recent_abuse'),
+                bot_status=data.get('bot_status'),
+            )
+            session.add(new_ipqualityscore_record)
+
+        await session.commit()  # Сохраняем изменения
+        return True
+
+    except IntegrityError as e:
+        print(f"Ошибка при добавлении/обновлении записи Ipqualityscore для адреса {data['ip_address']}: {e}")
+        await session.rollback()
+        return False
+    except Exception as e:
+        print(f"Ошибка при добавлении/обновлении данных Ipqualityscore: {e}")
+        await session.rollback()
+        return False
+
 async def orm_get_data_ip(
     session: AsyncSession,
     table_name: Type,
@@ -733,3 +821,72 @@ async def orm_get_data_ip(
     except Exception as e:
         print(f"Ошибка при поиске IP-адреса {ip_address} в таблице {table_name.__name__}: {e}")
         return {'error': str(e)}
+
+async def get_verdicts_by_ip(session: AsyncSession, ip_address: str) -> Dict[str, Any]:
+    """
+    Получает данные verdict из различных таблиц для заданного IP-адреса.
+
+    :param session: Асинхронная сессия для работы с базой данных.
+    :param ip_address: IP-адрес для поиска.
+    :return: Словарь с verdict из различных таблиц.
+    """
+    verdicts = {}
+
+    try:
+        # Поиск существующего адреса по IP
+        result = await session.execute(select(Address).where(Address.ip == ip_address))
+        existing_address = result.scalars().first()
+
+        if existing_address:
+            # Получаем verdict из таблицы Virustotal
+            vt_result = await session.execute(select(Virustotal).where(Virustotal.address == existing_address.id))
+            vt_record = vt_result.scalars().first()
+            verdicts['virustotal'] = vt_record.verdict if vt_record else None
+
+            # Получаем данные из Ipinfo
+            ipinfo_result = await session.execute(select(Ipinfo).where(Ipinfo.address == existing_address.id))
+            ipinfo_record = ipinfo_result.scalars().first()
+            verdicts['ipinfo'] = {
+                'country': ipinfo_record.country if ipinfo_record else None,
+                'region': ipinfo_record.region if ipinfo_record else None,
+                'city': ipinfo_record.city if ipinfo_record else None,
+                'org': ipinfo_record.org if ipinfo_record else None,
+                'loc': ipinfo_record.loc if ipinfo_record else None,
+            }
+
+            # Получаем verdict из Abuseipdb
+            abuseipdb_result = await session.execute(select(Abuseipdb).where(Abuseipdb.address == existing_address.id))
+            abuseipdb_record = abuseipdb_result.scalars().first()
+            verdicts['abuseipdb'] = {
+                'is_public': abuseipdb_record.is_public if abuseipdb_record else None,
+                'abuse_confidence_score': abuseipdb_record.abuse_confidence_score if abuseipdb_record else None,
+                'country': abuseipdb_record.country if abuseipdb_record else None,
+                'isp': abuseipdb_record.isp if abuseipdb_record else None,
+                'total_reports': abuseipdb_record.total_reports if abuseipdb_record else None,
+            }
+
+            # Получаем verdict из Kaspersky
+            kaspersky_result = await session.execute(select(Kaspersky).where(Kaspersky.address == existing_address.id))
+            kaspersky_record = kaspersky_result.scalars().first()
+            verdicts['kaspersky'] = kaspersky_record.verdict if kaspersky_record else None
+
+            # Получаем verdict из CriminalIP
+            criminalip_result = await session.execute(select(CriminalIP).where(CriminalIP.address == existing_address.id))
+            criminalip_record = criminalip_result.scalars().first()
+            verdicts['criminalip'] = criminalip_record.verdict if criminalip_record else None
+
+            # Получаем verdict из Alienvault
+            alienvault_result = await session.execute(select(Alienvault).where(Alienvault.address == existing_address.id))
+            alienvault_record = alienvault_result.scalars().first()
+            verdicts['alienvault'] = alienvault_record.verdict if alienvault_record else None
+
+            # Получаем verdict из Ipqualityscore
+            ipqualityscore_result = await session.execute(select(Ipqualityscore).where(Ipqualityscore.address == existing_address.id))
+            ipqualityscore_record = ipqualityscore_result.scalars().first()
+            verdicts['ipqualityscore'] = ipqualityscore_record.verdict if ipqualityscore_record else None
+
+        return verdicts
+
+    except Exception as e:
+        print(f"Ошибка при получении данных verdict для IP {ip_address}: {e}")
+        return {}

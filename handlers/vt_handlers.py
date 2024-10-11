@@ -23,8 +23,7 @@ import database.orm_query as orm_query
 vt_router = Router()
 
 @vt_router.callback_query(
-    F.data == "vt_ip",
-    ChatTypeFilter(chat_type=["private"])
+    F.data == "vt_ip"
 )
 async def input_about_ip(clbck: CallbackQuery, state: FSMContext):
     await state.set_state(VT_states.check_ip)
@@ -63,8 +62,7 @@ async def check_ip_command(msg: Message, state: FSMContext, bot: Bot, session: A
     await state.set_state(Base_states.start)
 
 @vt_router.callback_query(
-    F.data == "vt_file",
-    ChatTypeFilter(chat_type=["private"])
+    F.data == "vt_file"
 )
 async def get_file(msg_or_callback: Message | CallbackQuery, state: FSMContext):
     await process.handle_file_request(msg_or_callback, state, text.send_text_file, kb.back_vt, VT_states.check_ip_file, VT_states.check_ip_file_command)
@@ -98,6 +96,7 @@ async def handle_document(msg: Message, bot: Bot, state: FSMContext, session: As
     if not msg.document:
         await state.set_state(Base_states.start)
         await msg.answer("Вы не отправили файл")
+        return
     if msg.document.mime_type != 'text/plain':
         await msg.answer("Пожалуйста, отправьте текстовый файл (.txt).")
     else:

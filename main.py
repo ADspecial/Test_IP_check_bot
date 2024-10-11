@@ -19,6 +19,7 @@ from handlers.adb_handlers import adb_router
 from handlers.ksp_handlers import ksp_router
 from handlers.cip_handlers import cip_router
 from handlers.alv_handlers import alv_router
+from handlers.ipqs_handlers import ipqs_router
 
 from middleware.db import DataBaseSession
 from middleware.logs import LogMessageMiddleware
@@ -40,6 +41,7 @@ def register_routers(dp: Dispatcher):
     dp.include_router(ksp_router)
     dp.include_router(cip_router)
     dp.include_router(alv_router)
+    dp.include_router(ipqs_router)
 
 async def main() -> None:
     """Main entry point for the bot."""

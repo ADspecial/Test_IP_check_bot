@@ -56,9 +56,13 @@ async def check_ip_command(msg: Message, state: FSMContext, bot: Bot, session: A
         await msg.answer('Не введен ip адрес\n')
 
 @alv_router.callback_query(F.data == "alv_file")
-@alv_router.message(Command("alvfile"))
 async def get_file(msg_or_callback: Message | CallbackQuery, state: FSMContext):
     await process.handle_file_request(msg_or_callback, state, text.send_text_file, kb.back_alienvault,ALV_states.check_ip_file, ALV_states.check_ip_file_command)
+
+@alv_router.message(Command("alvfile"))
+async def get_file(msg_or_callback: Message | CallbackQuery, state: FSMContext):
+    await process.handle_file_request(msg_or_callback, state, text.send_text_file, None, ALV_states.check_ip_file, ALV_states.check_ip_file_command)
+
 
 @alv_router.message(ALV_states.check_ip_file)
 @flags.chat_action("typing")
@@ -82,6 +86,10 @@ async def handle_document(msg: Message, bot: Bot, state: FSMContext, session: As
 @flags.chat_action("typing")
 async def handle_document(msg: Message, bot: Bot, state: FSMContext, session: AsyncSession):
     await bot.delete_message(msg.chat.id, msg.message_id-1,request_timeout=0)
+    if not msg.document:
+        await state.set_state(Base_states.start)
+        await msg.answer("Вы не отправили файл")
+        return
     if msg.document.mime_type != 'text/plain':
         await msg.answer("Пожалуйста, отправьте текстовый файл (.txt).")
     else:

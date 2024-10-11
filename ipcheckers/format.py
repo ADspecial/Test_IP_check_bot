@@ -169,6 +169,27 @@ def format_to_output_dict_alv(data: Dict[str, Union[str, List[Dict[str, Union[st
     }
     return output
 
+def format_to_output_dict_ipqs(data: Dict[str, Union[str, List[Dict[str, Union[str, bool]]]]]) -> Dict[str, str]:
+    """
+    Format a dictionary from ipinfo to a dictionary with the keys formatted for output.
+
+    Args:
+        data: A dictionary with string keys and values that are either strings or lists of dictionaries.
+            The dictionaries have string keys and values that are either strings or booleans.
+
+    Returns:
+        A dictionary with string keys and values that are strings.
+    """
+    output: Dict[str, str] = {
+        'header': '🔥 IPQS',
+        'ip address': data['ip_address'],
+        'host': data['host'],
+        'country': data['country'],
+        'verdict': data['verdict'],
+        'fraud_score': data['fraud_score'],
+    }
+    return output
+
 def listdict_to_string(data: List[Dict[str, str]]) -> str:
     """
     Преобразует список словарей в строку.

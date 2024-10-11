@@ -57,9 +57,13 @@ async def check_ip_command(msg: Message, state: FSMContext, bot: Bot, session: A
     await state.set_state(Base_states.start)
 
 @adb_router.callback_query(F.data == "abuseipdb_file")
-@adb_router.message(Command("adbfile"))
 async def get_file(msg_or_callback: Message | CallbackQuery, state: FSMContext):
     await process.handle_file_request(msg_or_callback, state, text.send_text_file, kb.back_adbuseip,ADB_states.check_ip_file, ADB_states.check_ip_file_command)
+
+@adb_router.message(Command("adbfile"))
+async def get_file(msg_or_callback: Message | CallbackQuery, state: FSMContext):
+    await process.handle_file_request(msg_or_callback, state, text.send_text_file, None, ADB_states.check_ip_file, ADB_states.check_ip_file_command)
+
 
 @adb_router.message(ADB_states.check_ip_file)
 @flags.chat_action("typing")
@@ -83,6 +87,11 @@ async def handle_document(msg: Message, bot: Bot, state: FSMContext, session: As
 @flags.chat_action("typing")
 async def handle_document(msg: Message, bot: Bot, state: FSMContext, session: AsyncSession):
     await bot.delete_message(msg.chat.id, msg.message_id-1,request_timeout=0)
+
+    if not msg.document:
+        await state.set_state(Base_states.start)
+        await msg.answer("Вы не отправили файл")
+        return
     if msg.document.mime_type != 'text/plain':
         await msg.answer("Пожалуйста, отправьте текстовый файл (.txt).")
     else:
