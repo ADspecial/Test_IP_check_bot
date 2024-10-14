@@ -14,7 +14,7 @@ async def make_request_criminalip(ip: str):
         'x-api-key': KEYS.CRIMINALIP_KEY
     }
     payload={}
-    response = requests.request(method='GET', url=URLS.API_URL_CRIMINALIP + "?ip=" + ip, headers=headers, data=payload).json()
+    response = requests.request(method='GET', url=URLS.API_URL_IP_CRIMINALIP + ip, headers=headers, data=payload).json()
     return gen_result(ip, response)
 
 async def get_criminalip_info(

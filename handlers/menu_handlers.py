@@ -23,7 +23,7 @@ last_user_message_id = {}
     ChatTypeFilter(chat_type=["private"]))
 async def start_handler(msg: Message, state: FSMContext):
     await state.set_state(Base_states.start)
-    await msg.answer(text.greetings.format(name=msg.from_user.full_name), reply_markup=kb.start_menu)
+    await msg.answer(text.greetings.format(name=msg.from_user.full_name, id=msg.from_user.id), reply_markup=kb.start_menu, parse_mode=ParseMode.MARKDOWN)
 
 # Обработчик команды старт для группового чата
 @menu_router.message(
@@ -146,3 +146,11 @@ async def view_adbuseip_menu(clbck: CallbackQuery, state: FSMContext):
     await state.set_state(Base_states.ipqualityscore_menu)
     await clbck.answer('IPQS menu')
     await clbck.message.edit_text(text.ipqualityscore_menu, reply_markup=kb.ipqualityscore_menu)
+
+@menu_router.callback_query(
+    F.data == "summary_menu"
+)
+async def view_adbuseip_menu(clbck: CallbackQuery, state: FSMContext):
+    await state.set_state(Base_states.summary_menu)
+    await clbck.answer('Summary menu')
+    await clbck.message.edit_text(text.summary_menu, reply_markup=kb.summary_menu)

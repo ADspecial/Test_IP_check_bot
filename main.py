@@ -20,13 +20,15 @@ from handlers.ksp_handlers import ksp_router
 from handlers.cip_handlers import cip_router
 from handlers.alv_handlers import alv_router
 from handlers.ipqs_handlers import ipqs_router
-from handlers.admin import admin_router
+from handlers.admin_handlers import admin_router
+from handlers.summary_handlers import sum_router
 
 from middleware.db import DataBaseSession
 from middleware.logs import LogMessageMiddleware
+from middleware.admin_right import AdminRightsMiddleware
 
 async def on_startup(bot):
-    run_param = False
+    run_param = True
     if run_param:
         await drop_db()
     await create_db()
@@ -44,6 +46,7 @@ def register_routers(dp: Dispatcher):
     dp.include_router(alv_router)
     dp.include_router(ipqs_router)
     dp.include_router(admin_router)
+    dp.include_router(sum_router)
 
 async def main() -> None:
     """Main entry point for the bot."""
@@ -57,6 +60,7 @@ async def main() -> None:
         dp.message.middleware(DataBaseSession(session_pool=session_maker))
         dp.message.middleware(ChatActionMiddleware())
         dp.message.middleware(LogMessageMiddleware(session_pool=session_maker))
+        dp.message.middleware(AdminRightsMiddleware(session=session_maker))
 
         register_routers(dp)
 

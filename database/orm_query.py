@@ -293,6 +293,7 @@ async def orm_add_abuseipdb(session: AsyncSession, data: dict) -> bool:
                 existing_abuse_record.domain = data.get('domain')
                 existing_abuse_record.total_reports = data.get('total_reports')
                 existing_abuse_record.num_distinct_users = data.get('num_distinct_users')
+                existing_abuse_record.verdict = data.get('verdict')
                 existing_abuse_record.updated = func.current_timestamp()
             else:
                 new_abuse_record = Abuseipdb(
@@ -307,6 +308,7 @@ async def orm_add_abuseipdb(session: AsyncSession, data: dict) -> bool:
                     domain=data.get('domain'),
                     total_reports=data.get('total_reports'),
                     num_distinct_users=data.get('num_distinct_users'),
+                    verdict=data.get('verdict'),
                     #last_reported_at=data.get('last_reported_at')
                 )
                 session.add(new_abuse_record)
@@ -328,6 +330,7 @@ async def orm_add_abuseipdb(session: AsyncSession, data: dict) -> bool:
                 domain=data.get('domain'),
                 total_reports=data.get('total_reports'),
                 num_distinct_users=data.get('num_distinct_users'),
+                verdict=data.get('verdict'),
                 #last_reported_at=data.get('last_reported_at')
             )
             session.add(new_abuse_record)
@@ -382,6 +385,7 @@ async def orm_get_abuseipdb_data(session: AsyncSession, ip_address: str) -> Dict
             'domain': abuse_data.domain,
             'total_reports': abuse_data.total_reports,
             'num_distinct_users': abuse_data.num_distinct_users,
+            'verdict': abuse_data.verdict
             #'last_reported_at': abuse_data.last_reported_at
         }
 
@@ -419,7 +423,7 @@ async def orm_get_kaspersky_data(session: AsyncSession, ip_address: str) -> Dict
             return {'error': 'IP not found in Kaspersky table'}
 
         response = {
-            'ip_address': ip_address,
+            'address': ip_address,
             'status': kaspersky_data.status,
             'country': kaspersky_data.country,
             'net_name': kaspersky_data.net_name,
@@ -442,7 +446,7 @@ async def orm_add_kaspersky_data(session: AsyncSession, data: Dict[str, any]) ->
     """
     try:
         # Поиск существующего адреса по IP
-        result = await session.execute(select(Address).where(Address.ip == data['ip_address']))
+        result = await session.execute(select(Address).where(Address.ip == data['address']))
         existing_address = result.scalars().first()
 
         if existing_address:
@@ -470,7 +474,7 @@ async def orm_add_kaspersky_data(session: AsyncSession, data: Dict[str, any]) ->
 
         else:
             # Если адрес не найден, создаем новый адрес и новую запись в Kaspersky
-            new_address = Address(ip=data['ip_address'])
+            new_address = Address(ip=data['address'])
             session.add(new_address)
             await session.commit()  # Сохраняем новый адрес
 
@@ -913,4 +917,38 @@ async def check_admin_rights(session: AsyncSession, user_id: int) -> bool:
 
     except Exception as e:
         print(f"Ошибка при проверке прав администратора для пользователя с ID {user_id}: {e}")
+        return False
+
+async def grant_admin_rights(session: AsyncSession, username: str) -> bool:
+    """
+    Выдаёт права администратора пользователю. Если пользователя нет в таблице, создаёт его.
+
+    :param session: Асинхронная сессия для работы с базой данных.
+    :param user_id: Идентификатор пользователя для выдачи прав.
+    :param first_name: Имя пользователя.
+    :param last_name: Фамилия пользователя.
+    :param username: Имя пользователя в системе.
+    :return: True, если права администратора были выданы или пользователь был создан, иначе False.
+    """
+    try:
+        # Проверяем, существует ли пользователь
+        result = await session.execute(select(User).where(User.username == username))
+        user = result.scalars().first()
+
+        if user:
+            # Если пользователь найден, обновляем его права администратора
+            user.admin_rights = True
+            await session.commit()  # Зафиксируем изменения
+            return True  # Права администратора были выданы существующему пользователю
+        else:
+            # Если пользователь не найден, создаём нового с правами администратора
+            return False
+
+    except IntegrityError as e:
+        print(f"Ошибка при добавлении или обновлении пользователя с {username}: {e}")
+        await session.rollback()  # Откат транзакции в случае ошибки
+        return False
+
+    except Exception as e:
+        print(f"Ошибка при выдаче прав администратора для пользователя с{username}: {e}")
         return False

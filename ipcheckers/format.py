@@ -81,16 +81,12 @@ def format_to_output_dict_adb(data: Dict[str, str]) -> Dict[str, str]:
     Returns:
         A dictionary with the same keys as the input, but with the values formatted for output.
     """
-    abuse_confidence_score = data.get('abuse_confidence_score')
-    output_str = "🟢 harmless"
-    if abuse_confidence_score > 20: output_str = "🔴 malicious"
-    elif abuse_confidence_score > 3: output_str = "🟡 suspicious"
     output = {
         'header': '⭕️ AbuseIPDB',
         'ip_address': data['ip_address'],
         'country': data['country'],
-        'verdict': output_str + f' ({abuse_confidence_score}/100)',
-        #'abuse_confidence_score': data['abuse_confidence_score'],
+        'verdict': data['verdict'],
+        'abuse_confidence_score': data['abuse_confidence_score'],
         'total_reports': data['total_reports'],
         'num_distinct_users': data['num_distinct_users'],
         #'last_reported_at': data['last_reported_at'],
@@ -110,7 +106,7 @@ def format_to_output_dict_ksp(data: Dict[str, str]) -> Dict[str, str]:
     """
     output = {
         'header': '🟩 Kaspersky',
-        'ip address': data['ip_address'],
+        'address': data['address'],
         'country': data['country'],
         'verdict': data['verdict'],
         'status': data['status'],
@@ -211,12 +207,20 @@ def listdict_to_string(data: List[Dict[str, str]]) -> str:
 
         if header:
             # Если ключ 'header' существует, добавляем его значение
-            formatted_entry = f"{header}\n" + '\n'.join(f"{key}: {value}" for key, value in entry.items() if key != 'header')
+            formatted_entry = f"{header}\n" + '\n'.join(
+                f"{key}: {value}" for key, value in entry.items()
+                if key != 'header' and value is not None
+            )
         else:
             # Если ключа 'header' нет, просто добавляем стандартный формат
-            formatted_entry = "\n" + '\n'.join(f"{key}: {value}" for key, value in entry.items())
+            formatted_entry = "\n" + '\n'.join(
+                f"{key}: {value}" for key, value in entry.items()
+                if value is not None
+            )
 
-        formatted_entries.append(formatted_entry)
+        # Добавляем только непустые записи
+        if formatted_entry.strip():  # Проверка на пустую строку
+            formatted_entries.append(formatted_entry)
 
     # Объединяем все записи с разделителем
     result = '\n=======================\n'.join(formatted_entries)

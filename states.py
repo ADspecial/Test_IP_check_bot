@@ -13,7 +13,20 @@ class Base_states(StatesGroup):
     criminalip_menu = State()
     alienvault_menu = State()
     ipqualityscore_menu = State()
+    summary_menu = State()
+    admin_menu = State()
     help = State()
+
+class Admin_states(StatesGroup):
+    users_menu = State()
+    add_admin = State()
+
+class Summary_states(StatesGroup):
+    menu = State()
+    get_doc = State()
+    check_ip = State()
+    check_ip_file = State()
+    check_ip_file_command = State()
 
 class VT_states(StatesGroup):
     menu = State()

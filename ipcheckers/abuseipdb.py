@@ -77,5 +77,14 @@ def gen_result(response: Dict[str, Union[str, int]]) -> Dict[str, Union[str, int
         "domain": response["domain"],
         "total_reports": response["totalReports"],
         "num_distinct_users": response["numDistinctUsers"],
+        "verdict": determine_verdict_abuseipdb(response["abuseConfidenceScore"], response["totalReports"])
     }
     return result
+
+def determine_verdict_abuseipdb(confidence_score: int, total_reports: int) -> str:
+    verdict = '🟢 harmless'
+    if (confidence_score > 60 and total_reports > 0) or total_reports > 10: verdict   = "🔴 malicious"
+    elif (confidence_score > 20) or total_reports > 3: verdict = "🟡 suspicious"
+    elif confidence_score == 0: verdict = "⚫️ undetected"
+
+    return verdict

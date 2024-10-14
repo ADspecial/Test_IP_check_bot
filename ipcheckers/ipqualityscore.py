@@ -10,7 +10,7 @@ from datetime import datetime, timedelta
 from config.config import KEYS, URLS
 
 async def make_request_ipqs(ip_address: str):
-    url = URLS.API_URL_IPQS %(KEYS.IPQS_KEY, ip_address)
+    url = URLS.API_URL_IP_IPQS %(KEYS.IPQS_KEY, ip_address)
     response = requests.request(method='GET', url=url).json()
     return  gen_result(ip_address, response)
 

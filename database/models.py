@@ -24,7 +24,7 @@ class User(Base):
     id = Column(Integer, primary_key=True)
     first_name = Column(String(32), nullable=True)
     last_name = Column(String(32), nullable=True)
-    username = Column(String(32), nullable=False)
+    username = Column(String(32), nullable=False, unique=True)
     admin_rights = Column(Boolean, nullable=False)
     history_command = relationship('History', backref='user')
     blcok_ip = relationship('Address', backref='user')
@@ -92,6 +92,7 @@ class Abuseipdb(Base):
     domain = Column(String(255), nullable=True)
     total_reports = Column(Integer, nullable=True)
     num_distinct_users = Column(Integer, nullable=True)
+    verdict = Column(String(32), nullable=True)
 
 class Kaspersky(Base):
     __tablename__ = 'kaspersky'
