@@ -20,6 +20,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 import kb
 import re
 import text
+import os
 import database.orm_query as orm_query
 
 sum_router = Router()
@@ -147,3 +148,152 @@ async def check_ip_command(msg: Message, state: FSMContext, bot: Bot, session: A
         await bot.delete_message(msg.chat.id, msg.message_id,request_timeout=0)
         await msg.answer('Не введен ip адрес\n')
     await state.set_state(Base_states.start)
+
+@sum_router.callback_query(F.data == "summary_file")
+async def get_file(msg_or_callback: Message | CallbackQuery, state: FSMContext):
+    await process.handle_file_request(msg_or_callback, state, text.send_text_file, kb.back_summary, Summary_states.check_ip_file, Summary_states.check_ip_file_command)
+
+@sum_router.message(Command("sumfile"))
+async def get_file(msg_or_callback: Message | CallbackQuery, state: FSMContext):
+    await process.handle_file_request(msg_or_callback, state, text.send_text_file, None, Summary_states.check_ip_file, Summary_states.check_ip_file_command)
+
+@sum_router.message(Summary_states.check_ip_file)
+@flags.chat_action("typing")
+async def handle_document(msg: Message, bot: Bot, state: FSMContext, session: AsyncSession):
+    if not msg.document:
+        await msg.answer("Пожалуйста, отправьте текстовый файл (.txt).", reply_markup=kb.back_kaspersky)
+        return
+    await bot.delete_message(msg.chat.id, msg.message_id-1,request_timeout=0)
+    if msg.document.mime_type != 'text/plain':
+        await msg.answer("Пожалуйста, отправьте текстовый файл (.txt).", reply_markup=kb.iexit_kb)
+    else:
+        await bot.delete_message(msg.chat.id, msg.message_id,request_timeout=0)
+        mesg = await msg.answer(text.gen_wait)
+        current_state = await state.get_state()
+        dir_name = 'summary'
+
+        os.makedirs(f'data/{dir_name}', exist_ok=True)
+        file_id = msg.document.file_id
+        file = await bot.get_file(file_id)
+
+
+        file_name = next(f'data/{dir_name}/ip{num}.txt' for num in range(1, 1000) if not os.path.exists(f'data/{dir_name}/ip{num}.txt'))
+
+        await bot.download_file(file.file_path, file_name)
+        await orm_query.orm_add_file_history(session, msg.message_id, file_name)
+
+        with open(file_name, 'r', encoding='UTF-8') as file:
+            text_file = file.read()
+        ip_list, dns_list = extract_and_validate(text_file)
+
+        if not ip_list and not dns_list:
+            await mesg.edit_text(text.err_ip, reply_markup=kb.back_summary)
+            return
+
+        summary_report = {}
+
+        for checker in CHECKERS_MAP:
+            try:
+                check_state, keyname, tablename, db_function, format_func = CHECKERS_MAP[checker]
+                await state.set_state(check_state)
+
+                # Обрабатываем IP и DNS из базы данных
+                db_ips, db_dnss = await process.process_db_ip(ip_list.copy(), dns_list.copy(), session, tablename)
+
+                # Выполняем проверку
+                reports = []
+                if ip_list or dns_list:
+                    result, reports = await checker(ip_list.copy(), dns_list.copy())  # Используем копии
+
+                combined_reports = db_ips + db_dnss + reports
+
+                if not combined_reports:
+                    await mesg.edit_text(text.err_ip, reply_markup=kb.back_summary)
+                    return
+
+                # Сохраняем отчеты в базу данных
+                for report in reports:
+                    await db_function(session, report)
+
+                # Форматируем отчеты
+                format_reports = [format_func(report) for report in combined_reports]
+                summary_report[keyname] = format_reports
+            except Exception as e:
+                print(f"Ошибка при обработке {checker}: {e}")
+                await mesg.edit_text(text.err_processing.format(service=checker), reply_markup=kb.back_summary)
+                return
+
+        result = format.summary_format(summary_report)
+
+        await mesg.edit_text(result, parse_mode=ParseMode.MARKDOWN)
+        await mesg.answer(text.about_check_ip, reply_markup=kb.back_summary)
+    await state.set_state(Summary_states.check_ip_file)
+
+@sum_router.message(Summary_states.check_ip_file_command)
+@flags.chat_action("typing")
+async def handle_document(msg: Message, bot: Bot, state: FSMContext, session: AsyncSession):
+    if not msg.document:
+        await msg.answer("Пожалуйста, отправьте текстовый файл (.txt).")
+        return
+    await bot.delete_message(msg.chat.id, msg.message_id-1,request_timeout=0)
+    if msg.document.mime_type != 'text/plain':
+        await msg.answer("Пожалуйста, отправьте текстовый файл (.txt).")
+    else:
+        await bot.delete_message(msg.chat.id, msg.message_id,request_timeout=0)
+        mesg = await msg.answer(text.gen_wait)
+        current_state = await state.get_state()
+        dir_name = 'summary'
+
+        os.makedirs(f'data/{dir_name}', exist_ok=True)
+        file_id = msg.document.file_id
+        file = await bot.get_file(file_id)
+
+
+        file_name = next(f'data/{dir_name}/ip{num}.txt' for num in range(1, 1000) if not os.path.exists(f'data/{dir_name}/ip{num}.txt'))
+
+        await bot.download_file(file.file_path, file_name)
+        await orm_query.orm_add_file_history(session, msg.message_id, file_name)
+
+        with open(file_name, 'r', encoding='UTF-8') as file:
+            text_file = file.read()
+        ip_list, dns_list = extract_and_validate(text_file)
+
+        if not ip_list and not dns_list:
+            await mesg.edit_text(text.err_ip)
+            return
+
+        summary_report = {}
+
+        for checker in CHECKERS_MAP:
+            try:
+                check_state, keyname, tablename, db_function, format_func = CHECKERS_MAP[checker]
+                await state.set_state(check_state)
+
+                # Обрабатываем IP и DNS из базы данных
+                db_ips, db_dnss = await process.process_db_ip(ip_list.copy(), dns_list.copy(), session, tablename)
+
+                # Выполняем проверку
+                reports = []
+                if ip_list or dns_list:
+                    result, reports = await checker(ip_list.copy(), dns_list.copy())  # Используем копии
+
+                combined_reports = db_ips + db_dnss + reports
+
+                if not combined_reports:
+                    await mesg.edit_text(text.err_ip)
+                    return
+
+                # Сохраняем отчеты в базу данных
+                for report in reports:
+                    await db_function(session, report)
+
+                # Форматируем отчеты
+                format_reports = [format_func(report) for report in combined_reports]
+                summary_report[keyname] = format_reports
+            except Exception as e:
+                print(f"Ошибка при обработке {checker}: {e}")
+                await mesg.edit_text(text.err_processing.format(service=checker))
+                return
+        result = format.summary_format(summary_report)
+        await mesg.edit_text(result, parse_mode=ParseMode.MARKDOWN)
+    await state.set_state(Summary_states.check_ip_file)

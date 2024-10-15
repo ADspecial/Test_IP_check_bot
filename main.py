@@ -42,7 +42,7 @@ def register_routers(dp: Dispatcher):
     dp.include_router(vt_router)
     dp.include_router(adb_router)
     dp.include_router(ksp_router)
-    dp.include_router(cip_router)
+    #dp.include_router(cip_router)
     dp.include_router(alv_router)
     dp.include_router(ipqs_router)
     dp.include_router(admin_router)
