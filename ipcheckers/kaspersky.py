@@ -58,7 +58,7 @@ def gen_result_ip(response: Dict[str, Union[str, int]]) -> Dict[str, Union[str, 
         A dictionary with the response data.
     """
     result = {
-        'address': response['IpGeneralInfo']['Ip'],
+        'ip_address': response['IpGeneralInfo']['Ip'],
         'status': response['IpGeneralInfo']['Status'],
         'country': get_country_flag(response['IpGeneralInfo']['CountryCode']),
         'net_name': response["IpWhoIs"]["Net"]["Name"],
@@ -77,7 +77,7 @@ def gen_result_domain(response: Dict[str, Union[str, int]]) -> Dict[str, Union[s
         A dictionary with the response data.
     """
     result = {
-        'address': response['DomainWhoIsInfo']['DomainName'],
+        'ip_address': response['DomainWhoIsInfo']['DomainName'],
         'status': None,
         'country': None,
         'net_name': None,

@@ -61,7 +61,7 @@ def format_to_output_dict_ipi(data: Dict[str, str]) -> Dict[str, str]:
     """
     output = {
         'header': '🌐 IPinfo',
-        'ip_address': data['ip'],
+        'ip_address': data.get('ip_address') or data.get('ip'),
         'country': get_country_flag(data['country']),
         'region': data['region'],
         'city': data['city'],
@@ -106,7 +106,7 @@ def format_to_output_dict_ksp(data: Dict[str, str]) -> Dict[str, str]:
     """
     output = {
         'header': '🟩 Kaspersky',
-        'address': data['address'],
+        'address': data['ip_address'],
         'country': data['country'],
         'verdict': data['verdict'],
         'status': data['status'],
@@ -234,3 +234,68 @@ def get_country_flag(country_code):
 
 def get_date(value):
     return value and datetime.datetime.utcfromtimestamp(value).strftime('%Y-%m-%d %H:%M:%S') or 'None'
+
+def summary_format(data: Dict) -> str:
+   # Создаем словарь для хранения информации по адресам
+    address_info = {}
+
+    # Подсчет статистики
+    verdict_stats = {}
+
+    # Обрабатываем данные
+    for service, records in data.items():
+        for record in records:
+            ip_address = record.get('ip address') or record.get('address') or record.get('ip_address')
+            verdict = record.get('verdict', '⚫️ undetected')
+
+            # Добавляем информацию из IPinfo
+            if service == 'Ipinfo':
+                country = record.get('country', '⚫️ undetected')
+                region = record.get('region', '⚫️ undetected')
+                city = record.get('city', '⚫️ undetected')
+                info = f"{country}, {region}, {city}"
+            else:
+                info = verdict
+
+            if ip_address not in address_info:
+                address_info[ip_address] = {}
+                verdict_stats[ip_address] = {'malicious': 0, 'harmless': 0, 'suspicious': 0, 'undetected': 0}
+
+            address_info[ip_address][service] = info
+
+            # Подсчет вердиктов
+            if verdict == '🔴 malicious':
+                verdict_stats[ip_address]['malicious'] += 1
+            elif verdict == '🟢 harmless':
+                verdict_stats[ip_address]['harmless'] += 1
+            elif verdict == '🟡 suspicious':
+                verdict_stats[ip_address]['suspicious'] += 1
+            elif verdict == '⚫️ undetected':
+                verdict_stats[ip_address]['undetected'] += 1
+
+    # Форматируем вывод в строку с табуляцией
+    output = []
+    for ip in address_info:
+        output.append(f"Адрес {ip}:")
+
+        # Добавляем статистику вердиктов в формате {malicious}/{остальные}
+        total_other_verdicts = sum(verdict_stats[ip].values()) - verdict_stats[ip]['malicious']
+        stats_line = f"{verdict_stats[ip]['malicious']}/{total_other_verdicts}"
+        output.append(f"\tСтатистика: {stats_line}")
+
+        for service in ['Alienvault', 'Virustotal', 'Abuseipdb', 'Kaspersky', 'Ipqualityscore', 'Criminalip', 'Ipinfo']:
+            command_line = {
+                'Alienvault': f"`/alvcheck {ip}`",
+                'Virustotal': f"`/vtcheck {ip}`",
+                'Abuseipdb': f"`/adbcheck {ip}`",
+                'Kaspersky': f"`/kspcheck {ip}`",
+                'Ipqualityscore': f"`/ipqscheck {ip}`",
+                'Criminalip': f"`/cipcheck {ip}`",
+                'Ipinfo': f"`/ipicheck {ip}`"
+            }
+
+            verdict = address_info[ip].get(service, '⚫️ undetected')
+            output.append(f"\t- {service}: {verdict} ({command_line[service]})")  # Добавлена команда
+        output.append("")  # Пустая строка для разделения адресов
+
+    return "\n".join(output)

@@ -54,6 +54,7 @@ async def check_ip_command(msg: Message, state: FSMContext, bot: Bot, session: A
     else:
         await bot.delete_message(msg.chat.id, msg.message_id,request_timeout=0)
         await msg.answer('Не введен ip адрес\n')
+    await state.set_state(Base_states.start)
 
 @cip_router.callback_query(F.data == "cip_file")
 async def get_file(msg_or_callback: Message | CallbackQuery, state: FSMContext):

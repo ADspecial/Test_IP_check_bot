@@ -56,6 +56,7 @@ async def check_ip_command(msg: Message, state: FSMContext, bot: Bot, session: A
         await msg.answer('Не введен ip адрес\n')
     await state.set_state(Base_states.start)
 
+
 @adb_router.callback_query(F.data == "abuseipdb_file")
 async def get_file(msg_or_callback: Message | CallbackQuery, state: FSMContext):
     await process.handle_file_request(msg_or_callback, state, text.send_text_file, kb.back_adbuseip,ADB_states.check_ip_file, ADB_states.check_ip_file_command)
