@@ -3,7 +3,7 @@ import requests
 import urllib
 
 from config.config import KEYS
-from ipcheckers.format import get_country_flag
+from handlers.format import get_country_flag
 
 from typing import List, Dict, Union, Tuple, Literal
 from datetime import datetime

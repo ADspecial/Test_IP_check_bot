@@ -4,6 +4,8 @@ from aiogram.types import Message, CallbackQuery
 from aiogram.fsm.context import FSMContext
 from aiogram.exceptions import TelegramBadRequest
 from aiogram.enums import ParseMode
+from aiogram.utils.deep_linking import create_start_link
+
 
 from filters.chat_type import ChatTypeFilter
 

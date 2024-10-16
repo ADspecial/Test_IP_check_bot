@@ -236,9 +236,8 @@ def get_date(value):
     return value and datetime.datetime.utcfromtimestamp(value).strftime('%Y-%m-%d %H:%M:%S') or 'None'
 
 def summary_format(data: Dict) -> str:
-   # Создаем словарь для хранения информации по адресам
+    # Создаем словарь для хранения информации по адресам
     address_info = {}
-
     # Подсчет статистики
     verdict_stats = {}
 
@@ -253,6 +252,7 @@ def summary_format(data: Dict) -> str:
                 country = record.get('country', '⚫️ undetected')
                 region = record.get('region', '⚫️ undetected')
                 city = record.get('city', '⚫️ undetected')
+                # Форматируем информацию о местоположении
                 info = f"{country}, {region}, {city}"
             else:
                 info = verdict
@@ -276,22 +276,23 @@ def summary_format(data: Dict) -> str:
     # Форматируем вывод в строку с табуляцией
     output = []
     for ip in address_info:
-        output.append(f"Адрес {ip}:")
+        output.append(f"Адрес {ip}: {address_info[ip].get('Ipinfo', '⚫️ undetected')}")  # Выводим информацию из IPinfo
 
-        # Добавляем статистику вердиктов в формате {malicious}/{остальные}
-        total_other_verdicts = sum(verdict_stats[ip].values()) - verdict_stats[ip]['malicious']
-        stats_line = f"{verdict_stats[ip]['malicious']}/{total_other_verdicts}"
+        # Подсчет общего количества проверок
+        total_checks = sum(verdict_stats[ip].values())
+        malicious_count = verdict_stats[ip]['malicious']
+
+        # Добавляем статистику вердиктов в формате {malicious}/{total_checks}
+        stats_line = f"{malicious_count}/{total_checks-1}"
         output.append(f"\tСтатистика: {stats_line}")
 
-        for service in ['Alienvault', 'Virustotal', 'Abuseipdb', 'Kaspersky', 'Ipqualityscore', 'Criminalip', 'Ipinfo']:
+        for service in ['Alienvault', 'Virustotal', 'Abuseipdb', 'Kaspersky', 'Ipqualityscore']:  # Убрали Criminalip
             command_line = {
-                'Alienvault': f"`/alvcheck {ip}`",
-                'Virustotal': f"`/vtcheck {ip}`",
-                'Abuseipdb': f"`/adbcheck {ip}`",
-                'Kaspersky': f"`/kspcheck {ip}`",
-                'Ipqualityscore': f"`/ipqscheck {ip}`",
-                'Criminalip': f"`/cipcheck {ip}`",
-                'Ipinfo': f"`/ipicheck {ip}`"
+                'Alienvault': f"[Подробнее](https://otx.alienvault.com/indicator/ip/{ip})",
+                'Virustotal': f"[Подробнее](https://www.virustotal.com/gui/ip-address/{ip})",
+                'Abuseipdb': f"[Подробнее](https://www.abuseipdb.com/check/{ip})",
+                'Kaspersky': f"[Подробнее](https://opentip.kaspersky.com/{ip}/?tab=lookup)",
+                'Ipqualityscore': f"[Подробнее](https://www.ipqualityscore.com/ip-lookup/search/{ip})"
             }
 
             verdict = address_info[ip].get(service, '⚫️ undetected')

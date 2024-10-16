@@ -6,10 +6,11 @@ from aiogram.types import CallbackQuery, Message, ReplyKeyboardMarkup
 from database.models import Ipinfo, Virustotal, Abuseipdb, Kaspersky, CriminalIP, Alienvault, Ipqualityscore
 from database import orm_query
 
-from ipcheckers import format
+from handlers import format
 from ipcheckers.valid_ip import extract_and_validate
+from ipcheckers import alienvault, virustotal, abuseipdb, kaspersky, ipqualityscore, criminalip, ipinfo
 
-from states import VT_states, IPI_states, ADB_states, KSP_states, CIP_states, ALV_states, IPQS_states
+from states import VT_states, IPI_states, ADB_states, KSP_states, CIP_states, ALV_states, IPQS_states, Base_states
 
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -42,7 +43,6 @@ STATE_TABLE_MAP = {
 }
 
 STATE_FILE_MAP = {
-
     VT_states.check_ip_file: ('virustotal', Virustotal),
     IPI_states.check_ip_file: ('ipinfo', Ipinfo),
     ADB_states.check_ip_file: ('abuseipdb', Abuseipdb),
@@ -57,6 +57,16 @@ STATE_FILE_MAP = {
     CIP_states.check_ip_file_command: ('criminalip', CriminalIP),
     ALV_states.check_ip_file_command: ('alienvault', Alienvault),
     IPQS_states.check_ip_file_command: ('ipqualityscore', Ipqualityscore),
+}
+
+CHECKERS_MAP = {
+    alienvault.get_alienvault_info: (ALV_states.check_ip, 'Alienvault', Alienvault, orm_query.orm_add_alienvault_data, format.format_to_output_dict_alv),
+    virustotal.get_vt_info: (VT_states.check_ip, 'Virustotal', Virustotal, orm_query.orm_add_vt_ip, format.format_to_output_dict_vt),
+    abuseipdb.get_abuseipdb_info: (ADB_states.check_ip, 'Abuseipdb', Abuseipdb, orm_query.orm_add_abuseipdb, format.format_to_output_dict_adb),
+    kaspersky.get_kaspersky_info: (KSP_states.check_ip, 'Kaspersky', Kaspersky, orm_query.orm_add_kaspersky_data, format.format_to_output_dict_ksp),
+    ipqualityscore.get_ipqs_info: (IPQS_states.check_ip, 'Ipqualityscore', Ipqualityscore, orm_query.orm_add_ipqs_data, format.format_to_output_dict_ipqs),
+    #criminalip.get_criminalip_info: (CIP_states.check_ip,'Criminalip', CriminalIP,orm_query.orm_add_criminalip_data, format.format_to_output_dict_cip),
+    ipinfo.get_ipi_info: (IPI_states.check_ip, 'Ipinfo', Ipinfo, orm_query.orm_add_ipi_ip, format.format_to_output_dict_ipi)
 }
 
 async def process_db_ip(ips: List[str], dnss: List[str], session: AsyncSession, table_model) -> Tuple[List[Dict], List[Dict]]:
@@ -153,23 +163,7 @@ async def process_document(
     current_state = await state.get_state()
     dir_name, table_name = STATE_FILE_MAP.get(current_state)
 
-    os.makedirs(f'data/{dir_name}', exist_ok=True)
-    file_id = msg.document.file_id
-    file = await bot.get_file(file_id)
-
-
-    file_name = next(f'data/{dir_name}/ip{num}.txt' for num in range(1, 1000) if not os.path.exists(f'data/{dir_name}/ip{num}.txt'))
-
-    await bot.download_file(file.file_path, file_name)
-    await orm_query.orm_add_file_history(session, msg.message_id, file_name)
-
-    with open(file_name, 'r', encoding='UTF-8') as file:
-        text_file = file.read()
-
-    ips, dnss = extract_and_validate(text_file)
-    if not ips and not dnss:
-        os.remove(file_name)
-        return False, None
+    ips, dnss =  await download_and_read_file(dir_name, msg, session, bot)
 
     db_ips, db_dnss = await process_db_ip(ips, dnss, session, table_name)
     result, reports = await info_function(ips, dnss)
@@ -185,3 +179,93 @@ async def process_document(
     format_reports = [format_func(report) for report in combined_reports]
     answer = format.listdict_to_string(format_reports)
     return True, answer
+
+async def all_checkers(
+    ip_list: List[str],
+    dns_list: List[str],
+    state: FSMContext,
+    session: AsyncSession,
+) -> Tuple[bool, str, List[str]]:
+    """
+    Запустить все доступные чекеры для заданных IP-адресов и DNS-имен.
+
+    Аргументы:
+        ip_list: Список IP-адресов для проверки.
+        dns_list: Список DNS-имен для проверки.
+        state: Текущее состояние пользователя.
+        session: Асинхронная сессия базы данных.
+
+    Возвращает:
+        Кортеж, где первый элемент - булево значение, указывающее на успех,
+        а второй элемент - строка, содержащая отчет.
+    """
+    summary_report: Dict[str, List[Dict[str, Union[str, int]]]] = {}
+    error = []
+    for checker in CHECKERS_MAP:
+        ips = ip_list.copy()
+        dns = dns_list.copy()
+        try:
+            check_state, keyname, tablename, db_function, format_func = CHECKERS_MAP[checker]
+            await state.set_state(check_state)
+
+            db_ips, db_dnss = await process_db_ip(ips, dns, session, tablename)
+
+            reports: List[Dict[str, Union[str, int]]] = []
+            if ips or dns:
+                result, reports = await checker(ips, dns)
+
+            combined_reports = db_ips + db_dnss + reports
+
+            if not combined_reports:
+                error.append(keyname)
+                continue
+
+            for report in reports:
+                await db_function(session, report)
+
+            format_reports = [format_func(report) for report in combined_reports]
+            summary_report[keyname] = format_reports
+            await state.set_state(Base_states.start)
+        except Exception as e:
+            print(f"Ошибка при обработке {checker}: {e}")
+            error.append(keyname)
+            continue
+    if not summary_report:
+        return False, None, error
+    else:
+        return True, format.summary_format(summary_report), error
+
+from typing import List, Tuple
+
+async def download_and_read_file(
+    dir_name: str, msg: Message, session: AsyncSession, bot: Bot
+) -> Tuple[List[str], List[str]]:
+    """
+    Download and read a file from Telegram.
+
+    Args:
+        dir_name (str): The directory to store the file in.
+        msg (Message): The message containing the file.
+        session (AsyncSession): The async session to use for the database.
+        bot (Bot): The bot to use for the Telegram API.
+
+    Returns:
+        Tuple[List[str], List[str]]: A tuple containing lists of IPs and DNS names extracted from the file.
+    """
+    file_id = msg.document.file_id
+    file = await bot.get_file(file_id)
+
+    file_name = f"data/{dir_name}/{file_id}.txt"
+    await bot.download_file(file.file_path, file_name)
+
+    await orm_query.orm_add_file_history(session, msg.message_id, file_name)
+
+    with open(file_name, "r", encoding="UTF-8") as file:
+        text_file = file.read()
+
+    ips, dnss = extract_and_validate(text_file)
+    if not ips and not dnss:
+        os.remove(file_name)
+        return [], []
+
+    return ips, dnss

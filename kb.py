@@ -12,8 +12,7 @@ check_menu = [
     [InlineKeyboardButton(text="📄 Сводный отчет по адресу", callback_data="summary_menu")],
     [InlineKeyboardButton(text="🔷 VirusTotal", callback_data="virustotal_menu"), InlineKeyboardButton(text="🌐 IPinfo", callback_data="ipinfo_menu")],
     [InlineKeyboardButton(text="⭕️ AbuseIIDB", callback_data="adbuseip_menu"), InlineKeyboardButton(text="🟩 Kaspersky", callback_data="kaspersky_menu")],
-    [InlineKeyboardButton(text="🔎 CriminalIP", callback_data="criminalip_menu"), InlineKeyboardButton(text="👽 Alienvault", callback_data="alienvault_menu")],
-    [InlineKeyboardButton(text="🔥 IPQS", callback_data="ipqualityscore_menu")],
+    [InlineKeyboardButton(text="🔥 IPQS", callback_data="ipqualityscore_menu"), InlineKeyboardButton(text="👽 Alienvault", callback_data="alienvault_menu")],
     [InlineKeyboardButton(text="◀️ Выйти в меню", callback_data="view_menu")]
 ]
 check_menu = InlineKeyboardMarkup(inline_keyboard=check_menu)

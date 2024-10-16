@@ -6,7 +6,7 @@ from typing import List, Dict, Union, Tuple
 from datetime import datetime
 
 from config.config import KEYS, URLS
-from ipcheckers.format import get_country_flag
+from handlers.format import get_country_flag
 
 
 async def make_request_abuse(

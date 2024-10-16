@@ -446,7 +446,7 @@ async def orm_add_kaspersky_data(session: AsyncSession, data: Dict[str, any]) ->
     """
     try:
         # Поиск существующего адреса по IP
-        result = await session.execute(select(Address).where(Address.ip == data['address']))
+        result = await session.execute(select(Address).where(Address.ip == data['ip_address']))
         existing_address = result.scalars().first()
 
         if existing_address:
@@ -474,7 +474,7 @@ async def orm_add_kaspersky_data(session: AsyncSession, data: Dict[str, any]) ->
 
         else:
             # Если адрес не найден, создаем новый адрес и новую запись в Kaspersky
-            new_address = Address(ip=data['address'])
+            new_address = Address(ip=data['ip_address'])
             session.add(new_address)
             await session.commit()  # Сохраняем новый адрес
 
