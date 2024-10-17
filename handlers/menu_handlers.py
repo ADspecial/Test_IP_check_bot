@@ -73,6 +73,21 @@ async def help_handler(msg_or_callback: Message | CallbackQuery, state: FSMConte
     await state.set_state(Base_states.help)
     await msg_or_callback.answer(text.help_group, parse_mode=ParseMode.MARKDOWN)
 
+@menu_router.callback_query(F.data == "block_menu")
+@menu_router.message(
+    Command("blockmenu"),
+    ChatTypeFilter(chat_type=["private"])
+)
+async def check_menu_handler(msg_or_callback: Message | CallbackQuery, state: FSMContext, bot: Bot):
+    await state.set_state(Base_states.block_menu)
+    if isinstance(msg_or_callback, CallbackQuery):
+        await msg_or_callback.message.edit_text(text.block_menu, reply_markup=kb.block_menu)
+        await msg_or_callback.answer('Блокировка IP')
+    else:
+        await msg_or_callback.answer(text.block_menu, reply_markup=kb.block_menu)
+
+
+
 # Обработчик вывода меню проверки IP
 @menu_router.callback_query(F.data == "check_menu")
 @menu_router.message(

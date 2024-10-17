@@ -300,3 +300,52 @@ def summary_format(data: Dict) -> str:
         output.append("")  # Пустая строка для разделения адресов
 
     return "\n".join(output)
+
+async def block_output(blocked_addreses):
+    output = []
+
+    # Проверяем и добавляем заблокированные адреса
+    if blocked_addreses:
+        accepted_str = "\n".join(blocked_addreses)
+        output.append("**Следующие адреса были успешно заблокированы:**\n```\n" + accepted_str + "\n```\n")
+
+    # Возвращаем объединенный вывод или сообщение о том, что нет информации
+    return "\n".join(output) if output else "Ошибка! Нет информации о заблокированных адресах."
+
+async def block_view(blocked_ips: list, date: int) -> str:
+    """
+    Форматирует данные о заблокированных IP-адресах в виде таблицы для вывода в Telegram с использованием Markdown.
+
+    :param blocked_ips: Список словарей с информацией о заблокированных IP-адресах.
+    :return: Форматированная строка с данными в виде таблицы.
+    """
+    # Заголовок
+    header_ip = "IP"
+    header_username = "Username"
+    header_date = "Date"
+
+    # Определяем максимальные длины для каждого столбца
+    max_ip_length = max(len(header_ip), *(len(entry['ip']) for entry in blocked_ips), 20)
+    max_username_length = max(len(header_username), *(len(entry['username']) for entry in blocked_ips), 15)
+    max_date_length = max(len(header_date), *(len(entry['blocked_at'].strftime('%Y-%m-%d %H:%M:%S')) for entry in blocked_ips), 20)
+
+    if date == 1:
+        result = f"Заблокированные адреса за {date} день:\n"
+    elif date > 1 and date < 5:
+        result = f"Заблокированные адреса за {date} дня:\n"
+    else:
+        result = f"Заблокированные адреса за {date} дней:\n"
+    result += "```\n"  # Начинаем блок кода
+    result += f"{header_ip:<{max_ip_length}} | {header_username:<{max_username_length}} | {header_date:<{max_date_length}}\n"
+    result += "-" * (max_ip_length + max_username_length + max_date_length + 6) + "\n"  # Разделительная линия
+
+    # Форматируем каждую запись
+    for entry in blocked_ips:
+        ip = entry['ip']
+        username = entry['username']
+        blocked_at = entry['blocked_at'].strftime('%Y-%m-%d %H:%M:%S')  # Форматируем дату
+        result += f"{ip:<{max_ip_length}} | @{username:<{max_username_length}} | {blocked_at:<{max_date_length}}\n"
+
+    result += "```"  # Закрываем блок кода
+
+    return result.strip()  # Убираем лишний пробел в конце

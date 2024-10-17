@@ -3,10 +3,32 @@
 from aiogram.types import InlineKeyboardButton, InlineKeyboardMarkup, KeyboardButton, ReplyKeyboardMarkup, ReplyKeyboardRemove
 
 start_menu = [
-    [InlineKeyboardButton(text="📄 Проверить IP", callback_data="check_menu")],
+    [InlineKeyboardButton(text="🚫 Блокировка IP", callback_data="block_menu")],
+    [InlineKeyboardButton(text="📄 Проверка IP", callback_data="check_menu")],
     [InlineKeyboardButton(text="🔎 Помощь", callback_data="help")]
 ]
 start_menu = InlineKeyboardMarkup(inline_keyboard=start_menu)
+
+block_menu = [
+    [InlineKeyboardButton(text="🚫 Создать блоклист", callback_data="create_blcoklist")],
+    [InlineKeyboardButton(text="📄 Просмотр заблокированных IP", callback_data="view_block")],
+    [InlineKeyboardButton(text="◀️ Выйти в меню", callback_data="view_menu")]
+]
+block_menu = InlineKeyboardMarkup(inline_keyboard=block_menu)
+
+repeat_add_blocklist = [
+    [InlineKeyboardButton(text="Добавить еще блоклист", callback_data="create_blcoklist")],
+    [InlineKeyboardButton(text="◀️ Назад", callback_data="block_menu")]
+]
+repeat_add_blocklist = InlineKeyboardMarkup(inline_keyboard=repeat_add_blocklist)
+
+view_input = [
+    [InlineKeyboardButton(text="📅 За 1 день", callback_data="1day"),
+    InlineKeyboardButton(text="📅 За 7 дней", callback_data="7day")],
+    [InlineKeyboardButton(text="◀️ Назад", callback_data="block_menu")]
+]
+view_input = InlineKeyboardMarkup(inline_keyboard=view_input)
+
 
 check_menu = [
     [InlineKeyboardButton(text="📄 Сводный отчет по адресу", callback_data="summary_menu")],
@@ -98,4 +120,5 @@ back_ipqualityscore = InlineKeyboardMarkup(inline_keyboard=[[InlineKeyboardButto
 back_summary = InlineKeyboardMarkup(inline_keyboard=[[InlineKeyboardButton(text="◀️ Назад", callback_data="summary_menu")]])
 back_admin = InlineKeyboardMarkup(inline_keyboard=[[InlineKeyboardButton(text="◀️ Назад", callback_data="admin_menu")]])
 back_users = InlineKeyboardMarkup(inline_keyboard=[[InlineKeyboardButton(text="◀️ Назад", callback_data="users_menu")]])
+back_block = InlineKeyboardMarkup(inline_keyboard=[[InlineKeyboardButton(text="◀️ Назад", callback_data="block_menu")]])
 iexit_kb = InlineKeyboardMarkup(inline_keyboard=[[InlineKeyboardButton(text="◀️ Выйти в меню", callback_data="view_menu")]])

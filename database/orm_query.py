@@ -6,7 +6,7 @@ from sqlalchemy.exc import NoResultFound, IntegrityError
 from sqlalchemy.orm import InstrumentedAttribute
 
 from datetime import datetime, timedelta
-from database.models import Address, History, Virustotal, Ipinfo, Abuseipdb, Kaspersky, CriminalIP, Alienvault, Ipqualityscore, User
+from database.models import Address, History, Virustotal, Ipinfo, Abuseipdb, Kaspersky, CriminalIP, Alienvault, Ipqualityscore, User, BlockList
 
 from typing import Callable, List, Dict, Union, Tuple, Any, Type
 
@@ -952,3 +952,48 @@ async def grant_admin_rights(session: AsyncSession, username: str) -> bool:
     except Exception as e:
         print(f"Ошибка при выдаче прав администратора для пользователя с{username}: {e}")
         return False
+
+async def create_blocklist(session: AsyncSession, ip_list: list[str], name: str, description: str, user_id: int, bid: int) -> bool:
+    """
+    Создает новый блокировочный список и связывает его с IP-адресами из ip_list.
+
+    :param session: Асинхронная сессия для работы с базой данных.
+    :param ip_list: Список IP-адресов для блокировки.
+    :param name: Название блокировочного списка.
+    :param description: Описание блокировочного списка.
+    :param user_id: Идентификатор пользователя, создающего блокировочный список.
+    :param bid: Дополнительный идентификатор для блокировочного списка.
+    :return: True если операция успешна, False в противном случае.
+    """
+    try:
+        # Создаем новый объект BlockList с учетом bid
+        blocklist = BlockList(name=name, description=description, user_id_blocker=user_id, bid=bid)
+
+        # Обрабатываем каждый IP-адрес из списка
+        for ip_address in ip_list:
+            # Проверяем, существует ли адрес
+            result = await session.execute(select(Address).where(Address.ip == ip_address))
+            address = result.scalars().first()
+
+            if address:
+                # Если адрес существует, добавляем его в блокировочный список
+                blocklist.addresses.append(address)
+            else:
+                # Если адреса нет, создаем новый и добавляем в блокировочный список
+                new_address = Address(ip=ip_address)  # Убираем поле block
+                session.add(new_address)
+                blocklist.addresses.append(new_address)
+
+        # Добавляем блокировочный список в сессию
+        session.add(blocklist)
+        await session.commit()  # Зафиксируем изменения
+        return True  # Операция успешна
+
+    except IntegrityError as e:
+        print(f"Ошибка при создании блокировочного списка {name}: {e}")
+        await session.rollback()  # Откат транзакции в случае ошибки
+        return False  # Ошибка
+
+    except Exception as e:
+        print(f"Ошибка при создании блокировочного списка {name}: {e}")
+        return False  # Ошибка

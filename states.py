@@ -15,7 +15,18 @@ class Base_states(StatesGroup):
     ipqualityscore_menu = State()
     summary_menu = State()
     admin_menu = State()
+    block_menu = State()
     help = State()
+
+class Block_states(StatesGroup):
+    start_create_blocklist = State()
+    blocklist_name = State()
+    blocklist_bid = State()
+    blocklist_description = State()
+    blocklist_iplist = State()
+    block = State()
+    unblock = State()
+    view = State()
 
 class Admin_states(StatesGroup):
     users_menu = State()
