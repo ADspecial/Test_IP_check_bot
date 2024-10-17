@@ -9,7 +9,7 @@ from itertools import zip_longest
 
 from states import Base_states, Block_states
 
-from ipcheckers.valid_ip import extract_and_validate
+from ipcheckers.valid_ip import extract_and_validate, is_valid_ip
 
 from handlers import format
 
@@ -53,6 +53,7 @@ async def process_description(msg: Message, state: FSMContext, bot: Bot):
     await bot.delete_message(msg.chat.id, msg.message_id,request_timeout=0)
     await state.update_data(description=msg.text)
     await state.set_state(Block_states.blocklist_iplist)
+
     await msg.answer("Введите ip адреса блокировки:")
 
 @block_router.message(Block_states.blocklist_iplist)
@@ -71,6 +72,43 @@ async def check_single_ip(msg: Message, bot: Bot, state: FSMContext, session: As
         await mesg.answer("Повторить добавление блолиста?", reply_markup=kb.repeat_add_blocklist)
     else:
         await mesg.edit_text("Ошибка создания блоклиста", reply_markup=kb.repeat_add_blocklist)
+
+
+@block_router.message(Command("create_blocklist"))
+async def create_blocklist_handler(msg: Message, state: FSMContext, session: AsyncSession):
+    # Извлекаем текст после команды
+    mesg = await msg.answer(text.gen_wait)
+    args =msg.text.split()[1:]  # Получаем все аргументы после команды
+
+    if len(args) < 4:
+        await mesg.edit_text("Пожалуйста, укажите все параметры: name bid description ip_list")
+        return
+
+    name = args[0]  # Имя
+    try:
+        bid = int(args[1])  # Пробуем преобразовать в int
+    except ValueError:
+        await mesg.edit_text("Номер заявки должен быть целым числом.")
+        return
+
+    description = ''  # Описание
+
+    # Остальные аргументы считаем IP-адресами
+    ip_list = args[2:]  # Все последующие элементы будут IP-адресами
+
+    # Проверка на корректность IP-адресов (можно добавить более сложную проверку)
+    for ip in ip_list:
+        if not is_valid_ip(ip):
+            await mesg.edit_text(f"Некорректный IP-адрес: {ip}. Пожалуйста, проверьте ввод.")
+            return
+
+    result = await orm_query.create_blocklist(session, ip_list, name, description, msg.from_user.id, bid)
+    if result:
+        output = await format.block_output(ip_list)
+        await mesg.edit_text(output, parse_mode=ParseMode.MARKDOWN)
+    else:
+        await mesg.edit_text("Ошибка создания блоклиста")
+
 
 @block_router.callback_query(F.data == "view_block")
 async def input_about_ip(clbck: CallbackQuery, state: FSMContext):
