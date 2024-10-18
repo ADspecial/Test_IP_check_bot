@@ -17,7 +17,7 @@ from sqlalchemy import Table, Column, Integer, ForeignKey
 
 class Base(DeclarativeBase):
     created = Column(DateTime, default=datetime.datetime.now)
-    updated = Column(DateTime, default=func.current_timestamp(), onupdate=func.current_timestamp())
+    updated = Column(DateTime, default=datetime.datetime.now, onupdate=datetime.datetime.now)
 
 blocklist_address_association = Table(
     'blocklist_address',
@@ -67,7 +67,6 @@ class BlockList(Base):
     id = Column(Integer, primary_key=True)  # Уникальный идентификатор записи
     name = Column(String(255), nullable=False, unique=True)  # Название блокировки
     description = Column(String(255), nullable=True)  # Описание блокировки
-    bid = Column(Integer, nullable=True)  # Дополнительный идентификатор (например, для внешних систем)
 
     user_id_blocker = Column(Integer, ForeignKey('users.id'), nullable=True)
     addresses = relationship('Address', secondary=blocklist_address_association, back_populates='blocklists')

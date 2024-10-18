@@ -1,12 +1,14 @@
 
+from sqlalchemy import delete
 from sqlalchemy import Column, func
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.future import select
 from sqlalchemy.exc import NoResultFound, IntegrityError
 from sqlalchemy.orm import InstrumentedAttribute
+from sqlalchemy.orm import selectinload
 
 from datetime import datetime, timedelta
-from database.models import Address, History, Virustotal, Ipinfo, Abuseipdb, Kaspersky, CriminalIP, Alienvault, Ipqualityscore, User, BlockList
+from database.models import Address, History, Virustotal, Ipinfo, Abuseipdb, Kaspersky, CriminalIP, Alienvault, Ipqualityscore, User, BlockList, blocklist_address_association
 
 from typing import Callable, List, Dict, Union, Tuple, Any, Type
 
@@ -953,47 +955,103 @@ async def grant_admin_rights(session: AsyncSession, username: str) -> bool:
         print(f"Ошибка при выдаче прав администратора для пользователя с{username}: {e}")
         return False
 
-async def create_blocklist(session: AsyncSession, ip_list: list[str], name: str, description: str, user_id: int, bid: int) -> bool:
-    """
-    Создает новый блокировочный список и связывает его с IP-адресами из ip_list.
-
-    :param session: Асинхронная сессия для работы с базой данных.
-    :param ip_list: Список IP-адресов для блокировки.
-    :param name: Название блокировочного списка.
-    :param description: Описание блокировочного списка.
-    :param user_id: Идентификатор пользователя, создающего блокировочный список.
-    :param bid: Дополнительный идентификатор для блокировочного списка.
-    :return: True если операция успешна, False в противном случае.
-    """
+async def create_or_update_blocklist(
+    session: AsyncSession,
+    ip_list: list[str],
+    name: str,
+    description: str,
+    user_id: int
+) -> bool:
     try:
-        # Создаем новый объект BlockList с учетом bid
-        blocklist = BlockList(name=name, description=description, user_id_blocker=user_id, bid=bid)
+        # Поиск существующего блокировочного списка по имени
+        result = await session.execute(select(BlockList).where(BlockList.name == name))
+        blocklist = result.scalars().first()
 
-        # Обрабатываем каждый IP-адрес из списка
-        for ip_address in ip_list:
-            # Проверяем, существует ли адрес
-            result = await session.execute(select(Address).where(Address.ip == ip_address))
-            address = result.scalars().first()
+        if blocklist is None:
+            # Создание нового блокировочного списка
+            blocklist = BlockList(name=name, description=description, user_id_blocker=user_id)
+            session.add(blocklist)
+        else:
+            # Обновление существующего блокировочного списка
+            blocklist.description = description
+            blocklist.user_id_blocker = user_id
 
-            if address:
-                # Если адрес существует, добавляем его в блокировочный список
+        # Получение или создание IP-адресов
+        for ip in ip_list:
+            address_result = await session.execute(select(Address).where(Address.ip == ip))
+            address = address_result.scalars().first()
+
+            if address is None:
+                address = Address(ip=ip)
+                session.add(address)
+
+            # Связывание адреса с блокировочным списком
+            if address not in blocklist.addresses:
                 blocklist.addresses.append(address)
-            else:
-                # Если адреса нет, создаем новый и добавляем в блокировочный список
-                new_address = Address(ip=ip_address)  # Убираем поле block
-                session.add(new_address)
-                blocklist.addresses.append(new_address)
 
-        # Добавляем блокировочный список в сессию
-        session.add(blocklist)
-        await session.commit()  # Зафиксируем изменения
-        return True  # Операция успешна
-
-    except IntegrityError as e:
-        print(f"Ошибка при создании блокировочного списка {name}: {e}")
-        await session.rollback()  # Откат транзакции в случае ошибки
-        return False  # Ошибка
+        await session.commit()
+        return True  # Успешное выполнение
 
     except Exception as e:
-        print(f"Ошибка при создании блокировочного списка {name}: {e}")
-        return False  # Ошибка
+        await session.rollback()  # Откат транзакции в случае ошибки
+        print(f"Error occurred: {e}")  # Логирование ошибки (при необходимости)
+        return False  # Ошибка выполнения
+
+async def get_blocklists_within_timeframe(session: AsyncSession, start_time: datetime, end_time: datetime):
+    """
+    Получает все блокировочные списки, обновленные в заданном временном интервале.
+
+    :param session: Асинхронная сессия для работы с базой данных.
+    :param start_time: Начальная дата и время для фильтрации.
+    :param end_time: Конечная дата и время для фильтрации.
+    :return: Список словарей с информацией о блокировочных списках.
+    """
+    try:
+        result = await session.execute(
+            select(BlockList)
+            .where(BlockList.updated >= start_time, BlockList.updated <= end_time)
+            .options(selectinload(BlockList.addresses), selectinload(BlockList.user))  # Предварительная загрузка адресов и пользователя
+        )
+        blocklists = result.scalars().all()  # Получаем все найденные блокировочные списки
+
+        # Формируем список словарей с нужной информацией
+        blocklist_info = []
+        for blocklist in blocklists:
+            blocklist_info.append({
+                'name': blocklist.name,
+                'description': blocklist.description,
+                'updated': blocklist.updated,
+                'username': blocklist.user.username if blocklist.user else None,  # Имя пользователя
+                'addresses': [address.ip for address in blocklist.addresses]  # Получаем IP-адреса
+            })
+
+        return blocklist_info
+
+    except Exception as e:
+        print(f"Ошибка при получении блокировочных списков: {e}")
+        return []  # Возвращаем пустой список в случае ошибки
+
+async def delete_blocklist_by_name(session: AsyncSession, blocklist_name: str) -> bool:
+    try:
+        # Проверяем наличие записи в блоклисте по имени
+        result = await session.execute(select(BlockList).where(BlockList.name == blocklist_name))
+        blocklist = result.scalar_one_or_none()
+
+        if blocklist is None:
+            return False  # Запись не найдена, возвращаем False
+
+        # Удаляем связи с адресами в ассоциации
+        await session.execute(delete(blocklist_address_association).where(blocklist_address_association.c.blocklist_id == blocklist.id))
+
+        # Удаляем запись блоклиста
+        await session.execute(delete(BlockList).where(BlockList.name == blocklist_name))
+
+        # Сохраняем изменения в базе данных
+        await session.commit()
+
+        return True  # Успешное удаление, возвращаем True
+
+    except Exception as e:
+        print(f"Ошибка при удалении блоклиста: {e}")
+        await session.rollback()  # Откатываем изменения в случае ошибки
+        return False  # Возвращаем False при ошибке

@@ -312,40 +312,44 @@ async def block_output(blocked_addreses):
     # Возвращаем объединенный вывод или сообщение о том, что нет информации
     return "\n".join(output) if output else "Ошибка! Нет информации о заблокированных адресах."
 
-async def block_view(blocked_ips: list, date: int) -> str:
+
+async def blocklist_info(blocklist_info: list[dict], time: int, timeparam: str ) -> str:
     """
-    Форматирует данные о заблокированных IP-адресах в виде таблицы для вывода в Telegram с использованием Markdown.
+    Форматирует информацию о блокировочных списках.
 
-    :param blocked_ips: Список словарей с информацией о заблокированных IP-адресах.
-    :return: Форматированная строка с данными в виде таблицы.
+    :param blocklist_info: Список словарей с информацией о блокировочных списках.
+    :param days: Количество дней для отображения в заголовке.
+    :return: Строка с отформатированной информацией о блокировочных списках.
     """
-    # Заголовок
-    header_ip = "IP"
-    header_username = "Username"
-    header_date = "Date"
+    if not blocklist_info:
+        return "Нет блокировочных списков за указанный период."
 
-    # Определяем максимальные длины для каждого столбца
-    max_ip_length = max(len(header_ip), *(len(entry['ip']) for entry in blocked_ips), 20)
-    max_username_length = max(len(header_username), *(len(entry['username']) for entry in blocked_ips), 15)
-    max_date_length = max(len(header_date), *(len(entry['blocked_at'].strftime('%Y-%m-%d %H:%M:%S')) for entry in blocked_ips), 20)
+    result = [f"Блоклисты за последние {time} {timeparam}:\n"]
+    result.append("--------------------------------------------\n")
+    for blocklist in blocklist_info:
+        date = blocklist['updated'].strftime("%d.%m.%Y %H:%M:%S")
+        result.append(f"**{blocklist['name']}**\n")
+        result.append(f"Автор - @{blocklist['username']}\n")
+        result.append(f"Время создания - {date}\n")
+        result.append(f"Описание - {blocklist['description']}\n")
+        result.append("```\n")
+        result.extend(f"{ip}\n" for ip in blocklist['addresses'])
+        result.append("```\n")
+        result.append("--------------------------------------------\n")
 
-    if date == 1:
-        result = f"Заблокированные адреса за {date} день:\n"
-    elif date > 1 and date < 5:
-        result = f"Заблокированные адреса за {date} дня:\n"
+    return ''.join(result)
+
+async def delete_blocklist_info(success_names, error_names) -> str:
+    response_lines = []
+    if success_names:
+        response_lines.append("Были удалены следующие блоклисты:")
+        response_lines.append("```\n" + "\n".join(success_names) + "\n```")
+
+    if error_names:
+        response_lines.append("Следующие блоклисты не были найдены:")
+        response_lines.append("```\n" + "\n".join(error_names) + "\n```")
+
+    if response_lines:
+        return "\n".join(response_lines)
     else:
-        result = f"Заблокированные адреса за {date} дней:\n"
-    result += "```\n"  # Начинаем блок кода
-    result += f"{header_ip:<{max_ip_length}} | {header_username:<{max_username_length}} | {header_date:<{max_date_length}}\n"
-    result += "-" * (max_ip_length + max_username_length + max_date_length + 6) + "\n"  # Разделительная линия
-
-    # Форматируем каждую запись
-    for entry in blocked_ips:
-        ip = entry['ip']
-        username = entry['username']
-        blocked_at = entry['blocked_at'].strftime('%Y-%m-%d %H:%M:%S')  # Форматируем дату
-        result += f"{ip:<{max_ip_length}} | @{username:<{max_username_length}} | {blocked_at:<{max_date_length}}\n"
-
-    result += "```"  # Закрываем блок кода
-
-    return result.strip()  # Убираем лишний пробел в конце
+        return "Не было удалено ни одного блоклиста."

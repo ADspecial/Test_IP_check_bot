@@ -10,25 +10,38 @@ start_menu = [
 start_menu = InlineKeyboardMarkup(inline_keyboard=start_menu)
 
 block_menu = [
-    [InlineKeyboardButton(text="🚫 Создать блоклист", callback_data="create_blcoklist")],
-    [InlineKeyboardButton(text="📄 Просмотр заблокированных IP", callback_data="view_block")],
+    [InlineKeyboardButton(text="📄 Управлние блоклистами", callback_data="blocklist_menu"),
+    InlineKeyboardButton(text="🌐 Управление СЗИ", callback_data="sechost_menu")],
+    [InlineKeyboardButton(text="🚫 Управление правилами", callback_data="rule_menu")],
     [InlineKeyboardButton(text="◀️ Выйти в меню", callback_data="view_menu")]
 ]
 block_menu = InlineKeyboardMarkup(inline_keyboard=block_menu)
 
-repeat_add_blocklist = [
-    [InlineKeyboardButton(text="Добавить еще блоклист", callback_data="create_blcoklist")],
+blocklist_menu = [
+    [InlineKeyboardButton(text="✍️ Создать/изменить блоклист", callback_data="add_bloсklist")],
+    [InlineKeyboardButton(text="🗑 Удалить блоклист", callback_data="delete_bloсklist"),
+    InlineKeyboardButton(text="📄 Просмотр блоклистов", callback_data="view_bloсklist")],
     [InlineKeyboardButton(text="◀️ Назад", callback_data="block_menu")]
+]
+blocklist_menu = InlineKeyboardMarkup(inline_keyboard=blocklist_menu)
+
+repeat_add_blocklist = [
+    [InlineKeyboardButton(text="Добавить еще блоклист", callback_data="add_bloсklist")],
+    [InlineKeyboardButton(text="◀️ Назад", callback_data="blocklist_menu")]
 ]
 repeat_add_blocklist = InlineKeyboardMarkup(inline_keyboard=repeat_add_blocklist)
 
-view_input = [
-    [InlineKeyboardButton(text="📅 За 1 день", callback_data="1day"),
-    InlineKeyboardButton(text="📅 За 7 дней", callback_data="7day")],
-    [InlineKeyboardButton(text="◀️ Назад", callback_data="block_menu")]
+repeat_view_blocklist = [
+    [InlineKeyboardButton(text="Просмотреть за другую дату", callback_data="view_bloсklist")],
+    [InlineKeyboardButton(text="◀️ Назад", callback_data="blocklist_menu")]
 ]
-view_input = InlineKeyboardMarkup(inline_keyboard=view_input)
+repeat_view_blocklist = InlineKeyboardMarkup(inline_keyboard=repeat_view_blocklist)
 
+repeat_delete_blocklist = [
+    [InlineKeyboardButton(text="Удалить другие даты", callback_data="delete_bloсklist")],
+    [InlineKeyboardButton(text="◀️ Назад", callback_data="blocklist_menu")]
+]
+repeat_delete_blocklist = InlineKeyboardMarkup(inline_keyboard=repeat_delete_blocklist)
 
 check_menu = [
     [InlineKeyboardButton(text="📄 Сводный отчет по адресу", callback_data="summary_menu")],
@@ -121,4 +134,5 @@ back_summary = InlineKeyboardMarkup(inline_keyboard=[[InlineKeyboardButton(text=
 back_admin = InlineKeyboardMarkup(inline_keyboard=[[InlineKeyboardButton(text="◀️ Назад", callback_data="admin_menu")]])
 back_users = InlineKeyboardMarkup(inline_keyboard=[[InlineKeyboardButton(text="◀️ Назад", callback_data="users_menu")]])
 back_block = InlineKeyboardMarkup(inline_keyboard=[[InlineKeyboardButton(text="◀️ Назад", callback_data="block_menu")]])
+back_blocklist = InlineKeyboardMarkup(inline_keyboard=[[InlineKeyboardButton(text="◀️ Назад", callback_data="blocklist_menu")]])
 iexit_kb = InlineKeyboardMarkup(inline_keyboard=[[InlineKeyboardButton(text="◀️ Выйти в меню", callback_data="view_menu")]])

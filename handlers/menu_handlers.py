@@ -6,14 +6,12 @@ from aiogram.exceptions import TelegramBadRequest
 from aiogram.enums import ParseMode
 from aiogram.utils.deep_linking import create_start_link
 
-
 from filters.chat_type import ChatTypeFilter
 
-from states import Base_states
+from states import Base_states, Block_states
 
 import kb
 import text
-
 
 menu_router = Router()
 message_ids_to_delete = []
@@ -85,6 +83,19 @@ async def check_menu_handler(msg_or_callback: Message | CallbackQuery, state: FS
         await msg_or_callback.answer('Блокировка IP')
     else:
         await msg_or_callback.answer(text.block_menu, reply_markup=kb.block_menu)
+
+@menu_router.callback_query(F.data == "blocklist_menu")
+@menu_router.message(
+    Command("blocklist_menu"),
+    ChatTypeFilter(chat_type=["private"])
+)
+async def check_menu_handler(msg_or_callback: Message | CallbackQuery, state: FSMContext, bot: Bot):
+    await state.set_state(Block_states.blocklist_menu)
+    if isinstance(msg_or_callback, CallbackQuery):
+        await msg_or_callback.message.edit_text(text.blocklist_menu, reply_markup=kb.blocklist_menu)
+        await msg_or_callback.answer('Блокировка IP')
+    else:
+        await msg_or_callback.answer(text.blocklist_menu, reply_markup=kb.blocklist_menu)
 
 
 

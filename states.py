@@ -19,14 +19,16 @@ class Base_states(StatesGroup):
     help = State()
 
 class Block_states(StatesGroup):
-    start_create_blocklist = State()
-    blocklist_name = State()
-    blocklist_bid = State()
-    blocklist_description = State()
-    blocklist_iplist = State()
-    block = State()
-    unblock = State()
-    view = State()
+    blocklist_menu = State()
+    blocklist_add_name = State()
+    blocklist_add_description = State()
+    blocklist_add = State()
+    blocklist_add_command = State()
+    blocklist_view = State()
+    blocklist_view_command = State()
+    blocklist_delete = State()
+    blocklist_delete_command = State()
+
 
 class Admin_states(StatesGroup):
     users_menu = State()
