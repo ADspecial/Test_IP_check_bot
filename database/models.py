@@ -14,6 +14,14 @@ from sqlalchemy.dialects.postgresql import ARRAY
 from sqlalchemy.orm import relationship, DeclarativeBase
 from sqlalchemy.types import JSON
 from sqlalchemy import Table, Column, Integer, ForeignKey
+from bcrypt import hashpw, gensalt, checkpw
+
+from config.config import CRYPT
+from cryptography.fernet import Fernet
+
+
+# Создаем объект шифрования Fernet
+cipher_suite = Fernet(CRYPT.ENCRYPTION_KEY)
 
 class Base(DeclarativeBase):
     created = Column(DateTime, default=datetime.datetime.now)
@@ -76,7 +84,39 @@ class SecurityHost(Base):
     __tablename__ = 'security_host'  # Название таблицы
 
     id = Column(Integer, primary_key=True)  # Уникальный идентификатор записи
+    name = Column(String(255), nullable=False)  # Имя устройства или средства защиты
+    description = Column(String(255), nullable=True)  # Описание устройства
+    address = Column(String(255), nullable=False, unique=True)  # Адрес (например, IP или URL)
+    _api_token = Column(String(255), nullable=False)  # Токен доступа (API)
+    _login = Column(String(255), nullable=False)  # Логин для доступа
+    password = Column(String(255), nullable=False)  # Пароль для доступа
+
     rules = relationship('Rule', backref='security_host', cascade='all, delete-orphan')
+
+    @property
+    def password(self):
+        raise AttributeError("Пароль недоступен для чтения")
+
+    @password.setter
+    def password(self, plain_password):
+        # Хешируем пароль при установке
+        self._password = hashpw(plain_password.encode('utf-8'), gensalt())
+
+    def verify_password(self, plain_password):
+        # Проверяем пароль при аутентификации
+        return checkpw(plain_password.encode('utf-8'), self._password.encode('utf-8'))
+    @property
+    def api_token(self):
+        raise AttributeError("API токен недоступен для чтения напрямую")
+
+    @api_token.setter
+    def api_token(self, plain_token):
+        # Шифруем токен при его установке
+        self._api_token = cipher_suite.encrypt(plain_token.encode('utf-8')).decode('utf-8')
+
+    def get_decrypted_token(self):
+        # Расшифровываем токен при необходимости
+        return cipher_suite.decrypt(self._api_token.encode('utf-8')).decode('utf-8')
 
 class Rule(Base):
     __tablename__ = 'rule'  # Название таблицы

@@ -6,6 +6,7 @@ from sqlalchemy.future import select
 from sqlalchemy.exc import NoResultFound, IntegrityError
 from sqlalchemy.orm import InstrumentedAttribute
 from sqlalchemy.orm import selectinload
+from sqlalchemy.exc import SQLAlchemyError
 
 from datetime import datetime, timedelta
 from database.models import Address, History, Virustotal, Ipinfo, Abuseipdb, Kaspersky, CriminalIP, Alienvault, Ipqualityscore, User, BlockList, blocklist_address_association
@@ -963,39 +964,45 @@ async def create_or_update_blocklist(
     user_id: int
 ) -> bool:
     try:
-        # Поиск существующего блокировочного списка по имени
-        result = await session.execute(select(BlockList).where(BlockList.name == name))
-        blocklist = result.scalars().first()
+        # Асинхронный запрос на получение существующего блоклиста и предварительная загрузка связанных адресов
+        result = await session.execute(
+            select(BlockList).where(BlockList.name == name).options(selectinload(BlockList.addresses))
+        )
+        blocklist = result.scalar_one_or_none()
 
-        if blocklist is None:
-            # Создание нового блокировочного списка
-            blocklist = BlockList(name=name, description=description, user_id_blocker=user_id)
-            session.add(blocklist)
-        else:
-            # Обновление существующего блокировочного списка
+        if blocklist:
             blocklist.description = description
             blocklist.user_id_blocker = user_id
+        else:
+            blocklist = BlockList(name=name, description=description, user_id_blocker=user_id)
+            session.add(blocklist)
 
-        # Получение или создание IP-адресов
+        # Асинхронный запрос на получение существующих адресов
+        existing_addresses_result = await session.execute(select(Address).where(Address.ip.in_(ip_list)))
+        existing_addresses = existing_addresses_result.scalars().all()
+
+        # Добавление новых адресов
         for ip in ip_list:
-            address_result = await session.execute(select(Address).where(Address.ip == ip))
-            address = address_result.scalars().first()
-
-            if address is None:
+            address = next((addr for addr in existing_addresses if addr.ip == ip), None)
+            if not address:
                 address = Address(ip=ip)
                 session.add(address)
 
-            # Связывание адреса с блокировочным списком
+            # Связываем адрес с блоклистом, если его еще нет в списке
             if address not in blocklist.addresses:
                 blocklist.addresses.append(address)
 
+        # Коммит изменений
         await session.commit()
-        return True  # Успешное выполнение
+        return True
 
-    except Exception as e:
+    except SQLAlchemyError as e:
         await session.rollback()  # Откат транзакции в случае ошибки
-        print(f"Error occurred: {e}")  # Логирование ошибки (при необходимости)
-        return False  # Ошибка выполнения
+        print(f"Ошибка базы данных: {e}")
+        return False
+    except Exception as e:
+        print(f"Произошла ошибка: {e}")
+        return False
 
 async def get_blocklists_within_timeframe(session: AsyncSession, start_time: datetime, end_time: datetime):
     """

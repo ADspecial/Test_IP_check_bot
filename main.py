@@ -29,7 +29,7 @@ from middleware.logs import LogMessageMiddleware
 from middleware.admin_right import AdminRightsMiddleware
 
 async def on_startup(bot):
-    run_param = False
+    run_param = True
     if run_param:
         await drop_db()
     await create_db()
