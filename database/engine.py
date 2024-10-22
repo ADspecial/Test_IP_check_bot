@@ -2,10 +2,16 @@ from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker, create_asyn
 
 from database.models import Base
 from config.config import DB
+import ssl
 
+ssl_context = ssl.create_default_context(cafile=DB.root_cert)
+ssl_context.load_cert_chain(certfile=DB.cert, keyfile=DB.key)
 
 engine = create_async_engine(
     DB.url,
+    connect_args={
+        "ssl": ssl_context
+    },
     echo=True,
     pool_size=10,
     max_overflow=20,

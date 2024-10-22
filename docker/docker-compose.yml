@@ -3,7 +3,7 @@ version: '3'
 
 services:
   app:
-    build: ..
+    build: .
     container_name: botdev
     restart: always
     depends_on:
@@ -18,10 +18,18 @@ services:
       - POSTGRES_USER=postgres
       - POSTGRES_PASSWORD=postgres
      # Задание имени контейнера для сервиса pgdb
+    ports:
+      - "5432:5432"
     container_name: pgdb
      # Связывание тома с директорией в контейнере для сохранения данных postgres
     volumes:
       - pgdbdata:/var/lib/postgresql/data/
+      - ./certs:/var/lib/postgresql/certs
+    command: >
+      -c ssl=on
+      -c ssl_cert_file=/var/lib/postgresql/certs/server.crt
+      -c ssl_key_file/var/lib/postgresql/certs/server.key
+      -c ssl_ca_file=/var/lib/postgresql/certs/rootCA.crt
 
 volumes:
   pgdbdata: null
