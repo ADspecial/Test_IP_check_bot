@@ -1,5 +1,5 @@
 import asyncio
-import requests
+import aiohttp
 
 from config.config import KEYS
 from handlers.format import get_country_flag
@@ -9,10 +9,13 @@ from datetime import datetime, timedelta
 
 from config.config import KEYS, URLS
 
-async def make_request_ipqs(ip_address: str):
-    url = URLS.API_URL_IP_IPQS %(KEYS.IPQS_KEY, ip_address)
-    response = requests.request(method='GET', url=url).json()
-    return  gen_result(ip_address, response)
+async def make_request_ipqs(ip_address: str) -> Dict[str, Union[str, int]]:
+    url = URLS.API_URL_IP_IPQS % (KEYS.IPQS_KEY, ip_address)
+
+    async with aiohttp.ClientSession() as session:
+        async with session.get(url) as response:
+            response_data = await response.json()
+            return await gen_result(ip_address, response_data)
 
 async def get_ipqs_info(
     ips: List[str], dnss: List[str]
@@ -34,7 +37,7 @@ async def get_ipqs_info(
     ]
     return True, filtered_results
 
-def gen_result(ip_address: str,response: Dict[str, Union[str, int]]) -> Dict[str, Union[str, int, datetime]]:
+async def gen_result(ip_address: str,response: Dict[str, Union[str, int]]) -> Dict[str, Union[str, int, datetime]]:
     fraud_score = response.get('fraud_score')
     verdict = '🟢 harmless'
     if fraud_score >= 90:

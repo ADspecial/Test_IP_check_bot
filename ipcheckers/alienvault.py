@@ -1,5 +1,5 @@
 import asyncio
-import requests
+import aiohttp
 
 from config.config import KEYS
 from handlers.format import get_country_flag
@@ -10,13 +10,17 @@ from datetime import datetime, timedelta
 from config.config import KEYS, URLS
 
 
-async def make_request_alienvault(ip_address: str, endpoint="general"):
+async def make_request_alienvault(ip_address: str, endpoint="general") -> Dict[str, Union[str, int]]:
     headers = {
         'Accept': 'application/json',
         'Key': KEYS.ALIENVAULT_KEY
     }
-    response = requests.request(method='GET', url=(URLS.API_URL_ALIENVAULT+ip_address+"/"+endpoint), headers=headers).json()
-    return gen_result(response)
+
+    async with aiohttp.ClientSession() as session:
+        url = f"{URLS.API_URL_ALIENVAULT}{ip_address}/{endpoint}"
+        async with session.get(url, headers=headers) as response:
+            response_data = await response.json()
+            return await gen_result(response_data)
 
 async def get_alienvault_info(
     ips: List[str], dnss: List[str]
@@ -38,7 +42,7 @@ async def get_alienvault_info(
     ]
     return True, filtered_results
 
-def gen_result(response: Dict[str, Union[str, int]]) -> Dict[str, Union[str, int, datetime]]:
+async def gen_result(response: Dict[str, Union[str, int]]) -> Dict[str, Union[str, int, datetime]]:
     tags = 'None'
     otx_30days = False
     otx_historical = False
