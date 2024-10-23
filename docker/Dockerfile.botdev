@@ -1,0 +1,14 @@
+FROM python:3.11.9
+WORKDIR /app
+
+# Скопировать только requirements.txt сначала для оптимизации кэширования
+COPY docker/requirements.txt .
+
+# Установить зависимости
+RUN pip install --no-cache-dir -r requirements.txt
+
+# Скопировать всё, кроме исключённых в .dockerignore
+COPY .. .
+
+# Использовать команду для отладки, пока идет разработка
+ENTRYPOINT [ "tail", "-f", "/dev/null" ]

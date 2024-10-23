@@ -3,33 +3,54 @@ version: '3'
 
 services:
   app:
-    build: .
+    build:
+      context: ..
+      dockerfile: docker/Dockerfile.botdev
     container_name: botdev
     restart: always
     depends_on:
       - pgdb
+      - pgadmin
 
   pgdb:
-    # Использование готового образа postgres
-    image: postgres
-    # Задание переменных окружения для контейнера с postgres
+    build:
+      context: .
+      dockerfile: Dockerfile.pgdb
     environment:
       - POSTGRES_DB=postgres
       - POSTGRES_USER=postgres
       - POSTGRES_PASSWORD=postgres
-     # Задание имени контейнера для сервиса pgdb
     ports:
       - "5432:5432"
     container_name: pgdb
-     # Связывание тома с директорией в контейнере для сохранения данных postgres
     volumes:
       - pgdbdata:/var/lib/postgresql/data/
-      - ./certs:/var/lib/postgresql/certs
     command: >
       -c ssl=on
       -c ssl_cert_file=/var/lib/postgresql/certs/server.crt
-      -c ssl_key_file/var/lib/postgresql/certs/server.key
+      -c ssl_key_file=/var/lib/postgresql/certs/server.key
       -c ssl_ca_file=/var/lib/postgresql/certs/rootCA.crt
+    init: true
+    entrypoint: >
+      bash -c "
+      ls -l /var/lib/postgresql/certs &&
+      docker-entrypoint.sh postgres"
+
+
+  pgadmin:
+    image: dpage/pgadmin4
+    container_name: pgadmin
+    environment:
+      - PGADMIN_DEFAULT_EMAIL=test@test.com
+      - PGADMIN_DEFAULT_PASSWORD=postgres
+    ports:
+      - "5050:80"
+    depends_on:
+      - pgdb
+    volumes:
+      - pgadmindata:/var/lib/pgadmin
+    restart: always
 
 volumes:
   pgdbdata: null
+  pgadmindata: null
