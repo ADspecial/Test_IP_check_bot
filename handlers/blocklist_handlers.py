@@ -7,9 +7,7 @@ from aiogram import flags
 from aiogram.fsm.context import FSMContext
 from aiogram.enums import ParseMode
 
-from itertools import zip_longest
-
-from states import Base_states, Block_states
+from states import Base_states, Blocklist_states
 
 from ipcheckers.valid_ip import extract_and_validate, is_valid_ip
 
@@ -18,34 +16,33 @@ from handlers import format
 from sqlalchemy.ext.asyncio import AsyncSession
 
 import kb
-import re
 import text
 import database.orm_query as orm_query
 
-block_router = Router()
+blocklist_router = Router()
 
-@block_router.callback_query(F.data == "add_bloсklist")
+@blocklist_router.callback_query(F.data == "add_bloсklist")
 async def start_process_create_bloсklist(clbck: CallbackQuery, state: FSMContext):
-    await state.set_state(Block_states.blocklist_add_name)
+    await state.set_state(Blocklist_states.add_name)
     await clbck.message.edit_text("Введите имя блокировки:", reply_markup=kb.back_blocklist)
 
-@block_router.message(Block_states.blocklist_add_name)
+@blocklist_router.message(Blocklist_states.add_name)
 async def process_name_bloсklist(msg: Message, state: FSMContext, bot: Bot):
     await bot.delete_message(msg.chat.id, msg.message_id-1,request_timeout=0)
     await bot.delete_message(msg.chat.id, msg.message_id,request_timeout=0)
     await state.update_data(name=msg.text)
-    await state.set_state(Block_states.blocklist_add_description)
+    await state.set_state(Blocklist_states.add_description)
     await msg.answer("Введите описание:", reply_markup=kb.back_blocklist)
 
-@block_router.message(Block_states.blocklist_add_description)
+@blocklist_router.message(Blocklist_states.add_description)
 async def process_description_bloсklist(msg: Message, state: FSMContext, bot: Bot):
     await bot.delete_message(msg.chat.id, msg.message_id-1,request_timeout=0)
     await bot.delete_message(msg.chat.id, msg.message_id,request_timeout=0)
     await state.update_data(description=msg.text)
-    await state.set_state(Block_states.blocklist_add)
+    await state.set_state(Blocklist_states.add)
     await msg.answer("Введите ip адреса блокировки:", reply_markup=kb.back_blocklist)
 
-@block_router.message(Block_states.blocklist_add)
+@blocklist_router.message(Blocklist_states.add)
 @flags.chat_action("typing")
 async def process_create_blocklist(msg: Message, bot: Bot, state: FSMContext, session: AsyncSession):
     await bot.delete_message(msg.chat.id, msg.message_id-1,request_timeout=0)
@@ -62,13 +59,13 @@ async def process_create_blocklist(msg: Message, bot: Bot, state: FSMContext, se
     else:
         await mesg.edit_text("Ошибка создания/обновления блоклиста", reply_markup=kb.repeat_add_blocklist)
 
-@block_router.message(Command("add_blocklist"))
+@blocklist_router.message(Command("add_blocklist"))
 async def add_blocklist_command(msg: Message, state: FSMContext, session: AsyncSession, is_admin: bool):
     if not is_admin:
         await msg.answer(text.false_admin.format(name=msg.from_user.full_name))
         return
     mesg = await msg.answer(text.gen_wait)
-    await state.set_state(Block_states.blocklist_add_command)
+    await state.set_state(Blocklist_states.add_command)
     args =msg.text.split()[1:]
     if len(args) < 1:
         await mesg.edit_text("Пожалуйста, укажите все параметры: name ip_list")
@@ -90,19 +87,19 @@ async def add_blocklist_command(msg: Message, state: FSMContext, session: AsyncS
     await state.set_state(Base_states.start)
 
 
-@block_router.callback_query(F.data == "view_bloсklist")
+@blocklist_router.callback_query(F.data == "view_bloсklist")
 async def start_process_view_blocklist(clbck: CallbackQuery, state: FSMContext):
     await clbck.message.edit_text("Введите количество дней за которое необходимо просмотреть блоклисты:",reply_markup=kb.back_blocklist)
-    await state.set_state(Block_states.blocklist_view)
+    await state.set_state(Blocklist_states.view)
 
-@block_router.message(Block_states.blocklist_view)
+@blocklist_router.message(Blocklist_states.view)
 @flags.chat_action("typing")
 async def view_blocklist(msg: Message, bot: Bot, state: FSMContext, session: AsyncSession):
     try:
         day = int(msg.text)
     except ValueError:
         await mesg.edit_text("Количество дней должно быть числом", reply_markup=kb.repeat_view_blocklist)
-        await state.set_state(Block_states.blocklist_menu)
+        await state.set_state(Blocklist_states.menu)
         return
     await bot.delete_message(msg.chat.id, msg.message_id-2,request_timeout=0)
     await bot.delete_message(msg.chat.id, msg.message_id-1,request_timeout=0)
@@ -113,19 +110,19 @@ async def view_blocklist(msg: Message, bot: Bot, state: FSMContext, session: Asy
     blocklists = await orm_query.get_blocklists_within_timeframe(session, start_time, end_time)
     if blocklists:
         output = await format.blocklist_info(blocklists, day, 'day')
-        await mesg.edit_text(output, parse_mode=ParseMode.MARKDOWN)
+        await mesg.edit_text(output)
         await mesg.answer("Выберете действие:", reply_markup=kb.repeat_view_blocklist)
     else:
         await mesg.edit_text("Блоклисты не найдены", reply_markup=kb.repeat_view_blocklist)
-    await state.set_state(Block_states.blocklist_menu)
+    await state.set_state(Blocklist_states.menu)
 
-@block_router.message(Command("view_blocklist"))
+@blocklist_router.message(Command("view_blocklist"))
 async def view_blocklist_command(msg: Message, state: FSMContext, session: AsyncSession, is_admin: bool):
     if not is_admin:
         await msg.answer(text.false_admin.format(name=msg.from_user.full_name))
         return
     mesg = await msg.answer(text.gen_wait)
-    await state.set_state(Block_states.blocklist_view_command)
+    await state.set_state(Blocklist_states.view_command)
     args = msg.text.split()[1:]
     if len(args) < 1:
         await mesg.edit_text("Пожалуйста, укажите все параметры: int: time {sec, min, hour, day}")
@@ -158,12 +155,12 @@ async def view_blocklist_command(msg: Message, state: FSMContext, session: Async
         await mesg.edit_text("Блоклисты не найдены")
     await state.set_state(Base_states.start)
 
-@block_router.callback_query(F.data == "delete_bloсklist")
+@blocklist_router.callback_query(F.data == "delete_bloсklist")
 async def start_process_delete_bloсklist(clbck: CallbackQuery, state: FSMContext):
-    await state.set_state(Block_states.blocklist_delete)
+    await state.set_state(Blocklist_states.delete)
     await clbck.message.edit_text("Введите имена блоклистов через пробел:", reply_markup=kb.back_blocklist)
 
-@block_router.message(Block_states.blocklist_delete)
+@blocklist_router.message(Blocklist_states.delete)
 @flags.chat_action("typing")
 async def process_create_blocklist(msg: Message, bot: Bot, state: FSMContext, session: AsyncSession):
     names = msg.text.strip().split()
@@ -182,14 +179,14 @@ async def process_create_blocklist(msg: Message, bot: Bot, state: FSMContext, se
     await mesg.edit_text(output, parse_mode=ParseMode.MARKDOWN)
     await mesg.answer("Выберете действие:", reply_markup=kb.repeat_delete_blocklist)
 
-@block_router.message(Command("delete_blocklist"))
+@blocklist_router.message(Command("delete_blocklist"))
 @flags.chat_action("typing")
 async def process_create_blocklist(msg: Message, state: FSMContext, session: AsyncSession, is_admin: bool):
     if not is_admin:
         await msg.answer(text.false_admin.format(name=msg.from_user.full_name))
         return
     mesg = await msg.answer(text.gen_wait)
-    await state.set_state(Block_states.blocklist_delete_command)
+    await state.set_state(Blocklist_states.delete_command)
     args = msg.text.split()[1:]
     if not args:
         await mesg.edit_text("Пожалуйста, введите имена блоклистов через пробел: str: names")

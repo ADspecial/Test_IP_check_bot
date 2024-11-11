@@ -55,6 +55,32 @@ repeat_delete_blocklist = [
 ]
 repeat_delete_blocklist = InlineKeyboardMarkup(inline_keyboard=repeat_delete_blocklist)
 
+sechost_menu = [
+    [InlineKeyboardButton(text="✍️ Создать/изменить СЗИ", callback_data="add_sechost")],
+    [InlineKeyboardButton(text="🗑 Удалить СЗИ", callback_data="delete_sechoss"),
+    InlineKeyboardButton(text="📄 Просмотр хостов", callback_data="view_sechost")],
+    [InlineKeyboardButton(text="◀️ Назад", callback_data="block_menu")]
+]
+sechost_menu = InlineKeyboardMarkup(inline_keyboard=sechost_menu)
+
+repeat_add_sechost = [
+    [InlineKeyboardButton(text="Добавить еще СЗИ", callback_data="add_sechost")],
+    [InlineKeyboardButton(text="◀️ Назад", callback_data="sechost_menu")]
+]
+repeat_add_sechost = InlineKeyboardMarkup(inline_keyboard=repeat_add_sechost)
+
+repeat_view_sechost = [
+    [InlineKeyboardButton(text="Просмотреть СЗИ", callback_data="view_sechost")],
+    [InlineKeyboardButton(text="◀️ Назад", callback_data="sechost_menu")]
+]
+repeat_view_sechost = InlineKeyboardMarkup(inline_keyboard=repeat_view_sechost)
+
+repeat_delete_sechost = [
+    [InlineKeyboardButton(text="Удалить СЗИ", callback_data="delete_sechost")],
+    [InlineKeyboardButton(text="◀️ Назад", callback_data="sechost_menu")]
+]
+repeat_delete_sechost = InlineKeyboardMarkup(inline_keyboard=repeat_delete_sechost)
+
 check_menu = [
     [InlineKeyboardButton(text="📄 Сводный отчет по адресу", callback_data="summary_menu")],
     [InlineKeyboardButton(text="🔷 VirusTotal", callback_data="virustotal_menu"), InlineKeyboardButton(text="🌐 IPinfo", callback_data="ipinfo_menu")],
@@ -147,4 +173,5 @@ back_admin = InlineKeyboardMarkup(inline_keyboard=[[InlineKeyboardButton(text="�
 back_users = InlineKeyboardMarkup(inline_keyboard=[[InlineKeyboardButton(text="◀️ Назад", callback_data="users_menu")]])
 back_block = InlineKeyboardMarkup(inline_keyboard=[[InlineKeyboardButton(text="◀️ Назад", callback_data="block_menu")]])
 back_blocklist = InlineKeyboardMarkup(inline_keyboard=[[InlineKeyboardButton(text="◀️ Назад", callback_data="blocklist_menu")]])
+back_sechost = InlineKeyboardMarkup(inline_keyboard=[[InlineKeyboardButton(text="◀️ Назад", callback_data="sechost_menu")]])
 iexit_kb = InlineKeyboardMarkup(inline_keyboard=[[InlineKeyboardButton(text="◀️ Выйти в меню", callback_data="view_menu")]])

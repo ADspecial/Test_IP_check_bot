@@ -23,7 +23,9 @@ from cryptography.fernet import Fernet
 
 
 # Создаем объект шифрования Fernet
-cipher_suite = Fernet(CRYPT.ENCRYPTION_KEY)
+password_cipher = Fernet(CRYPT.PASSWORD_ENCRYPTION_KEY)
+login_cipher = Fernet(CRYPT.LOGIN_ENCRYPTION_KEY)
+api_token_cipher = Fernet(CRYPT.API_TOKEN_ENCRYPTION_KEY)
 
 class Base(DeclarativeBase):
     created = Column(DateTime, default=datetime.datetime.now)
@@ -88,42 +90,67 @@ class BlockList(Base):
     rules = relationship('Rule', backref='blocklist')
 
 class SecurityHost(Base):
-    __tablename__ = 'security_host'  # Название таблицы
+    __tablename__ = 'security_host'
 
-    id = Column(Integer, primary_key=True)  # Уникальный идентификатор записи
-    name = Column(String(255), nullable=False)  # Имя устройства или средства защиты
-    description = Column(String(255), nullable=True)  # Описание устройства
-    address = Column(String(255), nullable=False, unique=True)  # Адрес (например, IP или URL)
-    _api_token = Column(String(255), nullable=False)  # Токен доступа (API)
-    _login = Column(String(255), nullable=False)  # Логин для доступа
-    password = Column(String(255), nullable=False)  # Пароль для доступа
+    id = Column(Integer, primary_key=True)
+    name = Column(String(255), nullable=False)
+    description = Column(String(255), nullable=True)
+    address = Column(String(255), nullable=False, unique=True)
+    _api_token = Column(String(255), nullable=False)  # Зашифрованный API токен
+    _login = Column(String(255), nullable=False)  # Зашифрованный логин
+    _password = Column(String(255), nullable=False)  # Зашифрованный пароль
 
     rules = relationship('Rule', backref='security_host', cascade='all, delete-orphan')
 
+    # Методы для шифрования и дешифрования пароля
     @property
     def password(self):
-        raise AttributeError("Пароль недоступен для чтения")
+        raise AttributeError("Пароль недоступен для чтения напрямую")
 
     @password.setter
     def password(self, plain_password):
-        # Хешируем пароль при установке
-        self._password = hashpw(plain_password.encode('utf-8'), gensalt())
+        encrypted_password = password_cipher.encrypt(plain_password.encode('utf-8'))
+        self._password = encrypted_password.decode('utf-8')
 
     def verify_password(self, plain_password):
-        # Проверяем пароль при аутентификации
-        return checkpw(plain_password.encode('utf-8'), self._password.encode('utf-8'))
+        return password_cipher.decrypt(self._password.encode('utf-8')) == plain_password.encode('utf-8')
+
+    # Методы для шифрования и дешифрования логина
+    @property
+    def login(self):
+        raise AttributeError("Логин недоступен для чтения напрямую")
+
+    @login.setter
+    def login(self, plain_login):
+        encrypted_login = login_cipher.encrypt(plain_login.encode('utf-8'))
+        self._login = encrypted_login.decode('utf-8')
+
+    def get_login(self):
+        return login_cipher.decrypt(self._login.encode('utf-8')).decode('utf-8')
+
+    # Методы для шифрования и дешифрования API токена
     @property
     def api_token(self):
         raise AttributeError("API токен недоступен для чтения напрямую")
 
     @api_token.setter
-    def api_token(self, plain_token):
-        # Шифруем токен при его установке
-        self._api_token = cipher_suite.encrypt(plain_token.encode('utf-8')).decode('utf-8')
+    def api_token(self, plain_api_token):
+        encrypted_api_token = api_token_cipher.encrypt(plain_api_token.encode('utf-8'))
+        self._api_token = encrypted_api_token.decode('utf-8')
 
-    def get_decrypted_token(self):
-        # Расшифровываем токен при необходимости
-        return cipher_suite.decrypt(self._api_token.encode('utf-8')).decode('utf-8')
+    def get_api_token(self):
+        return api_token_cipher.decrypt(self._api_token.encode('utf-8')).decode('utf-8')
+
+    # Метод для получения всех данных для SSH
+    def get_ssh_credentials(self):
+        return {
+            "address": self.address,
+            "username": self.get_login(),
+            "password": password_cipher.decrypt(self._password.encode('utf-8')).decode('utf-8')
+        }
+
+    def __repr__(self):
+        return f"<SecurityHost(id={self.id}, name={self.name}, address={self.address})>"
 
 class Rule(Base):
     __tablename__ = 'rule'  # Название таблицы

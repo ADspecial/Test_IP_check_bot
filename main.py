@@ -22,7 +22,8 @@ from handlers.alv_handlers import alv_router
 from handlers.ipqs_handlers import ipqs_router
 from handlers.admin_handlers import admin_router
 from handlers.summary_handlers import sum_router
-from handlers.blocking_handlers import block_router
+from handlers.blocklist_handlers import blocklist_router
+from handlers.sechost_handlers import sechost_router
 
 from middleware.db import DataBaseSession
 from middleware.logs import LogMessageMiddleware
@@ -48,7 +49,8 @@ def register_routers(dp: Dispatcher):
     dp.include_router(ipqs_router)
     dp.include_router(admin_router)
     dp.include_router(sum_router)
-    dp.include_router(block_router)
+    dp.include_router(blocklist_router)
+    dp.include_router(sechost_router)
 
 async def main() -> None:
     """Main entry point for the bot."""

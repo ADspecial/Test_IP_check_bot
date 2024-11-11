@@ -9,7 +9,7 @@ from aiogram.utils.deep_linking import create_start_link
 from filters.chat_type import ChatTypeFilter
 
 from middleware.admin_right import AdminRightsMiddleware
-from states import Base_states, Block_states
+from states import Base_states, Blocklist_states, Sechost_states
 
 import kb
 import text
@@ -96,7 +96,7 @@ async def block_menu_handler(msg_or_callback: Message | CallbackQuery, state: FS
 )
 async def blocklist_menu_handler(msg_or_callback: Message | CallbackQuery, state: FSMContext, is_admin: bool):
     if is_admin:
-        await state.set_state(Block_states.blocklist_menu)
+        await state.set_state(Blocklist_states.menu)
         if isinstance(msg_or_callback, CallbackQuery):
             await msg_or_callback.message.edit_text(text.blocklist_menu, reply_markup=kb.blocklist_menu)
             await msg_or_callback.answer('Блокировка IP')
@@ -104,6 +104,23 @@ async def blocklist_menu_handler(msg_or_callback: Message | CallbackQuery, state
             await msg_or_callback.answer(text.blocklist_menu, reply_markup=kb.blocklist_menu)
     else:
         await msg_or_callback.answer(text.false_admin.format(name=msg_or_callback.from_user.full_name), parse_mode=ParseMode.MARKDOWN)
+
+@menu_router.callback_query(F.data == "sechost_menu")
+@menu_router.message(
+    Command("sechost_menu"),
+    ChatTypeFilter(chat_type=["private"])
+)
+async def blocklist_menu_handler(msg_or_callback: Message | CallbackQuery, state: FSMContext, is_admin: bool):
+    if is_admin:
+        await state.set_state(Blocklist_states.menu)
+        if isinstance(msg_or_callback, CallbackQuery):
+            await msg_or_callback.message.edit_text(text.sechost_menu, reply_markup=kb.sechost_menu)
+            await msg_or_callback.answer('Управление СЗИ')
+        else:
+            await msg_or_callback.answer(text.sechost_menu, reply_markup=kb.sechost_menu)
+    else:
+        await msg_or_callback.answer(text.false_admin.format(name=msg_or_callback.from_user.full_name), parse_mode=ParseMode.MARKDOWN)
+
 
 # Обработчик вывода меню проверки IP
 @menu_router.callback_query(F.data == "check_menu")
