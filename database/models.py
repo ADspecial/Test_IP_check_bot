@@ -14,6 +14,8 @@ from sqlalchemy.dialects.postgresql import ARRAY
 from sqlalchemy.orm import relationship, DeclarativeBase
 from sqlalchemy.types import JSON
 from sqlalchemy import Table, Column, Integer, ForeignKey
+from sqlalchemy import Index
+
 from bcrypt import hashpw, gensalt, checkpw
 
 from config.config import CRYPT
@@ -41,10 +43,15 @@ class User(Base):
     first_name = Column(String(32), nullable=True)
     last_name = Column(String(32), nullable=True)
     username = Column(String(32), nullable=False, unique=True)
+    superadmin_rights = Column(Boolean, nullable=False)
     admin_rights = Column(Boolean, nullable=False)
 
     history_command = relationship('History', backref='user')
     blcok_ip = relationship('BlockList', backref='user')
+
+    __table_args__ = (
+        Index('idx_id_admin_superadmin', 'id', 'admin_rights', 'superadmin_rights'),
+    )
 
 class History(Base):
     __tablename__ = 'history'

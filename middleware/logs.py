@@ -4,6 +4,7 @@ from aiogram.types import Message, TelegramObject
 from sqlalchemy.ext.asyncio import async_sessionmaker
 from database.models import History, User
 from sqlalchemy.future import select
+from sqlalchemy.ext.asyncio import async_sessionmaker
 
 class LogMessageMiddleware(BaseMiddleware):
     def __init__(self, session_pool: async_sessionmaker):
@@ -29,6 +30,7 @@ class LogMessageMiddleware(BaseMiddleware):
                 first_name=msg.from_user.first_name,
                 last_name=msg.from_user.last_name,
                 username=msg.from_user.username,
+                superadmin_rights=False,
                 admin_rights=False
             )
             session.add(user)

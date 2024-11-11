@@ -24,8 +24,8 @@ admin_router = Router()
 admin_router.message.filter(ChatTypeFilter(chat_type=["private"]))
 
 @admin_router.message(Command("admin"))
-async def start_admin_menu_handler(msg: Message, state: FSMContext, is_admin: bool):
-    if is_admin:
+async def start_admin_menu_handler(msg: Message, state: FSMContext, is_superadmin: bool):
+    if is_superadmin:
         await state.set_state(Base_states.admin_menu)
         await msg.answer(text.start_admin_menu.format(name=msg.from_user.full_name), reply_markup=kb.admin_menu)
     else:

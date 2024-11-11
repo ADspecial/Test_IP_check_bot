@@ -3,11 +3,23 @@
 from aiogram.types import InlineKeyboardButton, InlineKeyboardMarkup, KeyboardButton, ReplyKeyboardMarkup, ReplyKeyboardRemove
 
 start_menu = [
+    [InlineKeyboardButton(text="🔎 Помощь", callback_data="help")]
+]
+start_menu = InlineKeyboardMarkup(inline_keyboard=start_menu)
+
+main_menu = [
+    #[InlineKeyboardButton(text="🚫 Блокировка IP", callback_data="block_menu")],
+    [InlineKeyboardButton(text="📄 Проверка IP", callback_data="check_menu")],
+    [InlineKeyboardButton(text="🔎 Помощь", callback_data="help")]
+]
+main_menu = InlineKeyboardMarkup(inline_keyboard=main_menu)
+
+main_menu_admin = [
     [InlineKeyboardButton(text="🚫 Блокировка IP", callback_data="block_menu")],
     [InlineKeyboardButton(text="📄 Проверка IP", callback_data="check_menu")],
     [InlineKeyboardButton(text="🔎 Помощь", callback_data="help")]
 ]
-start_menu = InlineKeyboardMarkup(inline_keyboard=start_menu)
+main_menu_admin = InlineKeyboardMarkup(inline_keyboard=main_menu_admin)
 
 block_menu = [
     [InlineKeyboardButton(text="📄 Управлние блоклистами", callback_data="blocklist_menu"),
@@ -111,7 +123,7 @@ summary_menu  = InlineKeyboardMarkup(inline_keyboard=summary_menu )
 admin_menu = [
     [InlineKeyboardButton(text="👨‍🔧Пользователи", callback_data="users_menu")],
     [InlineKeyboardButton(text="📄 Отчет об использовании бота", callback_data="report_menu")],
-    [InlineKeyboardButton(text="◀️ Назад", callback_data="start_menu")],
+    [InlineKeyboardButton(text="◀️ Назад", callback_data="main_menu")],
 ]
 admin_menu = InlineKeyboardMarkup(inline_keyboard=admin_menu)
 

@@ -62,7 +62,8 @@ async def main() -> None:
         dp.message.middleware(DataBaseSession(session_pool=session_maker))
         dp.message.middleware(ChatActionMiddleware())
         dp.message.middleware(LogMessageMiddleware(session_pool=session_maker))
-        dp.message.middleware(AdminRightsMiddleware(session=session_maker))
+        dp.message.middleware(AdminRightsMiddleware(session_maker))
+        dp.callback_query.middleware(AdminRightsMiddleware(session_maker))
 
         register_routers(dp)
 

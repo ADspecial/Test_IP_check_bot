@@ -8,6 +8,7 @@ from sqlalchemy.orm import InstrumentedAttribute
 from sqlalchemy.orm import selectinload
 from sqlalchemy.exc import SQLAlchemyError
 
+
 from datetime import datetime, timedelta
 from database.models import Address, History, Virustotal, Ipinfo, Abuseipdb, Kaspersky, CriminalIP, Alienvault, Ipqualityscore, User, BlockList, blocklist_address_association
 
@@ -898,29 +899,29 @@ async def get_verdicts_by_ip(session: AsyncSession, ip_address: str) -> Dict[str
         print(f"Ошибка при получении данных verdict для IP {ip_address}: {e}")
         return {}
 
-async def check_admin_rights(session: AsyncSession, user_id: int) -> bool:
+async def check_admin_rights(session: AsyncSession, user_id: int) -> Tuple[bool, bool]:
     """
-    Проверяет, есть ли у пользователя права администратора.
+    Проверяет права администратора и суперадминистратора пользователя.
 
     :param session: Асинхронная сессия для работы с базой данных.
     :param user_id: Идентификатор пользователя для проверки.
-    :return: True, если у пользователя есть права администратора, иначе False.
+    :return: Кортеж (admin_rights, superadmin_rights), где каждый элемент - булево значение.
     """
     try:
-        # Выполняем запрос для получения пользователя по ID
-        result = await session.execute(select(User).where(User.id == user_id))
-        user = result.scalars().first()
+        # Используем составной индекс для оптимизации запроса
+        query = select(User.admin_rights, User.superadmin_rights).where(User.id == user_id)
+        result = await session.execute(query)
+        rights = result.one_or_none()
 
-        # Проверяем наличие пользователя и его права администратора
-        if user:
-            return user.admin_rights
+        if rights is not None:
+            return rights
         else:
             print(f"Пользователь с ID {user_id} не найден.")
-            return False
+            return False, False
 
     except Exception as e:
         print(f"Ошибка при проверке прав администратора для пользователя с ID {user_id}: {e}")
-        return False
+        return False, False
 
 async def grant_admin_rights(session: AsyncSession, username: str) -> bool:
     """
@@ -941,6 +942,40 @@ async def grant_admin_rights(session: AsyncSession, username: str) -> bool:
         if user:
             # Если пользователь найден, обновляем его права администратора
             user.admin_rights = True
+            await session.commit()  # Зафиксируем изменения
+            return True  # Права администратора были выданы существующему пользователю
+        else:
+            # Если пользователь не найден, создаём нового с правами администратора
+            return False
+
+    except IntegrityError as e:
+        print(f"Ошибка при добавлении или обновлении пользователя с {username}: {e}")
+        await session.rollback()  # Откат транзакции в случае ошибки
+        return False
+
+    except Exception as e:
+        print(f"Ошибка при выдаче прав администратора для пользователя с{username}: {e}")
+        return False
+
+async def grant_superadmin_rights(session: AsyncSession, username: str) -> bool:
+    """
+    Выдаёт права администратора пользователю. Если пользователя нет в таблице, создаёт его.
+
+    :param session: Асинхронная сессия для работы с базой данных.
+    :param user_id: Идентификатор пользователя для выдачи прав.
+    :param first_name: Имя пользователя.
+    :param last_name: Фамилия пользователя.
+    :param username: Имя пользователя в системе.
+    :return: True, если права администратора были выданы или пользователь был создан, иначе False.
+    """
+    try:
+        # Проверяем, существует ли пользователь
+        result = await session.execute(select(User).where(User.username == username))
+        user = result.scalars().first()
+
+        if user:
+            # Если пользователь найден, обновляем его права администратора
+            user.superadmin_rights = True
             await session.commit()  # Зафиксируем изменения
             return True  # Права администратора были выданы существующему пользователю
         else:

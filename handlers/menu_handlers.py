@@ -8,6 +8,7 @@ from aiogram.utils.deep_linking import create_start_link
 
 from filters.chat_type import ChatTypeFilter
 
+from middleware.admin_right import AdminRightsMiddleware
 from states import Base_states, Block_states
 
 import kb
@@ -39,13 +40,14 @@ async def start_handler(msg: Message, state: FSMContext):
     ChatTypeFilter(chat_type=["private"])
 )
 @menu_router.callback_query(F.data.in_({"start", "view_menu", "Меню", "Выйти в меню", "◀️ Выйти в меню"}))
-async def menu_handler(msg_or_callback: Message | CallbackQuery, state: FSMContext, bot: Bot):
+async def menu_handler(msg_or_callback: Message | CallbackQuery, state: FSMContext, is_admin: bool):
     await state.set_state(Base_states.main_menu)
+    menu = kb.main_menu_admin if is_admin else kb.main_menu
     if isinstance(msg_or_callback, CallbackQuery):
-        await msg_or_callback.message.edit_text(text.menu, reply_markup=kb.start_menu)
+        await msg_or_callback.message.edit_text(text.menu, reply_markup=menu)
         await msg_or_callback.answer('Меню')
     else:
-        await msg_or_callback.answer(text.menu, reply_markup=kb.start_menu)
+        await msg_or_callback.answer(text.menu, reply_markup=menu)
 
 # Обработчик вывода помощи для личного чата
 @menu_router.callback_query(F.data.in_({"help", "помощь", "Помощь"}))
@@ -53,7 +55,7 @@ async def menu_handler(msg_or_callback: Message | CallbackQuery, state: FSMConte
     Command("help"),
     ChatTypeFilter(chat_type=["private"])
 )
-async def help_handler(msg_or_callback: Message | CallbackQuery, state: FSMContext, bot: Bot):
+async def help_handler(msg_or_callback: Message | CallbackQuery, state: FSMContext):
     await state.set_state(Base_states.help)
     if isinstance(msg_or_callback, CallbackQuery):
         await msg_or_callback.message.edit_text(text.help_private,parse_mode=ParseMode.MARKDOWN, reply_markup=kb.iexit_kb)
@@ -67,7 +69,7 @@ async def help_handler(msg_or_callback: Message | CallbackQuery, state: FSMConte
     Command("help"),
     ChatTypeFilter(chat_type=["group", "supergroup"])
 )
-async def help_handler(msg_or_callback: Message | CallbackQuery, state: FSMContext, bot: Bot):
+async def help_handler(msg_or_callback: Message | CallbackQuery, state: FSMContext):
     await state.set_state(Base_states.help)
     await msg_or_callback.answer(text.help_group, parse_mode=ParseMode.MARKDOWN)
 
@@ -76,28 +78,32 @@ async def help_handler(msg_or_callback: Message | CallbackQuery, state: FSMConte
     Command("blockmenu"),
     ChatTypeFilter(chat_type=["private"])
 )
-async def check_menu_handler(msg_or_callback: Message | CallbackQuery, state: FSMContext, bot: Bot):
-    await state.set_state(Base_states.block_menu)
-    if isinstance(msg_or_callback, CallbackQuery):
-        await msg_or_callback.message.edit_text(text.block_menu, reply_markup=kb.block_menu)
-        await msg_or_callback.answer('Блокировка IP')
+async def block_menu_handler(msg_or_callback: Message | CallbackQuery, state: FSMContext, is_admin: bool):
+    if is_admin:
+        await state.set_state(Base_states.block_menu)
+        if isinstance(msg_or_callback, CallbackQuery):
+            await msg_or_callback.message.edit_text(text.block_menu, reply_markup=kb.block_menu)
+            await msg_or_callback.answer('Блокировка IP')
+        else:
+            await msg_or_callback.answer(text.block_menu, reply_markup=kb.block_menu)
     else:
-        await msg_or_callback.answer(text.block_menu, reply_markup=kb.block_menu)
+        await msg_or_callback.answer(text.false_admin.format(name=msg_or_callback.from_user.full_name), parse_mode=ParseMode.MARKDOWN)
 
 @menu_router.callback_query(F.data == "blocklist_menu")
 @menu_router.message(
     Command("blocklist_menu"),
     ChatTypeFilter(chat_type=["private"])
 )
-async def check_menu_handler(msg_or_callback: Message | CallbackQuery, state: FSMContext, bot: Bot):
-    await state.set_state(Block_states.blocklist_menu)
-    if isinstance(msg_or_callback, CallbackQuery):
-        await msg_or_callback.message.edit_text(text.blocklist_menu, reply_markup=kb.blocklist_menu)
-        await msg_or_callback.answer('Блокировка IP')
+async def blocklist_menu_handler(msg_or_callback: Message | CallbackQuery, state: FSMContext, is_admin: bool):
+    if is_admin:
+        await state.set_state(Block_states.blocklist_menu)
+        if isinstance(msg_or_callback, CallbackQuery):
+            await msg_or_callback.message.edit_text(text.blocklist_menu, reply_markup=kb.blocklist_menu)
+            await msg_or_callback.answer('Блокировка IP')
+        else:
+            await msg_or_callback.answer(text.blocklist_menu, reply_markup=kb.blocklist_menu)
     else:
-        await msg_or_callback.answer(text.blocklist_menu, reply_markup=kb.blocklist_menu)
-
-
+        await msg_or_callback.answer(text.false_admin.format(name=msg_or_callback.from_user.full_name), parse_mode=ParseMode.MARKDOWN)
 
 # Обработчик вывода меню проверки IP
 @menu_router.callback_query(F.data == "check_menu")
@@ -105,7 +111,7 @@ async def check_menu_handler(msg_or_callback: Message | CallbackQuery, state: FS
     Command("check_menu"),
     ChatTypeFilter(chat_type=["private"])
 )
-async def check_menu_handler(msg_or_callback: Message | CallbackQuery, state: FSMContext, bot: Bot):
+async def check_menu_handler(msg_or_callback: Message | CallbackQuery, state: FSMContext):
     await state.set_state(Base_states.check_menu)
     if isinstance(msg_or_callback, CallbackQuery):
         await msg_or_callback.message.edit_text(text.check_menu, reply_markup=kb.check_menu)

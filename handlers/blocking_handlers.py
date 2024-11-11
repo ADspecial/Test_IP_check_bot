@@ -63,7 +63,10 @@ async def process_create_blocklist(msg: Message, bot: Bot, state: FSMContext, se
         await mesg.edit_text("Ошибка создания/обновления блоклиста", reply_markup=kb.repeat_add_blocklist)
 
 @block_router.message(Command("add_blocklist"))
-async def add_blocklist_command(msg: Message, state: FSMContext, session: AsyncSession):
+async def add_blocklist_command(msg: Message, state: FSMContext, session: AsyncSession, is_admin: bool):
+    if not is_admin:
+        await msg.answer(text.false_admin.format(name=msg.from_user.full_name))
+        return
     mesg = await msg.answer(text.gen_wait)
     await state.set_state(Block_states.blocklist_add_command)
     args =msg.text.split()[1:]
@@ -117,7 +120,10 @@ async def view_blocklist(msg: Message, bot: Bot, state: FSMContext, session: Asy
     await state.set_state(Block_states.blocklist_menu)
 
 @block_router.message(Command("view_blocklist"))
-async def view_blocklist_command(msg: Message, state: FSMContext, session: AsyncSession):
+async def view_blocklist_command(msg: Message, state: FSMContext, session: AsyncSession, is_admin: bool):
+    if not is_admin:
+        await msg.answer(text.false_admin.format(name=msg.from_user.full_name))
+        return
     mesg = await msg.answer(text.gen_wait)
     await state.set_state(Block_states.blocklist_view_command)
     args = msg.text.split()[1:]
@@ -178,7 +184,10 @@ async def process_create_blocklist(msg: Message, bot: Bot, state: FSMContext, se
 
 @block_router.message(Command("delete_blocklist"))
 @flags.chat_action("typing")
-async def process_create_blocklist(msg: Message, bot: Bot, state: FSMContext, session: AsyncSession):
+async def process_create_blocklist(msg: Message, state: FSMContext, session: AsyncSession, is_admin: bool):
+    if not is_admin:
+        await msg.answer(text.false_admin.format(name=msg.from_user.full_name))
+        return
     mesg = await msg.answer(text.gen_wait)
     await state.set_state(Block_states.blocklist_delete_command)
     args = msg.text.split()[1:]
