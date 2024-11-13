@@ -110,7 +110,7 @@ async def view_blocklist(msg: Message, bot: Bot, state: FSMContext, session: Asy
     blocklists = await orm_query.get_blocklists_within_timeframe(session, start_time, end_time)
     if blocklists:
         output = await format.blocklist_info(blocklists, day, 'day')
-        await mesg.edit_text(output)
+        await mesg.edit_text(output, parse_mode=ParseMode.MARKDOWN)
         await mesg.answer("Выберете действие:", reply_markup=kb.repeat_view_blocklist)
     else:
         await mesg.edit_text("Блоклисты не найдены", reply_markup=kb.repeat_view_blocklist)

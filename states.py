@@ -17,8 +17,7 @@ class Base_states(StatesGroup):
     admin_menu = State()
     block_menu = State()
     help = State()
-
-class Block_states(StatesGroup):
+class Blocklist_states(StatesGroup):
     menu = State()
     add_name = State()
     add_description = State()
@@ -29,11 +28,21 @@ class Block_states(StatesGroup):
     delete = State()
     delete_command = State()
 
-class Blocklist_states(Block_states):
-    pass
 
-class Sechost_states(Block_states):
-    pass
+class Sechost_states(StatesGroup):
+    menu = State()
+    add_name = State()
+    add_description = State()
+    add = State()
+    add_command = State()
+    view = State()
+    view_command = State()
+    delete = State()
+    delete_command = State()
+
+    add_ip = State()
+    add_login = State()
+    add_password = State()
 
 
 class Admin_states(StatesGroup):

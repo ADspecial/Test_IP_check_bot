@@ -312,6 +312,17 @@ async def block_output(blocked_addreses):
     # Возвращаем объединенный вывод или сообщение о том, что нет информации
     return "\n".join(output) if output else "Ошибка! Нет информации о заблокированных адресах."
 
+def escape_markdown(text: str) -> str:
+    """
+    Экранирует специальные символы Markdown, кроме * и `.
+
+    :param text: Исходный текст.
+    :return: Текст с экранированными специальными символами.
+    """
+    special_chars = r'_[]()~>#+-=|{}.!'
+    for char in special_chars:
+        text = text.replace(char, f'\\{char}')
+    return text
 
 async def blocklist_info(blocklist_info: list[dict], time: int, timeparam: str ) -> str:
     """
@@ -328,10 +339,10 @@ async def blocklist_info(blocklist_info: list[dict], time: int, timeparam: str )
     result.append("--------------------------------------------\n")
     for blocklist in blocklist_info:
         date = blocklist['updated'].strftime("%d.%m.%Y %H:%M:%S")
-        result.append(f"**{blocklist['name']}**\n")
-        result.append(f"Автор - @{blocklist['username']}\n")
+        result.append(f"**{escape_markdown(blocklist['name'])}**\n")
+        result.append(f"Автор - @{escape_markdown(blocklist['username'])}\n")
         result.append(f"Время создания - {date}\n")
-        result.append(f"Описание - {blocklist['description']}\n")
+        result.append(f"Описание - {escape_markdown(blocklist['description'])}\n")
         result.append("```\n")
         result.extend(f"{ip}\n" for ip in blocklist['addresses'])
         result.append("```\n")
@@ -353,3 +364,14 @@ async def delete_blocklist_info(success_names, error_names) -> str:
         return "\n".join(response_lines)
     else:
         return "Не было удалено ни одного блоклиста."
+
+async def sechost_output(data):
+    output = []
+
+    # Проверяем и добавляем заблокированные адреса
+    if data:
+        accepted_str = "\n".join(data)
+        output.append("**Был добавлен СЗИ:**\n```\n" + accepted_str + "\n```\n")
+
+    # Возвращаем объединенный вывод или сообщение о том, что нет информации
+    return "\n".join(output) if output else "Ошибка! Не был добавлен СЗИ."

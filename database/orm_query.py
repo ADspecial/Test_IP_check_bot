@@ -10,7 +10,7 @@ from sqlalchemy.exc import SQLAlchemyError
 
 
 from datetime import datetime, timedelta
-from database.models import Address, History, Virustotal, Ipinfo, Abuseipdb, Kaspersky, CriminalIP, Alienvault, Ipqualityscore, User, BlockList, blocklist_address_association
+from database.models import Address, History, Virustotal, Ipinfo, Abuseipdb, Kaspersky, CriminalIP, Alienvault, Ipqualityscore, User, BlockList, blocklist_address_association, SecurityHost
 
 from typing import Callable, List, Dict, Union, Tuple, Any, Type
 
@@ -1097,3 +1097,50 @@ async def delete_blocklist_by_name(session: AsyncSession, blocklist_name: str) -
         print(f"Ошибка при удалении блоклиста: {e}")
         await session.rollback()  # Откатываем изменения в случае ошибки
         return False  # Возвращаем False при ошибке
+
+async def create_or_update_security_host(
+    session: AsyncSession,
+    name: str,
+    description: str,
+    address: str,
+    api_token: str,
+    login: str,
+    password: str
+) -> bool:
+    try:
+        # Асинхронный запрос на получение существующего security host
+        result = await session.execute(
+            select(SecurityHost).where(SecurityHost.address == address)
+        )
+        security_host = result.scalar_one_or_none()
+
+        if security_host:
+            # Обновление существующей записи
+            security_host.name = name
+            security_host.description = description
+            security_host.api_token = api_token
+            security_host.login = login
+            security_host.password = password  # Убедитесь, что здесь используется метод для шифрования пароля
+        else:
+            # Создание новой записи
+            security_host = SecurityHost(
+                name=name,
+                description=description,
+                address=address,
+                api_token=api_token,
+                login=login,
+                password=password  # Убедитесь, что здесь используется метод для шифрования пароля
+            )
+            session.add(security_host)
+
+        # Коммит изменений
+        await session.commit()
+        return True
+
+    except SQLAlchemyError as e:
+        await session.rollback()  # Откат транзакции в случае ошибки
+        print(f"Ошибка базы данных: {e}")
+        return False
+    except Exception as e:
+        print(f"Произошла ошибка: {e}")
+        return False
