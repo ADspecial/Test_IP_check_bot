@@ -43,6 +43,7 @@ class Sechost_states(StatesGroup):
     add_ip = State()
     add_login = State()
     add_password = State()
+    add_apitoken = State()
 
 
 class Admin_states(StatesGroup):

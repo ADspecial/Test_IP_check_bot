@@ -79,28 +79,31 @@ class Address(Base):
     ipqualityscore = relationship('Ipqualityscore', backref='Address', uselist=False)
 
 class BlockList(Base):
-    __tablename__ = 'blocklist'  # Название таблицы
+    __tablename__ = 'blocklist'
 
-    id = Column(Integer, primary_key=True)  # Уникальный идентификатор записи
-    name = Column(String(255), nullable=False, unique=True)  # Название блокировки
-    description = Column(String(255), nullable=True)  # Описание блокировки
+    id = Column(Integer, primary_key=True)
+    name = Column(String(255), nullable=False, unique=True)
+    description = Column(String(255), nullable=True)
 
     user_id_blocker = Column(Integer, ForeignKey('users.id'), nullable=True)
     addresses = relationship('Address', secondary=blocklist_address_association, back_populates='blocklists')
-    rules = relationship('Rule', backref='blocklist')
+    rules = relationship('Rule', back_populates='blocklist')
 
 class SecurityHost(Base):
     __tablename__ = 'security_host'
 
     id = Column(Integer, primary_key=True)
-    name = Column(String(255), nullable=False)
+    name = Column(String(255), nullable=False, unique=True)
     description = Column(String(255), nullable=True)
     address = Column(String(255), nullable=False, unique=True)
-    _api_token = Column(String(255), nullable=False)  # Зашифрованный API токен
+    _api_token = Column(String(255), nullable=True)  # Зашифрованный API токен
     _login = Column(String(255), nullable=False)  # Зашифрованный логин
     _password = Column(String(255), nullable=False)  # Зашифрованный пароль
 
-    rules = relationship('Rule', backref='security_host', cascade='all, delete-orphan')
+    group_id = Column(Integer, ForeignKey('group_security_host.id'))  # Внешний ключ на GroupSecurityHost
+    group = relationship('GroupSecurityHost', back_populates='security_hosts')  # Связь с GroupSecurityHost
+
+    rules = relationship('Rule', back_populates='security_host', cascade='all, delete-orphan')
 
     # Методы для шифрования и дешифрования пароля
     @property
@@ -152,14 +155,34 @@ class SecurityHost(Base):
     def __repr__(self):
         return f"<SecurityHost(id={self.id}, name={self.name}, address={self.address})>"
 
-class Rule(Base):
-    __tablename__ = 'rule'  # Название таблицы
+class GroupSecurityHost(Base):
+    __tablename__ = 'group_security_host'
 
-    id = Column(Integer, primary_key=True)  # Уникальный идентификатор записи
-    name = Column(String(255), nullable=False, unique=True)  # Название правила
+    id = Column(Integer, primary_key=True)
+    name = Column(String(255), nullable=False, unique=True)
+    description = Column(String(255), nullable=True)
+
+    security_hosts = relationship('SecurityHost', back_populates='group', cascade='all, delete-orphan')
+
+    rules = relationship('Rule', back_populates='group_security_host', cascade='all, delete-orphan')
+
+    def __repr__(self):
+        return f"<GroupSecurityHost(id={self.id}, name={self.name})>"
+
+class Rule(Base):
+    __tablename__ = 'rule'
+
+    id = Column(Integer, primary_key=True)
+    name = Column(String(255), nullable=False, unique=True)
+    commit = Column(Boolean, default=False)
+
     security_host_id = Column(Integer, ForeignKey('security_host.id'))
     blocklist_id = Column(Integer, ForeignKey('blocklist.id'), nullable=False)
-    commit = Column(Boolean, default=False)
+    group_id = Column(Integer, ForeignKey('group_security_host.id'), nullable=True)
+
+    security_host = relationship('SecurityHost', back_populates='rules')
+    blocklist = relationship('BlockList', back_populates='rules')
+    group_security_host = relationship('GroupSecurityHost', back_populates='rules')
 
 class Virustotal(Base):
     __tablename__ = 'virustotal'

@@ -56,12 +56,21 @@ repeat_delete_blocklist = [
 repeat_delete_blocklist = InlineKeyboardMarkup(inline_keyboard=repeat_delete_blocklist)
 
 sechost_menu = [
-    [InlineKeyboardButton(text="✍️ Создать/изменить СЗИ", callback_data="add_sechost")],
-    [InlineKeyboardButton(text="🗑 Удалить СЗИ", callback_data="delete_sechoss"),
+    [InlineKeyboardButton(text="✍️ Создать/изменить СЗИ", callback_data="add_sechost")], [InlineKeyboardButton(text="🗑 Удалить СЗИ", callback_data="delete_sechost"),
     InlineKeyboardButton(text="📄 Просмотр хостов", callback_data="view_sechost")],
-    [InlineKeyboardButton(text="◀️ Назад", callback_data="block_menu")]
+    [InlineKeyboardButton(text="📑 Управление группами СЗИ", callback_data="group_sechost_menu")],
+    [InlineKeyboardButton(text="◀️ Назад", callback_data="block_menu")],
 ]
 sechost_menu = InlineKeyboardMarkup(inline_keyboard=sechost_menu)
+
+group_sechost_menu = [
+    [InlineKeyboardButton(text="✍️ Создать/изменить группы СЗИ", callback_data="add_group_sechost")], [InlineKeyboardButton(text="🗑 Удалить группы СЗИ", callback_data="delete_group_sechost"),
+    InlineKeyboardButton(text="📄 Просмотр групп", callback_data="view_group_sechost")],
+    [InlineKeyboardButton(text="◀️ Назад", callback_data="sechost_menu")],
+]
+
+group_sechost_menu = InlineKeyboardMarkup(inline_keyboard=
+group_sechost_menu)
 
 repeat_add_sechost = [
     [InlineKeyboardButton(text="Добавить еще СЗИ", callback_data="add_sechost")],

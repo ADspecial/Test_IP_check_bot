@@ -1144,3 +1144,29 @@ async def create_or_update_security_host(
     except Exception as e:
         print(f"Произошла ошибка: {e}")
         return False
+
+async def delete_security_host(session: AsyncSession, identifier: str) -> bool:
+    try:
+        # Поиск записи по IP-адресу или имени
+        result = await session.execute(
+            select(SecurityHost).where(
+                (SecurityHost.address == identifier) | (SecurityHost.name == identifier)
+            )
+        )
+        security_host = result.scalar_one_or_none()
+
+        if security_host:
+            await session.delete(security_host)
+            await session.commit()
+            return True
+        else:
+            print(f"Запись с адресом или именем '{identifier}' не найдена.")
+            return False
+
+    except SQLAlchemyError as e:
+        await session.rollback()
+        print(f"Ошибка базы данных: {e}")
+        return False
+    except Exception as e:
+        print(f"Произошла ошибка: {e}")
+        return False

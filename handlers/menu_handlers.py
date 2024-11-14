@@ -110,7 +110,7 @@ async def blocklist_menu_handler(msg_or_callback: Message | CallbackQuery, state
     Command("sechost_menu"),
     ChatTypeFilter(chat_type=["private"])
 )
-async def blocklist_menu_handler(msg_or_callback: Message | CallbackQuery, state: FSMContext, is_admin: bool):
+async def sechost_menu_handler(msg_or_callback: Message | CallbackQuery, state: FSMContext, is_admin: bool):
     if is_admin:
         await state.set_state(Blocklist_states.menu)
         if isinstance(msg_or_callback, CallbackQuery):
@@ -118,6 +118,22 @@ async def blocklist_menu_handler(msg_or_callback: Message | CallbackQuery, state
             await msg_or_callback.answer('Управление СЗИ')
         else:
             await msg_or_callback.answer(text.sechost_menu, reply_markup=kb.sechost_menu)
+    else:
+        await msg_or_callback.answer(text.false_admin.format(name=msg_or_callback.from_user.full_name), parse_mode=ParseMode.MARKDOWN)
+
+@menu_router.callback_query(F.data == "group_sechost_menu")
+@menu_router.message(
+    Command("group_sechost_menu"),
+    ChatTypeFilter(chat_type=["private"])
+)
+async def sechost_menu_handler(msg_or_callback: Message | CallbackQuery, state: FSMContext, is_admin: bool):
+    if is_admin:
+        await state.set_state(Blocklist_states.menu)
+        if isinstance(msg_or_callback, CallbackQuery):
+            await msg_or_callback.message.edit_text(text.group_sechost_menu, reply_markup=kb.group_sechost_menu)
+            await msg_or_callback.answer('Управление СЗИ')
+        else:
+            await msg_or_callback.answer(text.sgroup_sechost_menu, reply_markup=kb.group_sechost_menu)
     else:
         await msg_or_callback.answer(text.false_admin.format(name=msg_or_callback.from_user.full_name), parse_mode=ParseMode.MARKDOWN)
 

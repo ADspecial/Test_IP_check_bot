@@ -375,3 +375,19 @@ async def sechost_output(data):
 
     # Возвращаем объединенный вывод или сообщение о том, что нет информации
     return "\n".join(output) if output else "Ошибка! Не был добавлен СЗИ."
+
+async def delete_sechost_info(success_hosts: List[str], error_hosts: List[str]) -> str:
+    response_lines = []
+
+    if success_hosts:
+        response_lines.append("Были удалены следующие СЗИ:")
+        response_lines.append("```\n" + "\n".join(success_hosts) + "\n```")
+
+    if error_hosts:
+        response_lines.append("Следующие СЗИ не были найдены:")
+        response_lines.append("```\n" + "\n".join(error_hosts) + "\n```")
+
+    if response_lines:
+        return "\n".join(response_lines)
+    else:
+        return "Не было удалено ни одного СЗИ."

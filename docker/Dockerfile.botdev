@@ -1,14 +1,22 @@
 FROM python:3.11.9
+
+# Устанавливаем рабочую директорию
 WORKDIR /app
 
 # Скопировать только requirements.txt сначала для оптимизации кэширования
 COPY docker/requirements.txt .
 
-# Установить зависимости
-RUN pip install --no-cache-dir -r requirements.txt
+# Создать виртуальное окружение в /app/venv
+RUN python -m venv /app/.venv
+
+# Активировать виртуальное окружение и установить зависимости
+RUN . /app/.venv/bin/activate && pip install --no-cache-dir -r requirements.txt
+
+# Обеспечить доступ к venv через PATH
+ENV PATH="/app/.venv/bin:$PATH"
 
 # Скопировать всё, кроме исключённых в .dockerignore
 COPY .. .
 
-# Использовать команду для отладки, пока идет разработка
+# Запускаем контейнер с командой для отладки
 ENTRYPOINT [ "tail", "-f", "/dev/null" ]

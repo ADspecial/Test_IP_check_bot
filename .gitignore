@@ -2,5 +2,5 @@ data
 .venv
 __pycache__
 temp
-config
+config/.env
 docker/certs
