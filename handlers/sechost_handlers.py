@@ -224,15 +224,14 @@ async def start_process_view_sechost(clbck: CallbackQuery, state: FSMContext):
 async def view_sechost(msg: Message, bot: Bot, state: FSMContext, session: AsyncSession):
     # Проверяем ввод пользователя
     if msg.text.lower() == "all":
+        day = 'all'
         start_time = None
         end_time = None
-        days_text = "всего периода"
     else:
         try:
             day = int(msg.text)
-            end_time = datetime.now()
+            end_time = date_time.now()
             start_time = end_time - datetime.timedelta(days=day)
-            days_text = f"последние {day} дней"
         except ValueError:
             # Если введено не число и не "all", выводим сообщение об ошибке
             await msg.answer("Количество дней должно быть числом или 'all' для полного периода", reply_markup=kb.repeat_view_blocklist)
@@ -252,7 +251,7 @@ async def view_sechost(msg: Message, bot: Bot, state: FSMContext, session: Async
 
     if sechosts:
         # Форматируем и отправляем информацию о найденных записях
-        output = await format.sechost_info(sechosts, days_text, 'day')
+        output = await format.sechost_info(sechosts, day, 'дней')
         await mesg.edit_text(output, parse_mode=ParseMode.MARKDOWN)
         await msg.answer("Выберите действие:", reply_markup=kb.repeat_view_sechost)
     else:
@@ -260,3 +259,65 @@ async def view_sechost(msg: Message, bot: Bot, state: FSMContext, session: Async
 
     # Возвращаемся к меню
     await state.set_state(Sechost_states.menu)
+
+@sechost_router.message(Command("view_sechost"))
+async def view_sechost_command(msg: Message, state: FSMContext, session: AsyncSession, is_admin: bool):
+    if not is_admin:
+        await msg.answer(text.false_admin.format(name=msg.from_user.full_name))
+        return
+
+    mesg = await msg.answer(text.gen_wait)
+    await state.set_state(Sechost_states.view_command)
+
+    args = msg.text.split()[1:]
+
+    if len(args) < 1:
+        await mesg.edit_text("Пожалуйста, укажите количество и единицу времени (sec, min, hour, day, week) или 'all' для полного периода.")
+        await state.set_state(Base_states.start)
+        return
+
+    # Проверяем ввод пользователя
+    if args[0].lower() == "all":
+        time_value = 'all'
+        time_unit = None
+        start_time = None
+        end_time = None
+    else:
+        try:
+            time_value = int(args[0])  # Первое значение - это число
+            time_unit = args[1].lower() if len(args) > 1 else 'day'  # Второе значение - это единица времени (по умолчанию 'day')
+
+            end_time = date_time.now()
+
+            # Определяем временной промежуток на основе единицы времени
+            if time_unit == "sec":
+                start_time = end_time - datetime.timedelta(seconds=time_value)
+            elif time_unit == "min":
+                start_time = end_time - datetime.timedelta(minutes=time_value)
+            elif time_unit == "hour":
+                start_time = end_time - datetime.timedelta(hours=time_value)
+            elif time_unit == "day":
+                start_time = end_time - datetime.timedelta(days=time_value)
+            elif time_unit == "week":
+                start_time = end_time - datetime.timedelta(weeks=time_value)
+            else:
+                await mesg.edit_text("Вторая часть должна быть одной из следующих: sec, min, hour, day, week.")
+                await state.set_state(Base_states.main_menu )
+                return
+        except (ValueError, IndexError):
+            await mesg.edit_text("Ошибка: необходимо указать корректные параметры.")
+            await state.set_state(Base_states.main_menu )
+            return
+
+    # Получаем данные из базы данных
+    sechosts = await orm_query.get_security_hosts_within_timeframe(session, start_time, end_time)
+
+    if sechosts:
+        # Форматируем и отправляем информацию о найденных записях
+        output = await format.sechost_info(sechosts, time_value, time_unit)
+        await mesg.edit_text(output, parse_mode=ParseMode.MARKDOWN)
+    else:
+        await mesg.edit_text("СЗИ не найдены.")
+
+    # Возвращаемся к меню
+    await state.set_state(Base_states.main_menu )

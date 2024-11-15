@@ -1,5 +1,6 @@
 import datetime
 from typing import Dict, Any, List, Union, Literal
+from tabulate import tabulate
 
 import flag
 
@@ -391,3 +392,43 @@ async def delete_sechost_info(success_hosts: List[str], error_hosts: List[str]) 
         return "\n".join(response_lines)
     else:
         return "Не было удалено ни одного СЗИ."
+
+async def sechost_info(sechost_info: list[dict], time: str = None, timeparam: str = "дней") -> str:
+    """
+    Форматирует информацию о СЗИ для отображения в виде таблицы с разметкой для Telegram.
+
+    :param sechost_info: Список словарей с информацией о СЗИ.
+    :param time: Время (или описание периода) для отображения в заголовке.
+    :param timeparam: Единицы измерения времени, например 'дней' или 'всего периода'.
+    :return: Строка с отформатированной табличной информацией о СЗИ.
+    """
+    if not sechost_info:
+        return "Нет записей о СЗИ за указанный период."
+
+    # Заголовок с проверкой на параметр времени
+    if time and time != "all":
+        result = [f"Информация о СЗИ за последние {time} {timeparam}:\n"]
+    else:
+        result = ["Информация о СЗИ за весь период:\n"]
+
+    # Формируем шапку таблицы
+    result.append("```")
+    result.append("| Имя СЗИ       | Описание       | Адрес          | Группа       | Правила |")
+    result.append("|---------------|----------------|----------------|--------------|---------|")
+
+    # Формируем строки данных
+    for sechost in sechost_info:
+        name = f"{sechost['name'][:12]:<12}"  # 12 символов для имени
+        description = f"{(sechost['description'][:12] if sechost['description'] else 'Нет описания'):<12}"
+        address = f"{sechost['address'][:15]:<15}"
+        group = f"{(sechost['group'] if sechost['group'] else 'Нет группы'):<12}"
+        rules_count = f"{len(sechost['rules']):<8}"
+
+        # Формируем строку с разделителями
+        row = f"| {name} | {description} | {address} | {group} | {rules_count} |"
+        result.append(row)
+
+    # Закрываем таблицу
+    result.append("```")
+
+    return "\n".join(result)

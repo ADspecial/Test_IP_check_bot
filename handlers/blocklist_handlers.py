@@ -190,7 +190,7 @@ async def process_create_blocklist(msg: Message, state: FSMContext, session: Asy
     args = msg.text.split()[1:]
     if not args:
         await mesg.edit_text("Пожалуйста, введите имена блоклистов через пробел: str: names")
-        await state.set_state(Base_states.start)
+        await state.set_state(Base_states.main_menu )
         return
     error_names = []
     success_names = []
@@ -202,4 +202,4 @@ async def process_create_blocklist(msg: Message, state: FSMContext, session: Asy
             error_names.append(name)
     output = await format.delete_blocklist_info(success_names, error_names)
     await mesg.edit_text(output, parse_mode=ParseMode.MARKDOWN)
-    await state.set_state(Base_states.start)
+    await state.set_state(Base_states.main_menu )

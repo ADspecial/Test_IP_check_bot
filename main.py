@@ -73,6 +73,7 @@ async def main() -> None:
 
         await dp.start_polling(bot, allowed_updates=dp.resolve_used_update_types(), fast=True)
 
+
 if __name__ == "__main__":
     logging.basicConfig(level=logging.INFO)
     try:
