@@ -12,7 +12,7 @@ from sqlalchemy.exc import SQLAlchemyError
 from datetime import datetime, timedelta
 from database.models import Address, History, Virustotal, Ipinfo, Abuseipdb, Kaspersky, CriminalIP, Alienvault, Ipqualityscore, User, BlockList, blocklist_address_association, SecurityHost
 
-from typing import Callable, List, Dict, Union, Tuple, Any, Type
+from typing import Callable, List, Dict, Optional, Union, Tuple, Any, Type
 
 async def orm_check_ip_in_db(session: AsyncSession, ip_address: str) -> bool:
     """
@@ -1170,3 +1170,48 @@ async def delete_security_host(session: AsyncSession, identifier: str) -> bool:
     except Exception as e:
         print(f"Произошла ошибка: {e}")
         return False
+
+async def get_security_hosts_within_timeframe(
+    session: AsyncSession,
+    start_time: Optional[datetime] = None,
+    end_time: Optional[datetime] = None
+) -> List[Dict[str, any]]:
+    """
+    Получает информацию о всех SecurityHost в заданном временном интервале или о всех записях, если временной интервал не указан.
+
+    :param session: Асинхронная сессия для работы с базой данных.
+    :param start_time: Начальная дата и время для фильтрации.
+    :param end_time: Конечная дата и время для фильтрации.
+    :return: Список словарей с информацией о SecurityHost.
+    """
+    try:
+        # Создаем базовый запрос
+        query = select(SecurityHost).options(
+            selectinload(SecurityHost.group),  # Предварительная загрузка связанных групп
+            selectinload(SecurityHost.rules)   # Предварительная загрузка связанных правил
+        )
+
+        # Если указаны временные рамки, добавляем их в фильтр
+        if start_time and end_time:
+            query = query.where(SecurityHost.updated >= start_time, SecurityHost.updated <= end_time)
+
+        # Выполняем запрос
+        result = await session.execute(query)
+        security_hosts = result.scalars().all()
+
+        # Формируем список словарей с нужной информацией
+        security_hosts_info = []
+        for host in security_hosts:
+            security_hosts_info.append({
+                'name': host.name,
+                'description': host.description,
+                'address': host.address,
+                'group': host.group.name if host.group else None,
+                'rules': [rule.name for rule in host.rules]  # Список имен правил
+            })
+
+        return security_hosts_info
+
+    except Exception as e:
+        print(f"Ошибка при получении информации о SecurityHost: {e}")
+        return []  # Возвращаем пустой список в случае ошибки

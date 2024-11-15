@@ -213,3 +213,50 @@ async def process_delete_sechost(msg: Message, bot: Bot, state: FSMContext, sess
     output = await format.delete_sechost_info(success_names, error_names)
     await mesg.edit_text(output, parse_mode=ParseMode.MARKDOWN)
     await state.set_state(Base_states.start)
+
+@sechost_router.callback_query(F.data == "view_sechost")
+async def start_process_view_sechost(clbck: CallbackQuery, state: FSMContext):
+    await clbck.message.edit_text("Введите all или количество дней за которое необходимо просмотреть СЗИ:",reply_markup=kb.back_sechost)
+    await state.set_state(Sechost_states.view)
+
+@sechost_router.message(Sechost_states.view)
+@flags.chat_action("typing")
+async def view_sechost(msg: Message, bot: Bot, state: FSMContext, session: AsyncSession):
+    # Проверяем ввод пользователя
+    if msg.text.lower() == "all":
+        start_time = None
+        end_time = None
+        days_text = "всего периода"
+    else:
+        try:
+            day = int(msg.text)
+            end_time = datetime.now()
+            start_time = end_time - datetime.timedelta(days=day)
+            days_text = f"последние {day} дней"
+        except ValueError:
+            # Если введено не число и не "all", выводим сообщение об ошибке
+            await msg.answer("Количество дней должно быть числом или 'all' для полного периода", reply_markup=kb.repeat_view_blocklist)
+            await state.set_state(Sechost_states.menu)
+            return
+
+    # Удаляем сообщения
+    await bot.delete_message(msg.chat.id, msg.message_id-2, request_timeout=0)
+    await bot.delete_message(msg.chat.id, msg.message_id-1, request_timeout=0)
+    await bot.delete_message(msg.chat.id, msg.message_id, request_timeout=0)
+
+    # Отправляем сообщение о начале обработки
+    mesg = await msg.answer(text.gen_wait)
+
+    # Получаем данные из базы данных
+    sechosts = await orm_query.get_security_hosts_within_timeframe(session, start_time, end_time)
+
+    if sechosts:
+        # Форматируем и отправляем информацию о найденных записях
+        output = await format.sechost_info(sechosts, days_text, 'day')
+        await mesg.edit_text(output, parse_mode=ParseMode.MARKDOWN)
+        await msg.answer("Выберите действие:", reply_markup=kb.repeat_view_sechost)
+    else:
+        await mesg.edit_text("СЗИ не найдены", reply_markup=kb.repeat_view_sechost)
+
+    # Возвращаемся к меню
+    await state.set_state(Sechost_states.menu)

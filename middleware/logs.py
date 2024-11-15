@@ -24,6 +24,11 @@ def sanitize_message(text: str) -> str:
     return text
 
 class LogMessageMiddleware(BaseMiddleware):
+    sensitive_states = {
+        Sechost_states.add_login,
+        Sechost_states.add_password,
+        Sechost_states.add  # Добавьте состояния, связанные с вводом данных
+    }
     def __init__(self, session_pool: async_sessionmaker):
         super().__init__()
         self.session_pool = session_pool
@@ -40,12 +45,11 @@ class LogMessageMiddleware(BaseMiddleware):
         return await handler(event, data)
 
     async def save_message(self, msg: Message, fsm_context: FSMContext):
-        state_data = await fsm_context.get_data()
+        current_state = await fsm_context.get_state()
 
-        # Проверка на наличие чувствительных данных
-        if any(key in state_data for key in ['password', 'login', 'ip']):
-            fsm_context.clear()
-            return
+        # Проверка, является ли текущее состояние чувствительным
+        if current_state in self.sensitive_states:
+            return  # Пропуск сохранения, если состояние содержит чувствительные данные
 
         user_id = msg.from_user.id
         sanitized_text = sanitize_message(msg.text)  # Очищаем текст от чувствительных данных
