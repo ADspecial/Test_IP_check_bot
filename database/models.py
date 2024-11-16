@@ -45,6 +45,26 @@ group_security_host_association = Table(
     Column('security_host_id', Integer, ForeignKey('security_host.id'), primary_key=True)
 )
 
+rule_blocklist_association = Table(
+    'rule_blocklist',
+    Base.metadata,
+    Column('rule_id', Integer, ForeignKey('rule.id'), primary_key=True),
+    Column('blocklist_id', Integer, ForeignKey('blocklist.id'), primary_key=True)
+)
+
+rule_securityhost_association = Table(
+    'rule_securityhost',
+    Base.metadata,
+    Column('rule_id', Integer, ForeignKey('rule.id'), primary_key=True),
+    Column('security_host_id', Integer, ForeignKey('security_host.id'), primary_key=True)
+)
+
+rule_groupsecurityhost_association = Table(
+    'rule_groupsecurityhost',
+    Base.metadata,
+    Column('rule_id', Integer, ForeignKey('rule.id'), primary_key=True),
+    Column('group_id', Integer, ForeignKey('group_security_host.id'), primary_key=True)
+)
 
 class User(Base):
     __tablename__ = 'users'
@@ -95,7 +115,10 @@ class BlockList(Base):
 
     user_id_blocker = Column(Integer, ForeignKey('users.id'), nullable=True)
     addresses = relationship('Address', secondary=blocklist_address_association, back_populates='blocklists')
-    rules = relationship('Rule', back_populates='blocklist')
+    rules = relationship('Rule', secondary=rule_blocklist_association, back_populates='blocklists')
+
+    def __repr__(self):
+        return f"<BlockList(id={self.id}, name={self.name})>"
 
 class SecurityHost(Base):
     __tablename__ = 'security_host'
@@ -109,8 +132,7 @@ class SecurityHost(Base):
     _password = Column(String(255), nullable=False)  # Зашифрованный пароль
 
     groups = relationship('GroupSecurityHost', secondary=group_security_host_association, back_populates='security_hosts')
-
-    rules = relationship('Rule', back_populates='security_host', cascade='all, delete-orphan')
+    rules = relationship('Rule', secondary=rule_securityhost_association, back_populates='security_hosts')
 
     # Методы для шифрования и дешифрования пароля
     @property
@@ -170,8 +192,7 @@ class GroupSecurityHost(Base):
     description = Column(String(255), nullable=True)
 
     security_hosts = relationship('SecurityHost', secondary=group_security_host_association, back_populates='groups')
-
-    rules = relationship('Rule', back_populates='group_security_host', cascade='all, delete-orphan')
+    rules = relationship('Rule', secondary=rule_groupsecurityhost_association, back_populates='group_security_hosts')
 
     def __repr__(self):
         return f"<GroupSecurityHost(id={self.id}, name={self.name})>"
@@ -183,13 +204,13 @@ class Rule(Base):
     name = Column(String(255), nullable=False, unique=True)
     commit = Column(Boolean, default=False)
 
-    security_host_id = Column(Integer, ForeignKey('security_host.id'))
-    blocklist_id = Column(Integer, ForeignKey('blocklist.id'), nullable=False)
-    group_id = Column(Integer, ForeignKey('group_security_host.id'), nullable=True)
+    # Связи с блок-листами, хостами безопасности и группами хостов безопасности
+    blocklists = relationship('BlockList', secondary=rule_blocklist_association, back_populates='rules')
+    security_hosts = relationship('SecurityHost', secondary=rule_securityhost_association, back_populates='rules')
+    group_security_hosts = relationship('GroupSecurityHost', secondary=rule_groupsecurityhost_association, back_populates='rules')
 
-    security_host = relationship('SecurityHost', back_populates='rules')
-    blocklist = relationship('BlockList', back_populates='rules')
-    group_security_host = relationship('GroupSecurityHost', back_populates='rules')
+    def __repr__(self):
+        return f"<Rule(id={self.id}, name={self.name})>"
 
 class Virustotal(Base):
     __tablename__ = 'virustotal'
