@@ -72,6 +72,24 @@ group_sechost_menu = [
 group_sechost_menu = InlineKeyboardMarkup(inline_keyboard=
 group_sechost_menu)
 
+repeat_add_group_sechost = [
+    [InlineKeyboardButton(text="Добавить еще группу СЗИ", callback_data="add_group_sechost")],
+    [InlineKeyboardButton(text="◀️ Назад", callback_data="group_sechost_menu")]
+]
+repeat_add_group_sechost = InlineKeyboardMarkup(inline_keyboard=repeat_add_group_sechost)
+
+repeat_view_group_sechost = [
+    [InlineKeyboardButton(text="Просмотреть СЗИ", callback_data="view_group_sechost")],
+    [InlineKeyboardButton(text="◀️ Назад", callback_data="group_sechost_menu")]
+]
+repeat_view_group_sechost = InlineKeyboardMarkup(inline_keyboard=repeat_view_group_sechost)
+
+repeat_delete_group_sechost = [
+    [InlineKeyboardButton(text="Удалить СЗИ", callback_data="delete_group_sechost")],
+    [InlineKeyboardButton(text="◀️ Назад", callback_data="group_sechost_menu")]
+]
+repeat_delete_group_sechost = InlineKeyboardMarkup(inline_keyboard=repeat_delete_group_sechost)
+
 repeat_add_sechost = [
     [InlineKeyboardButton(text="Добавить еще СЗИ", callback_data="add_sechost")],
     [InlineKeyboardButton(text="◀️ Назад", callback_data="sechost_menu")]
@@ -183,4 +201,5 @@ back_users = InlineKeyboardMarkup(inline_keyboard=[[InlineKeyboardButton(text="�
 back_block = InlineKeyboardMarkup(inline_keyboard=[[InlineKeyboardButton(text="◀️ Назад", callback_data="block_menu")]])
 back_blocklist = InlineKeyboardMarkup(inline_keyboard=[[InlineKeyboardButton(text="◀️ Назад", callback_data="blocklist_menu")]])
 back_sechost = InlineKeyboardMarkup(inline_keyboard=[[InlineKeyboardButton(text="◀️ Назад", callback_data="sechost_menu")]])
+back_group_sechost = InlineKeyboardMarkup(inline_keyboard=[[InlineKeyboardButton(text="◀️ Назад", callback_data="group_sechost_menu")]])
 iexit_kb = InlineKeyboardMarkup(inline_keyboard=[[InlineKeyboardButton(text="◀️ Выйти в меню", callback_data="view_menu")]])

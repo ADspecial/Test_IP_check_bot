@@ -1,6 +1,7 @@
 import datetime
-from typing import Dict, Any, List, Union, Literal
+from typing import Dict, Any, List, Union, Literal,  Optional
 from tabulate import tabulate
+import textwrap
 
 import flag
 
@@ -393,7 +394,7 @@ async def delete_sechost_info(success_hosts: List[str], error_hosts: List[str]) 
     else:
         return "Не было удалено ни одного СЗИ."
 
-async def sechost_info(sechost_info: list[dict], time: str = None, timeparam: str = "дней") -> str:
+async def sechost_info(sechost_info: List[Dict], time: Optional[str] = None, timeparam: str = "дней") -> str:
     """
     Форматирует информацию о СЗИ для отображения в виде таблицы с разметкой для Telegram.
 
@@ -407,28 +408,75 @@ async def sechost_info(sechost_info: list[dict], time: str = None, timeparam: st
 
     # Заголовок с проверкой на параметр времени
     if time and time != "all":
-        result = [f"Информация о СЗИ за последние {time} {timeparam}:\n"]
+        result = [f"Информация о СЗИ за последние {time} {timeparam}:"]
     else:
-        result = ["Информация о СЗИ за весь период:\n"]
+        result = ["Информация о СЗИ за весь период:"]
 
-    # Формируем шапку таблицы
-    result.append("```")
-    result.append("| Имя СЗИ       | Описание       | Адрес          | Группа       | Правила |")
-    result.append("|---------------|----------------|----------------|--------------|---------|")
+    # Формируем данные для табличного отображения
+    table_data = []
+    headers = ["Имя", "Описание", "Адрес", "Группы", "Правила"]
 
-    # Формируем строки данных
     for sechost in sechost_info:
-        name = f"{sechost['name'][:12]:<12}"  # 12 символов для имени
-        description = f"{(sechost['description'][:12] if sechost['description'] else 'Нет описания'):<12}"
-        address = f"{sechost['address'][:15]:<15}"
-        group = f"{(sechost['group'] if sechost['group'] else 'Нет группы'):<12}"
-        rules_count = f"{len(sechost['rules']):<8}"
+        name = sechost['name'] if sechost['name'] else 'Нет имени'
+        address = sechost['address'] if sechost['address'] else 'Нет адреса'
+        description = textwrap.fill(sechost['description'], width=20) if sechost['description'] else 'Нет описания'
+        groups = '\n'.join(textwrap.fill(group, width=15) for group in sechost['groups']) if sechost['groups'] else 'Нет групп'
+        rules = '\n'.join(textwrap.fill(rule, width=15) for rule in sechost['rules']) if sechost['rules'] else 'Нет правил'
+        table_data.append([name, description, address, groups, rules])
 
-        # Формируем строку с разделителями
-        row = f"| {name} | {description} | {address} | {group} | {rules_count} |"
-        result.append(row)
+    # Форматируем таблицу с использованием tabulate
+    table = tabulate(table_data, headers=headers, tablefmt="grid")
 
-    # Закрываем таблицу
-    result.append("```")
+    result.append(f"\n```{table}```")
 
     return "\n".join(result)
+
+async def group_sechost_info(group_sechost_info: list[dict], time: str = None, timeparam: str = "дней") -> str:
+    """
+    Форматирует информацию о группах СЗИ для отображения в виде таблицы с разметкой для Telegram.
+
+    :param group_sechost_info: Список словарей с информацией о группах СЗИ.
+    :param time: Время (или описание периода) для отображения в заголовке.
+    :param timeparam: Единицы измерения времени, например 'дней' или 'всего периода'.
+    :return: Строка с отформатированной табличной информацией о группах СЗИ.
+    """
+    if not group_sechost_info:
+        return "Нет записей о группах СЗИ за указанный период."
+
+    # Заголовок с проверкой на параметр времени
+    if time and time != "all":
+        result = [f"Информация о группах СЗИ за последние {time} {timeparam}:"]
+    else:
+        result = ["Информация о группах СЗИ за весь период:"]
+
+    # Формируем данные для табличного отображения
+    table_data = []
+    headers = ["Имя группы", "Описание", "Хосты СЗИ"]
+
+    for group in group_sechost_info:
+        name = group['name'] if group['name'] else 'Нет имени'
+        description = group['description'] if group['description'] else 'Нет описания'
+        hosts = "\n".join(group['security_hosts']) if group['security_hosts'] else 'Нет хостов'
+        table_data.append([name, description, hosts])
+
+    # Форматируем таблицу с использованием tabulate
+    table = tabulate(table_data, headers=headers, tablefmt="grid")
+
+    result.append(f"```\n{table}\n```")
+
+    return "\n".join(result)
+
+async def delete_group_sechost_info(success_names: list[str], error_names: list[str]) -> str:
+    response_lines = []
+    if success_names:
+        response_lines.append("Были удалены следующие группы:")
+        response_lines.append("```\n" + "\n".join(success_names) + "\n```")
+
+    if error_names:
+        response_lines.append("Следующие группы не были найдены:")
+        response_lines.append("```\n" + "\n".join(error_names) + "\n```")
+
+    if response_lines:
+        return "\n".join(response_lines)
+    else:
+        return "Не было удалено ни одной группы безопасности."

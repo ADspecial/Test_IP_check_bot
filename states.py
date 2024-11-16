@@ -46,6 +46,19 @@ class Sechost_states(StatesGroup):
     add_password = State()
     add_apitoken = State()
 
+class GroupSechost_states(StatesGroup):
+    menu = State()
+    add_name = State()
+    add_description = State()
+    add = State()
+    add_command = State()
+    view = State()
+    view_command = State()
+    delete = State()
+    delete_command = State()
+
+    add_security_hosts = State()
+
 
 class Admin_states(StatesGroup):
     users_menu = State()

@@ -260,7 +260,7 @@ async def view_sechost(msg: Message, bot: Bot, state: FSMContext, session: Async
     # Возвращаемся к меню
     await state.set_state(Sechost_states.menu)
 
-@sechost_router.message(Command("view_sechost"))
+@sechost_router.message(Command("view_host"))
 async def view_sechost_command(msg: Message, state: FSMContext, session: AsyncSession, is_admin: bool):
     if not is_admin:
         await msg.answer(text.false_admin.format(name=msg.from_user.full_name))

@@ -7,10 +7,10 @@ from sqlalchemy.exc import NoResultFound, IntegrityError
 from sqlalchemy.orm import InstrumentedAttribute
 from sqlalchemy.orm import selectinload
 from sqlalchemy.exc import SQLAlchemyError
-
+import asyncio
 
 from datetime import datetime, timedelta
-from database.models import Address, History, Virustotal, Ipinfo, Abuseipdb, Kaspersky, CriminalIP, Alienvault, Ipqualityscore, User, BlockList, blocklist_address_association, SecurityHost
+from database.models import Address, History, Virustotal, Ipinfo, Abuseipdb, Kaspersky, CriminalIP, Alienvault, Ipqualityscore, User, BlockList, blocklist_address_association, SecurityHost, GroupSecurityHost
 
 from typing import Callable, List, Dict, Optional, Union, Tuple, Any, Type
 
@@ -1187,7 +1187,7 @@ async def get_security_hosts_within_timeframe(
     try:
         # Создаем базовый запрос
         query = select(SecurityHost).options(
-            selectinload(SecurityHost.group),  # Предварительная загрузка связанных групп
+            selectinload(SecurityHost.groups),  # Предварительная загрузка связанных групп
             selectinload(SecurityHost.rules)   # Предварительная загрузка связанных правил
         )
 
@@ -1206,7 +1206,7 @@ async def get_security_hosts_within_timeframe(
                 'name': host.name,
                 'description': host.description,
                 'address': host.address,
-                'group': host.group.name if host.group else None,
+                'groups': [group.name for group in host.groups],
                 'rules': [rule.name for rule in host.rules]  # Список имен правил
             })
 
@@ -1215,3 +1215,119 @@ async def get_security_hosts_within_timeframe(
     except Exception as e:
         print(f"Ошибка при получении информации о SecurityHost: {e}")
         return []  # Возвращаем пустой список в случае ошибки
+
+
+async def create_or_update_group_security_host(session: AsyncSession, name: str, description: str, security_host_identifiers: list[str]) -> bool:
+    """
+    Добавляет или обновляет запись группы Security Host в базе данных.
+
+    :param session: Асинхронная сессия для работы с базой данных.
+    :param name: Имя группы Security Host.
+    :param description: Описание группы.
+    :param security_host_identifiers: Список имен или IP-адресов Security Hosts.
+    :return: True, если операция успешна, иначе False.
+    """
+    try:
+        # Асинхронный запрос на получение существующей группы безопасности и предварительная загрузка связанных хостов безопасности
+        result = await session.execute(
+            select(GroupSecurityHost).where(GroupSecurityHost.name == name).options(selectinload(GroupSecurityHost.security_hosts))
+        )
+        group = result.scalar_one_or_none()
+
+        if group:
+            group.description = description
+        else:
+            group = GroupSecurityHost(name=name, description=description)
+            session.add(group)
+
+        # Асинхронный запрос на получение существующих хостов безопасности по именам или IP-адресам
+        existing_hosts_result = await session.execute(
+            select(SecurityHost).where((SecurityHost.name.in_(security_host_identifiers)) | (SecurityHost.address.in_(security_host_identifiers)))
+        )
+        existing_hosts = existing_hosts_result.scalars().all()
+
+        # Добавление новых хостов безопасности в группу
+        for host in existing_hosts:
+            if host not in group.security_hosts:
+                group.security_hosts.append(host)
+
+        # Коммит изменений
+        await session.commit()
+        return True
+
+    except SQLAlchemyError as e:
+        await session.rollback()  # Откат транзакции в случае ошибки
+        print(f"Ошибка базы данных: {e}")
+        return False
+    except Exception as e:
+        await session.rollback()  # Откат транзакции в случае ошибки
+        print(f"Произошла ошибка: {e}")
+        return False
+
+async def get_group_security_hosts_within_timeframe(
+    session: AsyncSession,
+    start_time: Optional[datetime] = None,
+    end_time: Optional[datetime] = None
+) -> List[Dict[str, any]]:
+    """
+    Получает информацию о всех GroupSecurityHost в заданном временном интервале или о всех записях, если временной интервал не указан.
+
+    :param session: Асинхронная сессия для работы с базой данных.
+    :param start_time: Начальная дата и время для фильтрации.
+    :param end_time: Конечная дата и время для фильтрации.
+    :return: Список словарей с информацией о GroupSecurityHost.
+    """
+    try:
+        # Создаем базовый запрос
+        query = select(GroupSecurityHost).options(
+            selectinload(GroupSecurityHost.security_hosts),  # Предварительная загрузка связанных хостов безопасности
+            selectinload(GroupSecurityHost.rules)             # Предварительная загрузка связанных правил
+        )
+
+        # Если указаны временные рамки, добавляем их в фильтр
+        if start_time and end_time:
+            query = query.where(GroupSecurityHost.updated >= start_time, GroupSecurityHost.updated <= end_time)
+
+        # Выполняем запрос
+        result = await session.execute(query)
+        groups = result.scalars().all()
+
+        # Формируем список словарей с нужной информацией
+        group_info = []
+        for group in groups:
+            group_info.append({
+                'name': group.name,
+                'description': group.description,
+                'security_hosts': [host.name for host in group.security_hosts],  # Список имен хостов безопасности
+                'rules': [rule.name for rule in group.rules]  # Список имен правил
+            })
+
+        return group_info
+
+    except Exception as e:
+        print(f"Ошибка при получении информации о GroupSecurityHost: {e}")
+        return []  # Возвращаем пустой список в случае ошибки
+
+async def delete_group_security_host(session: AsyncSession, identifier: str) -> bool:
+    try:
+        # Поиск группы по имени
+        result = await session.execute(
+            select(GroupSecurityHost).where(GroupSecurityHost.name == identifier)
+        )
+        group = result.scalar_one_or_none()
+
+        if group:
+            await session.delete(group)
+            await session.commit()
+            return True
+        else:
+            print(f"Группа с именем '{identifier}' не найдена.")
+            return False
+
+    except SQLAlchemyError as e:
+        await session.rollback()
+        print(f"Ошибка базы данных: {e}")
+        return False
+    except Exception as e:
+        print(f"Произошла ошибка: {e}")
+        return False

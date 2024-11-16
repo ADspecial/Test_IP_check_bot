@@ -38,6 +38,14 @@ blocklist_address_association = Table(
     Column('address_id', Integer, ForeignKey('address.id'), primary_key=True)
 )
 
+group_security_host_association = Table(
+    'group_security_host_association',
+    Base.metadata,
+    Column('group_id', Integer, ForeignKey('group_security_host.id'), primary_key=True),
+    Column('security_host_id', Integer, ForeignKey('security_host.id'), primary_key=True)
+)
+
+
 class User(Base):
     __tablename__ = 'users'
 
@@ -100,8 +108,7 @@ class SecurityHost(Base):
     _login = Column(String(255), nullable=False)  # Зашифрованный логин
     _password = Column(String(255), nullable=False)  # Зашифрованный пароль
 
-    group_id = Column(Integer, ForeignKey('group_security_host.id'))  # Внешний ключ на GroupSecurityHost
-    group = relationship('GroupSecurityHost', back_populates='security_hosts')  # Связь с GroupSecurityHost
+    groups = relationship('GroupSecurityHost', secondary=group_security_host_association, back_populates='security_hosts')
 
     rules = relationship('Rule', back_populates='security_host', cascade='all, delete-orphan')
 
@@ -162,7 +169,7 @@ class GroupSecurityHost(Base):
     name = Column(String(255), nullable=False, unique=True)
     description = Column(String(255), nullable=True)
 
-    security_hosts = relationship('SecurityHost', back_populates='group', cascade='all, delete-orphan')
+    security_hosts = relationship('SecurityHost', secondary=group_security_host_association, back_populates='groups')
 
     rules = relationship('Rule', back_populates='group_security_host', cascade='all, delete-orphan')
 
