@@ -201,6 +201,13 @@ class Rule(Base):
     id = Column(Integer, primary_key=True)
     name = Column(String(255), nullable=False, unique=True)
     commit = Column(Boolean, default=False)
+    action = Column(String(32), nullable=False)
+    source_ip = Column(String(32), nullable=True)
+    destination_ip = Column(String(32), nullable=True)
+    source_port = Column(Integer, nullable=True)
+    destination_port = Column(Integer, nullable=True)
+    protocol = Column(String(32), nullable=True)
+    status = Column(String(32), nullable=True)
 
     # Связи с блок-листами, хостами безопасности и группами хостов безопасности
     blocklists = relationship('BlockList', secondary=rule_blocklist_association, back_populates='rules')
