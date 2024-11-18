@@ -1,25 +1,3 @@
-from aiogram import F, Router, Bot
-from aiogram.filters import Command
-from aiogram.types import Message, CallbackQuery
-from aiogram import flags
-from aiogram.fsm.context import FSMContext
-
-
-from states import Base_states, KSP_states
-
-from ipcheckers import kaspersky
-
-from handlers import process
-
-from sqlalchemy.ext.asyncio import AsyncSession
-
-import kb
-import re
-import text
-import database.orm_query as orm_query
-
-rules_router = Router()
-
 from datetime import datetime as date_time
 import datetime
 from aiogram import F, Router, Bot
