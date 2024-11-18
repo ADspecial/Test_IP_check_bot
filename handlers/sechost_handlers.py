@@ -91,8 +91,8 @@ async def process_create_sechost(msg: Message, bot: Bot, state: FSMContext, sess
         await mesg.edit_text("Ошибка создания/обновления блоклиста", reply_markup=kb.repeat_add_sechost)
 
 @sechost_router.message(Command("add_host"))
-async def add_sechost_command(msg: Message, state: FSMContext, session: AsyncSession, is_admin: bool):
-    if not is_admin:
+async def add_sechost_command(msg: Message, state: FSMContext, session: AsyncSession, is_admin: bool, is_superadmin: bool):
+    if not is_admin or not is_superadmin:
         await msg.answer(text.false_admin.format(name=msg.from_user.full_name))
         return
 
@@ -103,7 +103,7 @@ async def add_sechost_command(msg: Message, state: FSMContext, session: AsyncSes
 
     # Проверка наличия обязательных параметров
     if len(args) < 4:
-        await mesg.edit_text("Пожалуйста, укажите все параметры: [name] [ip] [login=login] [password=pass] [api_token=token (необязательно)] [description (необязательно)]")
+        await mesg.edit_text("Пожалуйста, укажите все параметры: [name] [ip] [login=login] [password=pass] [api_token=token (необязательно)] [description=описание (необязательно)]")
         return
 
     name = args[0]
@@ -122,8 +122,12 @@ async def add_sechost_command(msg: Message, state: FSMContext, session: AsyncSes
             password = arg.split("=", 1)[1]
         elif arg.startswith("api_token="):
             api_token = arg.split("=", 1)[1]
+        elif arg.startswith("description="):
+            description = arg.split("=", 1)[1]
         else:
-            description += f" {arg}"  # Сохраняем остальные аргументы как описание
+            await mesg.edit_text(f"Некорректный аргумент: {arg}. Проверьте формат ввода.")
+            await state.set_state(Base_states.start)
+            return
 
     # Проверка на наличие обязательных аргументов
     if login is None or password is None:
@@ -184,8 +188,8 @@ async def process_create_blocklist(msg: Message, bot: Bot, state: FSMContext, se
 
 @sechost_router.message(Command("delete_host"))
 @flags.chat_action("typing")
-async def process_delete_sechost(msg: Message, bot: Bot, state: FSMContext, session: AsyncSession, is_admin: bool):
-    if not is_admin:
+async def process_delete_sechost(msg: Message, bot: Bot, state: FSMContext, session: AsyncSession, is_admin: bool, is_superadmin: bool):
+    if not is_admin or not is_superadmin:
         await msg.answer(text.false_admin.format(name=msg.from_user.full_name))
         return
 

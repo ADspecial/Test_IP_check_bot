@@ -121,19 +121,38 @@ async def view_blocklist_command(msg: Message, state: FSMContext, session: Async
     if not is_admin:
         await msg.answer(text.false_admin.format(name=msg.from_user.full_name))
         return
+
     mesg = await msg.answer(text.gen_wait)
     await state.set_state(Blocklist_states.view_command)
     args = msg.text.split()[1:]
+
     if len(args) < 1:
-        await mesg.edit_text("Пожалуйста, укажите все параметры: int: time {sec, min, hour, day}")
+        await mesg.edit_text("Пожалуйста, укажите аргумент: 'all' для всех записей или int: time {sec, min, hour, day}")
         await state.set_state(Base_states.start)
         return
+
+    if args[0].lower() == "all":
+        blocklists = await orm_query.get_blocklists_within_timeframe(session)
+        if blocklists:
+            output = await format.blocklist_info(blocklists, None, None)
+            await mesg.edit_text(output, parse_mode=ParseMode.MARKDOWN)
+        else:
+            await mesg.edit_text("Блоклисты не найдены")
+        await state.set_state(Base_states.start)
+        return
+
     try:
         time = int(args[0])
     except ValueError:
-        await mesg.edit_text("Перввый параметр должен быть числом")
+        await mesg.edit_text("Первый параметр должен быть числом или 'all'")
         await state.set_state(Base_states.start)
         return
+
+    if len(args) < 2:
+        await mesg.edit_text("Пожалуйста, укажите единицу времени: sec, min, hour, day")
+        await state.set_state(Base_states.start)
+        return
+
     if args[1] == "sec":
         param = 'seconds'
     elif args[1] == "min":
@@ -144,15 +163,19 @@ async def view_blocklist_command(msg: Message, state: FSMContext, session: Async
         param = 'days'
     else:
         await mesg.edit_text("Второй параметр должен быть sec, min, hour, day")
+        await state.set_state(Base_states.start)
         return
+
     end_time = date_time.now()
     start_time = end_time - datetime.timedelta(**{param: time})
     blocklists = await orm_query.get_blocklists_within_timeframe(session, start_time, end_time)
+
     if blocklists:
         output = await format.blocklist_info(blocklists, time, param)
         await mesg.edit_text(output, parse_mode=ParseMode.MARKDOWN)
     else:
         await mesg.edit_text("Блоклисты не найдены")
+
     await state.set_state(Base_states.start)
 
 @blocklist_router.callback_query(F.data == "delete_bloсklist")

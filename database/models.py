@@ -16,8 +16,6 @@ from sqlalchemy.types import JSON
 from sqlalchemy import Table, Column, Integer, ForeignKey
 from sqlalchemy import Index
 
-from bcrypt import hashpw, gensalt, checkpw
-
 from config.config import CRYPT
 from cryptography.fernet import Fernet
 

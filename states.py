@@ -59,6 +59,21 @@ class GroupSechost_states(StatesGroup):
 
     add_security_hosts = State()
 
+class Rules_states(StatesGroup):
+    menu = State()
+    add_name = State()
+    add_description = State()
+    add_commit = State()
+    add_target = State()
+    add_blocklist = State()
+    add = State()
+    add_command = State()
+    view = State()
+    view_command = State()
+    delete = State()
+    delete_command = State()
+    update_name = State()
+    update_commit = State()
 
 class Admin_states(StatesGroup):
     users_menu = State()

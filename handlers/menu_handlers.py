@@ -9,7 +9,7 @@ from aiogram.utils.deep_linking import create_start_link
 from filters.chat_type import ChatTypeFilter
 
 from middleware.admin_right import AdminRightsMiddleware
-from states import Base_states, Blocklist_states, Sechost_states
+from states import Base_states, Blocklist_states, Sechost_states, GroupSechost_states, Rules_states
 
 import kb
 import text
@@ -110,9 +110,9 @@ async def blocklist_menu_handler(msg_or_callback: Message | CallbackQuery, state
     Command("sechost_menu"),
     ChatTypeFilter(chat_type=["private"])
 )
-async def sechost_menu_handler(msg_or_callback: Message | CallbackQuery, state: FSMContext, is_admin: bool):
-    if is_admin:
-        await state.set_state(Blocklist_states.menu)
+async def sechost_menu_handler(msg_or_callback: Message | CallbackQuery, state: FSMContext, is_admin: bool, is_superadmin: bool):
+    if is_admin and is_superadmin:
+        await state.set_state(Sechost_states.menu)
         if isinstance(msg_or_callback, CallbackQuery):
             await msg_or_callback.message.edit_text(text.sechost_menu, reply_markup=kb.sechost_menu)
             await msg_or_callback.answer('Управление СЗИ')
@@ -126,17 +126,32 @@ async def sechost_menu_handler(msg_or_callback: Message | CallbackQuery, state: 
     Command("group_sechost_menu"),
     ChatTypeFilter(chat_type=["private"])
 )
-async def sechost_menu_handler(msg_or_callback: Message | CallbackQuery, state: FSMContext, is_admin: bool):
-    if is_admin:
-        await state.set_state(Blocklist_states.menu)
+async def sechost_menu_handler(msg_or_callback: Message | CallbackQuery, state: FSMContext, is_admin: bool, is_superadmin: bool):
+    if is_admin and is_superadmin:
+        await state.set_state(GroupSechost_states.menu)
         if isinstance(msg_or_callback, CallbackQuery):
             await msg_or_callback.message.edit_text(text.group_sechost_menu, reply_markup=kb.group_sechost_menu)
             await msg_or_callback.answer('Управление СЗИ')
         else:
-            await msg_or_callback.answer(text.sgroup_sechost_menu, reply_markup=kb.group_sechost_menu)
+            await msg_or_callback.answer(text.group_sechost_menu, reply_markup=kb.group_sechost_menu)
     else:
         await msg_or_callback.answer(text.false_admin.format(name=msg_or_callback.from_user.full_name), parse_mode=ParseMode.MARKDOWN)
 
+@menu_router.callback_query(F.data == "rules_menu")
+@menu_router.message(
+    Command("rules_menu"),
+    ChatTypeFilter(chat_type=["private"])
+)
+async def sechost_menu_handler(msg_or_callback: Message | CallbackQuery, state: FSMContext, is_admin: bool, is_superadmin: bool):
+    if is_admin and is_superadmin:
+        await state.set_state(Rules_states.menu)
+        if isinstance(msg_or_callback, CallbackQuery):
+            await msg_or_callback.message.edit_text(text.rules_menu, reply_markup=kb.rules_menu)
+            await msg_or_callback.answer('Управление Правилами')
+        else:
+            await msg_or_callback.answer(text.rules_menu, reply_markup=kb.rules_menu)
+    else:
+        await msg_or_callback.answer(text.false_admin.format(name=msg_or_callback.from_user.full_name), parse_mode=ParseMode.MARKDOWN)
 
 # Обработчик вывода меню проверки IP
 @menu_router.callback_query(F.data == "check_menu")

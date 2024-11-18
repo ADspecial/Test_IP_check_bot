@@ -25,6 +25,9 @@ from handlers.summary_handlers import sum_router
 from handlers.blocklist_handlers import blocklist_router
 from handlers.sechost_handlers import sechost_router
 from handlers.group_sechost_handlers import group_sechost_router
+from handlers.rules_handlers import rule_router
+
+from command_hints import set_bot_commands
 
 from middleware.db import DataBaseSession
 from middleware.logs import LogMessageMiddleware
@@ -53,6 +56,7 @@ def register_routers(dp: Dispatcher):
     dp.include_router(blocklist_router)
     dp.include_router(sechost_router)
     dp.include_router(group_sechost_router)
+    dp.include_router(rule_router)
 
 async def main() -> None:
     """Main entry point for the bot."""
@@ -68,6 +72,8 @@ async def main() -> None:
         dp.message.middleware(LogMessageMiddleware(session_pool=session_maker))
         dp.message.middleware(AdminRightsMiddleware(session_maker))
         dp.callback_query.middleware(AdminRightsMiddleware(session_maker))
+
+        await set_bot_commands(bot)
 
         register_routers(dp)
 

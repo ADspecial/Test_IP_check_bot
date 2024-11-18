@@ -40,7 +40,7 @@ async def process_description_group_sechost(msg: Message, state: FSMContext, bot
     await bot.delete_message(msg.chat.id, msg.message_id, request_timeout=0)
     await state.update_data(description=msg.text)
     await state.set_state(GroupSechost_states.add)
-    await msg.answer("Введите адреса или имена Security Hosts через пробел:", reply_markup=kb.back_group_sechost)
+    await msg.answer("Введите адреса или имена СЗИ через пробел:", reply_markup=kb.back_group_sechost)
 
 @group_sechost_router.message(GroupSechost_states.add)
 @flags.chat_action("typing")
@@ -62,7 +62,7 @@ async def process_create_group_sechost(msg: Message, bot: Bot, state: FSMContext
 @group_sechost_router.callback_query(F.data == "delete_group_sechost")
 async def start_process_delete_group_sechost(clbck: CallbackQuery, state: FSMContext):
     await state.set_state(GroupSechost_states.delete)
-    await clbck.message.edit_text("Введите имена групп СЗИ через пробел:", reply_markup=kb.back_sechost)
+    await clbck.message.edit_text("Введите имена групп СЗИ через пробел для удаления:", reply_markup=kb.back_sechost)
 
 @group_sechost_router.message(GroupSechost_states.delete)
 @flags.chat_action("typing")
@@ -123,8 +123,8 @@ async def view_group_sechost(msg: Message, bot: Bot, state: FSMContext, session:
 
 
 @group_sechost_router.message(Command("add_group"))
-async def add_group_sechost_command(msg: Message, state: FSMContext, session: AsyncSession, is_admin: bool):
-    if not is_admin:
+async def add_group_sechost_command(msg: Message, state: FSMContext, session: AsyncSession, is_admin: bool, is_superadmin: bool):
+    if not is_admin or not is_superadmin:
         await msg.answer(text.false_admin.format(name=msg.from_user.full_name))
         return
 
@@ -169,8 +169,8 @@ async def add_group_sechost_command(msg: Message, state: FSMContext, session: As
 
 @group_sechost_router.message(Command("delete_group"))
 @flags.chat_action("typing")
-async def process_delete_group_sechost_command(msg: Message, bot: Bot, state: FSMContext, session: AsyncSession, is_admin: bool):
-    if not is_admin:
+async def process_delete_group_sechost_command(msg: Message, bot: Bot, state: FSMContext, session: AsyncSession, is_admin: bool, is_superadmin: bool):
+    if not is_admin or not is_superadmin:
         await msg.answer(text.false_admin.format(name=msg.from_user.full_name))
         return
 

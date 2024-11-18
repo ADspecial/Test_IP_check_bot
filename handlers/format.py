@@ -326,31 +326,41 @@ def escape_markdown(text: str) -> str:
         text = text.replace(char, f'\\{char}')
     return text
 
-async def blocklist_info(blocklist_info: list[dict], time: int, timeparam: str ) -> str:
+async def blocklist_info(blocklist_info: list[dict], time: str = None, timeparam: str = "дней") -> str:
     """
     Форматирует информацию о блокировочных списках.
 
     :param blocklist_info: Список словарей с информацией о блокировочных списках.
-    :param days: Количество дней для отображения в заголовке.
+    :param time: Время (или описание периода) для отображения в заголовке.
+    :param timeparam: Единицы измерения времени, например 'дней' или 'всего периода'.
     :return: Строка с отформатированной информацией о блокировочных списках.
     """
     if not blocklist_info:
         return "Нет блокировочных списков за указанный период."
 
-    result = [f"Блоклисты за последние {time} {timeparam}:\n"]
-    result.append("--------------------------------------------\n")
-    for blocklist in blocklist_info:
-        date = blocklist['updated'].strftime("%d.%m.%Y %H:%M:%S")
-        result.append(f"**{escape_markdown(blocklist['name'])}**\n")
-        result.append(f"Автор - @{escape_markdown(blocklist['username'])}\n")
-        result.append(f"Время создания - {date}\n")
-        result.append(f"Описание - {escape_markdown(blocklist['description'])}\n")
-        result.append("```\n")
-        result.extend(f"{ip}\n" for ip in blocklist['addresses'])
-        result.append("```\n")
-        result.append("--------------------------------------------\n")
+    # Заголовок с проверкой на параметр времени
+    if time and time != "all":
+        result = [f"Блоклисты за последние {time} {timeparam}:", "--------------------------------------------"]
+    else:
+        result = ["Блоклисты за весь период:", "--------------------------------------------"]
 
-    return ''.join(result)
+    # Форматируем данные для текстового отображения
+    for blocklist in blocklist_info:
+        name = blocklist['name'] if blocklist['name'] else 'Нет имени'
+        username = f"@{blocklist['username']}" if blocklist['username'] else 'Нет автора'
+        updated = blocklist['updated'].strftime("%d.%m.%Y %H:%M:%S") if blocklist['updated'] else 'Нет времени'
+        description = blocklist['description'] if blocklist['description'] else 'Нет описания'
+        addresses = "\n".join(blocklist['addresses']) if blocklist['addresses'] else 'Нет адресов'
+
+        result.append(f"**{name}**")
+        result.append(f"Автор - {username}")
+        result.append(f"Время создания - {updated}")
+        result.append(f"Описание - {description}")
+        result.append("```" + "\n".join(blocklist['addresses']) + "```")
+        result.append("--------------------------------------------")
+
+    return "\n".join(result)
+
 
 async def delete_blocklist_info(success_names, error_names) -> str:
     response_lines = []
