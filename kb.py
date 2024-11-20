@@ -109,11 +109,19 @@ repeat_delete_sechost = [
 repeat_delete_sechost = InlineKeyboardMarkup(inline_keyboard=repeat_delete_sechost)
 
 rules_menu = [
-    [InlineKeyboardButton(text="✍️ Создать/изменить правило", callback_data="add_rules")], [InlineKeyboardButton(text="🗑 Удалить правило", callback_data="delete_rules"),
-    InlineKeyboardButton(text="📄 Просмотр правил", callback_data="view_rules")],
+    [InlineKeyboardButton(text="🚫 Создать/изменить блокировку", callback_data="add_blockrules")],
+    [InlineKeyboardButton(text="✍️ Создать/изменить общее правило", callback_data="add_rules")], [InlineKeyboardButton(text="🗑 Удалить правило", callback_data="delete_rules"),
+    InlineKeyboardButton(text="📄 Просмотр правил", callback_data="view_rules_menu")],
+    [InlineKeyboardButton(text="🔄 Изменить применение правил", callback_data="commit_rules")],
     [InlineKeyboardButton(text="◀️ Назад", callback_data="block_menu")],
 ]
 rules_menu = InlineKeyboardMarkup(inline_keyboard=rules_menu)
+
+repeat_add_blockrules = [
+    [InlineKeyboardButton(text="Добавить еще правила", callback_data="add_blockrules")],
+    [InlineKeyboardButton(text="◀️ Назад", callback_data="rules_menu")]
+]
+repeat_add_blockrules = InlineKeyboardMarkup(inline_keyboard=repeat_add_blockrules)
 
 repeat_add_rules = [
     [InlineKeyboardButton(text="Добавить еще правила", callback_data="add_rules")],
@@ -132,6 +140,19 @@ repeat_delete_rules = [
     [InlineKeyboardButton(text="◀️ Назад", callback_data="rules_menu")]
 ]
 repeat_delete_rules = InlineKeyboardMarkup(inline_keyboard=repeat_delete_rules)
+
+view_rules_menu = [
+    [InlineKeyboardButton(text="🚫 Просмотр блокирующий правил", callback_data="view_blockrules")],
+    [InlineKeyboardButton(text="📄 Просмотр общих правил", callback_data="view_rules")],
+    [InlineKeyboardButton(text="◀️ Назад", callback_data="rules_menu")],
+]
+view_rules_menu = InlineKeyboardMarkup(inline_keyboard=view_rules_menu)
+
+repeat_view_blockrules = [
+    [InlineKeyboardButton(text="Посмотреть блокирующие правила", callback_data="view_blockrules")],
+    [InlineKeyboardButton(text="◀️ Назад", callback_data="view_rules_menu")]
+]
+repeat_view_blockrules  = InlineKeyboardMarkup(inline_keyboard=repeat_view_blockrules )
 
 check_menu = [
     [InlineKeyboardButton(text="📄 Сводный отчет по адресу", callback_data="summary_menu")],
@@ -228,4 +249,5 @@ back_blocklist = InlineKeyboardMarkup(inline_keyboard=[[InlineKeyboardButton(tex
 back_sechost = InlineKeyboardMarkup(inline_keyboard=[[InlineKeyboardButton(text="◀️ Назад", callback_data="sechost_menu")]])
 back_group_sechost = InlineKeyboardMarkup(inline_keyboard=[[InlineKeyboardButton(text="◀️ Назад", callback_data="group_sechost_menu")]])
 back_rule = InlineKeyboardMarkup(inline_keyboard=[[InlineKeyboardButton(text="◀️ Назад", callback_data="rules_menu")]])
+back_view_rules_menu = InlineKeyboardMarkup(inline_keyboard=[[InlineKeyboardButton(text="◀️ Назад", callback_data="view_rules_menu")]])
 iexit_kb = InlineKeyboardMarkup(inline_keyboard=[[InlineKeyboardButton(text="◀️ Выйти в меню", callback_data="view_menu")]])

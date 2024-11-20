@@ -98,7 +98,7 @@ async def view_blocklist(msg: Message, bot: Bot, state: FSMContext, session: Asy
     try:
         day = int(msg.text)
     except ValueError:
-        await mesg.edit_text("Количество дней должно быть числом", reply_markup=kb.repeat_view_blocklist)
+        await msg.edit_text("Количество дней должно быть числом", reply_markup=kb.repeat_view_blocklist)
         await state.set_state(Blocklist_states.menu)
         return
     await bot.delete_message(msg.chat.id, msg.message_id-2,request_timeout=0)

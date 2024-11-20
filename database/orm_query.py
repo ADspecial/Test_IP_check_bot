@@ -10,7 +10,7 @@ from sqlalchemy.exc import SQLAlchemyError
 import asyncio
 
 from datetime import datetime, timedelta
-from database.models import Address, History, Virustotal, Ipinfo, Abuseipdb, Kaspersky, CriminalIP, Alienvault, Ipqualityscore, User, BlockList, blocklist_address_association, SecurityHost, GroupSecurityHost, Rule
+from database.models import Address, History, Virustotal, Ipinfo, Abuseipdb, Kaspersky, CriminalIP, Alienvault, Ipqualityscore, User, BlockList, blocklist_address_association, SecurityHost, GroupSecurityHost, Rule, RuleFullStatus
 
 from typing import Callable, List, Dict, Optional, Union, Tuple, Any, Type
 
@@ -1335,13 +1335,13 @@ async def delete_group_security_host(session: AsyncSession, identifier: str) -> 
         print(f"Произошла ошибка: {e}")
         return False
 
-async def create_or_update_rule(
+async def create_or_update_blockrule(
     session: AsyncSession,
     name: str,
     commit: bool,
     blocklist_name: str,
-    security_host_name: Optional[str] = None,
-    group_security_host_name: Optional[str] = None
+    target: Optional[str] = None,
+    action: bool = False  # False = drop, True = pass
 ) -> bool:
     """
     Создает или обновляет запись в таблице Rule.
@@ -1350,8 +1350,8 @@ async def create_or_update_rule(
     :param name: Название правила.
     :param commit: Флаг commit для правила.
     :param blocklist_name: Название BlockList, к которому относится правило.
-    :param security_host_name: Имя SecurityHost, если правило связано с конкретным хостом.
-    :param group_security_host_name: Имя GroupSecurityHost, если правило связано с группой хостов.
+    :param target: Имя SecurityHost или GroupSecurityHost.
+    :param action: Действие для правила (False = drop, True = pass).
     :return: True, если операция выполнена успешно, иначе False.
     """
     try:
@@ -1364,99 +1364,238 @@ async def create_or_update_rule(
             print(f"Ошибка: BlockList с именем '{blocklist_name}' не найден.")
             return False
 
-        # Проверка наличия SecurityHost (если указан)
         security_host = None
-        if security_host_name:
-            security_host_result = await session.execute(
-                select(SecurityHost).where(SecurityHost.name == security_host_name)
-            )
-            security_host = security_host_result.scalar_one_or_none()
-            if not security_host:
-                print(f"Ошибка: SecurityHost с именем '{security_host_name}' не найден.")
-                return False
-
-        # Проверка наличия GroupSecurityHost (если указан)
         group_security_host = None
-        if group_security_host_name:
+
+        # Проверяем сначала GroupSecurityHost
+        if target:
             group_security_host_result = await session.execute(
-                select(GroupSecurityHost).where(GroupSecurityHost.name == group_security_host_name)
+                select(GroupSecurityHost).where(GroupSecurityHost.name == target)
             )
             group_security_host = group_security_host_result.scalar_one_or_none()
-            if not group_security_host:
-                print(f"Ошибка: GroupSecurityHost с именем '{group_security_host_name}' не найден.")
+
+            # Проверяем SecurityHost
+            security_host_result = await session.execute(
+                select(SecurityHost).where(SecurityHost.name == target)
+            )
+            security_host = security_host_result.scalar_one_or_none()
+
+            # Если не найдено ни в одной из таблиц
+            if not group_security_host and not security_host:
+                print(f"Ошибка: Target '{target}' не найден ни как SecurityHost, ни как GroupSecurityHost.")
                 return False
 
         # Проверка наличия правила с таким именем
         rule_result = await session.execute(
             select(Rule).where(Rule.name == name)
-            .options(selectinload(Rule.blocklist), selectinload(Rule.security_host), selectinload(Rule.group_security_host))
+            .options(
+                selectinload(Rule.blocklists),
+                selectinload(Rule.security_hosts),
+                selectinload(Rule.group_security_hosts)
+            )
         )
         rule = rule_result.scalar_one_or_none()
 
         if rule:
             # Обновление существующего правила
             rule.commit = commit
-            rule.blocklist = blocklist
-            rule.security_host = security_host
-            rule.group_security_host = group_security_host
+            rule.action = action  # Обновляем action
+            if blocklist not in rule.blocklists:
+                rule.blocklists.append(blocklist)
+            if security_host and security_host not in rule.security_hosts:
+                rule.security_hosts.append(security_host)
+            if group_security_host and group_security_host not in rule.group_security_hosts:
+                rule.group_security_hosts.append(group_security_host)
         else:
             # Создание нового правила
             rule = Rule(
                 name=name,
                 commit=commit,
-                blocklist=blocklist,
-                security_host=security_host,
-                group_security_host=group_security_host
+                action=action,
+                blocklists=[blocklist],
+                security_hosts=[security_host] if security_host else [],
+                group_security_hosts=[group_security_host] if group_security_host else []
             )
             session.add(rule)
+
+        # Обновляем поле `full` в зависимости от заполненности
+        rule.update_full_status()
 
         # Коммит изменений
         await session.commit()
         return True
 
     except SQLAlchemyError as e:
-        await session.rollback()  # Откат транзакции в случае ошибки
+        await session.rollback()
         print(f"Ошибка базы данных: {e}")
         return False
     except Exception as e:
         print(f"Произошла ошибка: {e}")
         return False
 
-async def rule_commit(
+async def create_or_update_general_rule(
     session: AsyncSession,
-    rule_name: str,
-    new_commit: bool
+    name: str,
+    source: str,
+    destination: str,
+    protocol: str,
+    action: bool,
+    commit: bool,
 ) -> bool:
     """
-    Изменяет флаг commit в записи таблицы Rule.
+    Создает или обновляет запись в таблице Rule.
 
     :param session: Асинхронная сессия для работы с базой данных.
-    :param rule_name: Название правила, для которого нужно изменить флаг commit.
-    :param new_commit: Новое значение для флага commit.
+    :param name: Название правила.
+    :param source: Source IP и порт или имя BlockList.
+    :param destination: Destination IP и порт или имя BlockList.
+    :param protocol: Протокол (TCP, UDP или TCP/UDP).
+    :param action: Действие (False = drop, True = pass).
+    :param commit: Флаг commit для правила.
     :return: True, если операция выполнена успешно, иначе False.
     """
     try:
         # Проверка наличия правила с таким именем
         rule_result = await session.execute(
-            select(Rule).where(Rule.name == rule_name)
+            select(Rule).where(Rule.name == name)
         )
         rule = rule_result.scalar_one_or_none()
 
-        if not rule:
-            print(f"Ошибка: Rule с именем '{rule_name}' не найден.")
-            return False
+        if rule:
+            # Обновление существующего правила
+            rule.source_ip, rule.source_port = parse_ip_port(source)
+            rule.destination_ip, rule.destination_port = parse_ip_port(destination)
+            rule.protocol = [protocol] if protocol != "TCP/UDP" else ["TCP", "UDP"]
+            rule.action = action  # Преобразуем в bool
+            rule.commit = commit
+        else:
+            # Создание нового правила
+            source_ip, source_port = parse_ip_port(source)
+            destination_ip, destination_port = parse_ip_port(destination)
+            protocol_list = [protocol] if protocol != "TCP/UDP" else ["TCP", "UDP"]
 
-        # Обновление флага commit
-        rule.commit = new_commit
+            rule = Rule(
+                name=name,
+                commit=commit,
+                action=action,
+                source_ip=source_ip,
+                source_port=source_port,
+                destination_ip=destination_ip,
+                destination_port=destination_port,
+                protocol=protocol_list,
+            )
+            session.add(rule)
+
+        # Обновляем поле `full` в зависимости от заполненности
+        rule.update_full_status()
 
         # Коммит изменений
         await session.commit()
         return True
 
     except SQLAlchemyError as e:
-        await session.rollback()  # Откат транзакции в случае ошибки
+        await session.rollback()
         print(f"Ошибка базы данных: {e}")
         return False
     except Exception as e:
         print(f"Произошла ошибка: {e}")
         return False
+
+def parse_ip_port(value: str):
+    """
+    Разбирает строку вида '192.168.1.1:22' на IP и порт.
+
+    :param value: Строка с IP и порт или BlockList name.
+    :return: Кортеж (IP, порт) или (BlockList name, None).
+    """
+    if ":" in value:
+        ip, port = value.split(":")
+        return [ip.strip()], [int(port.strip())]
+    return [value.strip()], []
+
+async def delete_rule(session: AsyncSession, name: str) -> bool:
+    """
+    Удаляет запись из таблицы Rule по имени.
+
+    :param session: Асинхронная сессия для работы с базой данных.
+    :param name: Имя правила для удаления.
+    :return: True, если правило успешно удалено, иначе False.
+    """
+    try:
+        # Поиск правила по имени
+        rule_result = await session.execute(
+            select(Rule).where(Rule.name == name)
+        )
+        rule = rule_result.scalar_one_or_none()
+
+        if not rule:
+            print(f"Ошибка: Правило с именем '{name}' не найдено.")
+            return False
+
+        # Удаление правила
+        await session.delete(rule)
+        await session.commit()
+        return True
+
+    except SQLAlchemyError as e:
+        await session.rollback()
+        print(f"Ошибка базы данных при удалении правила: {e}")
+        return False
+    except Exception as e:
+        print(f"Произошла ошибка: {e}")
+        return False
+
+async def get_block_rules_within_timeframe(
+    session: AsyncSession,
+    start_time: Optional[datetime] = None,
+    end_time: Optional[datetime] = None
+) -> List[Dict[str, any]]:
+    """
+    Получает записи из таблицы Rule с full=BLOCK в заданном временном интервале или все записи, если интервал не указан.
+
+    :param session: Асинхронная сессия для работы с базой данных.
+    :param start_time: Начальная дата и время для фильтрации.
+    :param end_time: Конечная дата и время для фильтрации.
+    :return: Список словарей с информацией о записях.
+    """
+    try:
+        # Создаем базовый запрос с предварительной загрузкой связанных объектов
+        query = (
+            select(Rule)
+            .options(
+                selectinload(Rule.blocklists),  # Предварительная загрузка блоклистов
+                selectinload(Rule.security_hosts),  # Предварительная загрузка хостов
+                selectinload(Rule.group_security_hosts),  # Предварительная загрузка групп хостов
+            )
+            .where(Rule.full == RuleFullStatus.BLOCK)
+        )
+
+        # Если указаны временные рамки, добавляем их в фильтр
+        if start_time and end_time:
+            query = query.where(Rule.updated >= start_time, Rule.updated <= end_time)
+
+        # Выполняем запрос
+        result = await session.execute(query)
+        rules = result.scalars().all()
+
+        # Формируем список словарей с нужной информацией
+        block_rules = []
+        for rule in rules:
+            block_rules.append({
+                'name': rule.name,
+                'blocklists': [blocklist.name for blocklist in rule.blocklists] if rule.blocklists else [],
+                'security_hosts': [
+                    host.name for host in rule.security_hosts
+                ] + [
+                    group.name for group in rule.group_security_hosts
+                ] if rule.security_hosts or rule.group_security_hosts else [],
+                'commit': rule.commit,
+                'status': rule.status if rule.status else "Нет статуса",
+                'updated': rule.updated.strftime("%Y-%m-%d %H:%M:%S"),  # Форматируем дату
+            })
+
+        return block_rules
+
+    except Exception as e:
+        print(f"Ошибка при получении записей из Rule: {e}")
+        return []  # Возвращаем пустой список в случае ошибки

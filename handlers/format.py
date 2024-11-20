@@ -490,3 +490,40 @@ async def delete_group_sechost_info(success_names: list[str], error_names: list[
         return "\n".join(response_lines)
     else:
         return "Не было удалено ни одной группы безопасности."
+
+async def blockrules_info(rules_info: list[dict], time: str = None, timeparam: str = "дней") -> str:
+    """
+    Форматирует информацию о правилах с full=BLOCK для отображения в виде таблицы с разметкой для Telegram.
+
+    :param rules_info: Список словарей с информацией о правилах.
+    :param time: Время (или описание периода) для отображения в заголовке.
+    :param timeparam: Единицы измерения времени, например 'дней' или 'всего периода'.
+    :return: Строка с отформатированной табличной информацией о правилах.
+    """
+    if not rules_info:
+        return "Нет записей о правилах за указанный период."
+
+    # Заголовок с проверкой на параметр времени
+    if time and time != "all":
+        result = [f"Информация о правилах с full=BLOCK за последние {time} {timeparam}:"]
+    else:
+        result = ["Информация о правилах с full=BLOCK за весь период:"]
+
+    # Формируем данные для табличного отображения
+    table_data = []
+    headers = ["Имя", "Блоклисты", "СЗИ", "Commit", "Status"]
+
+    for rule in rules_info:
+        name = rule['name'] if rule['name'] else 'Нет имени'
+        blocklists = ", ".join(rule['blocklists']) if rule['blocklists'] else 'Нет блоклистов'
+        sechosts = ", ".join(rule['security_hosts']) if rule['security_hosts'] else 'Нет СЗИ'
+        commit = "Да" if rule['commit'] else "Нет"
+        status = rule['status'] if rule['status'] else 'Нет статуса'
+        table_data.append([name, blocklists, sechosts, commit, status])
+
+    # Форматируем таблицу с использованием tabulate
+    table = tabulate(table_data, headers=headers, tablefmt="grid")
+
+    result.append(f"```\n{table}\n```")
+
+    return "\n".join(result)

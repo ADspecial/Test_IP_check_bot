@@ -61,9 +61,23 @@ class GroupSechost_states(StatesGroup):
 
 class Rules_states(StatesGroup):
     menu = State()
+
+    add_name_block = State()
+    add_description_block = State()
+    add_target_block = State()
+    add_blocklist = State()
+    add_block = State()
+
     add_name = State()
-    add_description = State()
+    add_source = State()
+    add_destination = State()
+    add_protocol = State()
+    add_action = State()
     add_commit = State()
+    delete_name = State()
+    view_menu = State()
+    view_blockrules = State()
+
     add_target = State()
     add_blocklist = State()
     add = State()

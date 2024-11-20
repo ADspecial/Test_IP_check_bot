@@ -1,4 +1,5 @@
 import datetime
+import enum
 from sqlalchemy import (
     Boolean,
     Column,
@@ -11,6 +12,7 @@ from sqlalchemy import (
     func,
 )
 from sqlalchemy.dialects.postgresql import ARRAY
+from sqlalchemy import Enum
 from sqlalchemy.orm import relationship, DeclarativeBase
 from sqlalchemy.types import JSON
 from sqlalchemy import Table, Column, Integer, ForeignKey
@@ -195,19 +197,31 @@ class GroupSecurityHost(Base):
     def __repr__(self):
         return f"<GroupSecurityHost(id={self.id}, name={self.name})>"
 
+class RuleFullStatus(enum.Enum):
+    BLOCK = "block"
+    FULL = "full"
+    EMPTY = "empty"
+
 class Rule(Base):
     __tablename__ = 'rule'
 
     id = Column(Integer, primary_key=True)
     name = Column(String(255), nullable=False, unique=True)
     commit = Column(Boolean, default=False)
-    action = Column(String(32), nullable=False)
-    source_ip = Column(String(32), nullable=True)
-    destination_ip = Column(String(32), nullable=True)
-    source_port = Column(Integer, nullable=True)
-    destination_port = Column(Integer, nullable=True)
-    protocol = Column(String(32), nullable=True)
-    status = Column(String(32), nullable=True)
+
+    # Поле action теперь Boolean
+    action = Column(Boolean, nullable=False, default=False)  # False = drop, True = pass
+
+    # Списковые поля
+    source_ip = Column(ARRAY(String(32)), nullable=True)
+    destination_ip = Column(ARRAY(String(32)), nullable=True)
+    source_port = Column(ARRAY(Integer), nullable=True)
+    destination_port = Column(ARRAY(Integer), nullable=True)
+    protocol = Column(ARRAY(String(32)), nullable=True)
+
+    # Поле для статуса заполненности
+    full = Column(Enum(RuleFullStatus), default=RuleFullStatus.EMPTY)
+    status = Column(String(255), nullable=True)
 
     # Связи с блок-листами, хостами безопасности и группами хостов безопасности
     blocklists = relationship('BlockList', secondary=rule_blocklist_association, back_populates='rules')
@@ -215,7 +229,36 @@ class Rule(Base):
     group_security_hosts = relationship('GroupSecurityHost', secondary=rule_groupsecurityhost_association, back_populates='rules')
 
     def __repr__(self):
-        return f"<Rule(id={self.id}, name={self.name})>"
+        return f"<Rule(id={self.id}, name={self.name}, full={self.full}, action={'pass' if self.action else 'drop'})>"
+
+    def update_full_status(self):
+        """
+        Обновляет значение поля `full` в зависимости от заполненности данных правила.
+        """
+        # Для правила типа block
+        if (
+            self.name
+            and self.commit is not None
+            and self.blocklists
+            and (self.security_hosts or self.group_security_hosts)
+        ):
+            self.full = RuleFullStatus.BLOCK
+
+        # Для правила типа full
+        elif (
+            self.name
+            and self.commit is not None
+            and self.source_ip
+            and self.destination_ip
+            and self.source_port
+            and self.destination_port
+            and self.protocol
+        ):
+            self.full = RuleFullStatus.FULL
+
+        # Если не заполнено ни для блокирующего, ни для общего правила
+        else:
+            self.full = RuleFullStatus.EMPTY
 
 class Virustotal(Base):
     __tablename__ = 'virustotal'

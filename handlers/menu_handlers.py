@@ -153,6 +153,23 @@ async def sechost_menu_handler(msg_or_callback: Message | CallbackQuery, state: 
     else:
         await msg_or_callback.answer(text.false_admin.format(name=msg_or_callback.from_user.full_name), parse_mode=ParseMode.MARKDOWN)
 
+@menu_router.callback_query(F.data == "view_rules_menu")
+@menu_router.message(
+    Command("view_rules_menu"),
+    ChatTypeFilter(chat_type=["private"])
+)
+async def sechost_menu_handler(msg_or_callback: Message | CallbackQuery, state: FSMContext, is_admin: bool, is_superadmin: bool):
+    if is_admin and is_superadmin:
+        await state.set_state(Rules_states.view_menu)
+        if isinstance(msg_or_callback, CallbackQuery):
+            await msg_or_callback.message.edit_text(text.view_rules_menu, reply_markup=kb.view_rules_menu)
+            await msg_or_callback.answer('Просмотр правил')
+        else:
+            await msg_or_callback.answer(text.view_rules_menu, reply_markup=kb.view_rules_menu)
+    else:
+        await msg_or_callback.answer(text.false_admin.format(name=msg_or_callback.from_user.full_name), parse_mode=ParseMode.MARKDOWN)
+
+
 # Обработчик вывода меню проверки IP
 @menu_router.callback_query(F.data == "check_menu")
 @menu_router.message(
