@@ -62,11 +62,8 @@ async def main() -> None:
     """Main entry point for the bot."""
     async with Bot(token=KEYS.TG_KEY, default=DefaultBotProperties(parse_mode=ParseMode.HTML)) as bot:
         dp = Dispatcher(storage=MemoryStorage())
-
-        dp = Dispatcher(storage=MemoryStorage())
         dp.startup.register(on_startup)
         dp.shutdown.register(on_shutdown)
-
         dp.message.middleware(DataBaseSession(session_pool=session_maker))
         dp.message.middleware(ChatActionMiddleware())
         dp.message.middleware(LogMessageMiddleware(session_pool=session_maker))
