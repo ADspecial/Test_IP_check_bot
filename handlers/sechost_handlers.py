@@ -24,7 +24,7 @@ sechost_router = Router()
 @sechost_router.callback_query(F.data == "add_sechost")
 async def start_process_create_sechost(clbck: CallbackQuery, state: FSMContext):
     await state.set_state(Sechost_states.add_name)
-    await clbck.message.edit_text("Введите имя СЗИ:", reply_markup=kb.back_sechost)
+    await clbck.message.edit_text("Введите имя СУ:", reply_markup=kb.back_sechost)
 
 @sechost_router.message(Sechost_states.add_name)
 async def process_name_sechost(msg: Message, state: FSMContext, bot: Bot):
@@ -40,7 +40,7 @@ async def process_description_sechost(msg: Message, state: FSMContext, bot: Bot)
     await bot.delete_message(msg.chat.id, msg.message_id,request_timeout=0)
     await state.update_data(description=msg.text)
     await state.set_state(Sechost_states.add_ip)
-    await msg.answer("Введите ip адрес доступа к СЗИ:", reply_markup=kb.back_sechost)
+    await msg.answer("Введите IP-адрес доступа к СУ:", reply_markup=kb.back_sechost)
 
 @sechost_router.message(Sechost_states.add_ip)
 async def process_ip_sechost(msg: Message, state: FSMContext, bot: Bot):
@@ -55,7 +55,7 @@ async def process_ip_sechost(msg: Message, state: FSMContext, bot: Bot):
 
     await state.update_data(ip=ip_address)
     await state.set_state(Sechost_states.add_login)
-    await msg.answer("Введите логин СЗИ:", reply_markup=kb.back_sechost)
+    await msg.answer("Введите логин СУ:", reply_markup=kb.back_sechost)
 
 @sechost_router.message(Sechost_states.add_login)
 async def process_login_sechost(msg: Message, state: FSMContext, bot: Bot):
@@ -63,7 +63,7 @@ async def process_login_sechost(msg: Message, state: FSMContext, bot: Bot):
     await bot.delete_message(msg.chat.id, msg.message_id,request_timeout=0)
     await state.update_data(login=msg.text)
     await state.set_state(Sechost_states.add_password)
-    await msg.answer("Введите пароль СЗИ:", reply_markup=kb.back_sechost)
+    await msg.answer("Введите пароль СУ:", reply_markup=kb.back_sechost)
 
 @sechost_router.message(Sechost_states.add_password)
 async def process_login_sechost(msg: Message, state: FSMContext, bot: Bot):
@@ -71,7 +71,7 @@ async def process_login_sechost(msg: Message, state: FSMContext, bot: Bot):
     await bot.delete_message(msg.chat.id, msg.message_id,request_timeout=0)
     await state.update_data(password=msg.text)
     await state.set_state(Sechost_states.add)
-    await msg.answer("Введите api_token СЗИ (если есть):", reply_markup=kb.back_sechost)
+    await msg.answer("Введите api_token СУ (если есть):", reply_markup=kb.back_sechost)
 
 
 @sechost_router.message(Sechost_states.add)
@@ -88,7 +88,7 @@ async def process_create_sechost(msg: Message, bot: Bot, state: FSMContext, sess
         await mesg.edit_text(output, parse_mode=ParseMode.MARKDOWN)
         await mesg.answer("Выберете действие:", reply_markup=kb.repeat_add_sechost)
     else:
-        await mesg.edit_text("Ошибка создания/обновления блоклиста", reply_markup=kb.repeat_add_sechost)
+        await mesg.edit_text("Ошибка создания/обновления ЧС", reply_markup=kb.repeat_add_sechost)
 
 @sechost_router.message(Command("add_host"))
 async def add_sechost_command(msg: Message, state: FSMContext, session: AsyncSession, is_admin: bool, is_superadmin: bool):
@@ -158,14 +158,14 @@ async def add_sechost_command(msg: Message, state: FSMContext, session: AsyncSes
     if result:
         await mesg.edit_text(f"СЗИ '{name}' успешно добавлен или обновлен.", parse_mode=ParseMode.MARKDOWN)
     else:
-        await mesg.edit_text("Ошибка создания/обновления СЗИ.")
+        await mesg.edit_text("Ошибка создания/обновления СУ.")
 
     await state.set_state(Base_states.start)
 
 @sechost_router.callback_query(F.data == "delete_sechost")
 async def start_process_delete_sechost(clbck: CallbackQuery, state: FSMContext):
     await state.set_state(Sechost_states.delete)
-    await clbck.message.edit_text("Введите имена или IP-адреса СЗИ через пробел:", reply_markup=kb.back_sechost)
+    await clbck.message.edit_text("Введите имена или IP-адреса СУ через пробел:", reply_markup=kb.back_sechost)
 
 @sechost_router.message(Sechost_states.delete)
 @flags.chat_action("typing")
@@ -200,7 +200,7 @@ async def process_delete_sechost(msg: Message, bot: Bot, state: FSMContext, sess
     args = msg.text.split()[1:]
 
     if not args:
-        await mesg.edit_text("Пожалуйста, введите имена или IP-адреса СЗИ через пробел.")
+        await mesg.edit_text("Пожалуйста, введите имена или IP-адреса СУ через пробел.")
         await state.set_state(Base_states.start)
         return
 
@@ -220,7 +220,7 @@ async def process_delete_sechost(msg: Message, bot: Bot, state: FSMContext, sess
 
 @sechost_router.callback_query(F.data == "view_sechost")
 async def start_process_view_sechost(clbck: CallbackQuery, state: FSMContext):
-    await clbck.message.edit_text("Введите all или количество дней за которое необходимо просмотреть СЗИ:",reply_markup=kb.back_sechost)
+    await clbck.message.edit_text("Введите all или количество дней за которое необходимо просмотреть СУ:",reply_markup=kb.back_sechost)
     await state.set_state(Sechost_states.view)
 
 @sechost_router.message(Sechost_states.view)

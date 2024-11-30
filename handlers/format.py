@@ -340,9 +340,9 @@ async def blocklist_info(blocklist_info: list[dict], time: str = None, timeparam
 
     # Заголовок с проверкой на параметр времени
     if time and time != "all":
-        result = [f"Блоклисты за последние {time} {timeparam}:", "--------------------------------------------"]
+        result = [f"ЧС за последние {time} {timeparam}:", "--------------------------------------------"]
     else:
-        result = ["Блоклисты за весь период:", "--------------------------------------------"]
+        result = ["ЧС за весь период:", "--------------------------------------------"]
 
     # Форматируем данные для текстового отображения
     for blocklist in blocklist_info:
@@ -365,17 +365,17 @@ async def blocklist_info(blocklist_info: list[dict], time: str = None, timeparam
 async def delete_blocklist_info(success_names, error_names) -> str:
     response_lines = []
     if success_names:
-        response_lines.append("Были удалены следующие блоклисты:")
+        response_lines.append("Были удалены следующие ЧС:")
         response_lines.append("```\n" + "\n".join(success_names) + "\n```")
 
     if error_names:
-        response_lines.append("Следующие блоклисты не были найдены:")
+        response_lines.append("Следующие ЧС не были найдены:")
         response_lines.append("```\n" + "\n".join(error_names) + "\n```")
 
     if response_lines:
         return "\n".join(response_lines)
     else:
-        return "Не было удалено ни одного блоклиста."
+        return "Не было удалено ни одного ЧС."
 
 async def sechost_output(data):
     output = []
@@ -383,44 +383,44 @@ async def sechost_output(data):
     # Проверяем и добавляем заблокированные адреса
     if data:
         accepted_str = "\n".join(data)
-        output.append("**Был добавлен СЗИ:**\n```\n" + accepted_str + "\n```\n")
+        output.append("**Был добавлен СУ:**\n```\n" + accepted_str + "\n```\n")
 
     # Возвращаем объединенный вывод или сообщение о том, что нет информации
-    return "\n".join(output) if output else "Ошибка! Не был добавлен СЗИ."
+    return "\n".join(output) if output else "Ошибка! Не был добавлен СУ."
 
 async def delete_sechost_info(success_hosts: List[str], error_hosts: List[str]) -> str:
     response_lines = []
 
     if success_hosts:
-        response_lines.append("Были удалены следующие СЗИ:")
+        response_lines.append("Были удалены следующие СУ:")
         response_lines.append("```\n" + "\n".join(success_hosts) + "\n```")
 
     if error_hosts:
-        response_lines.append("Следующие СЗИ не были найдены:")
+        response_lines.append("Следующие СУ не были найдены:")
         response_lines.append("```\n" + "\n".join(error_hosts) + "\n```")
 
     if response_lines:
         return "\n".join(response_lines)
     else:
-        return "Не было удалено ни одного СЗИ."
+        return "Не было удалено ни одного СУ."
 
 async def sechost_info(sechost_info: List[Dict], time: Optional[str] = None, timeparam: str = "дней") -> str:
     """
-    Форматирует информацию о СЗИ для отображения в виде таблицы с разметкой для Telegram.
+    Форматирует информацию о СУ для отображения в виде таблицы с разметкой для Telegram.
 
-    :param sechost_info: Список словарей с информацией о СЗИ.
+    :param sechost_info: Список словарей с информацией о СУ.
     :param time: Время (или описание периода) для отображения в заголовке.
     :param timeparam: Единицы измерения времени, например 'дней' или 'всего периода'.
-    :return: Строка с отформатированной табличной информацией о СЗИ.
+    :return: Строка с отформатированной табличной информацией о СУ.
     """
     if not sechost_info:
-        return "Нет записей о СЗИ за указанный период."
+        return "Нет записей о СУ за указанный период."
 
     # Заголовок с проверкой на параметр времени
     if time and time != "all":
-        result = [f"Информация о СЗИ за последние {time} {timeparam}:"]
+        result = [f"Информация о СУ за последние {time} {timeparam}:"]
     else:
-        result = ["Информация о СЗИ за весь период:"]
+        result = ["Информация о СУ за весь период:"]
 
     # Формируем данные для табличного отображения
     table_data = []
@@ -443,25 +443,25 @@ async def sechost_info(sechost_info: List[Dict], time: Optional[str] = None, tim
 
 async def group_sechost_info(group_sechost_info: list[dict], time: str = None, timeparam: str = "дней") -> str:
     """
-    Форматирует информацию о группах СЗИ для отображения в виде таблицы с разметкой для Telegram.
+    Форматирует информацию о группах СУ для отображения в виде таблицы с разметкой для Telegram.
 
-    :param group_sechost_info: Список словарей с информацией о группах СЗИ.
+    :param group_sechost_info: Список словарей с информацией о группахСУ.
     :param time: Время (или описание периода) для отображения в заголовке.
     :param timeparam: Единицы измерения времени, например 'дней' или 'всего периода'.
-    :return: Строка с отформатированной табличной информацией о группах СЗИ.
+    :return: Строка с отформатированной табличной информацией о группах СУ.
     """
     if not group_sechost_info:
-        return "Нет записей о группах СЗИ за указанный период."
+        return "Нет записей о группах СУ за указанный период."
 
     # Заголовок с проверкой на параметр времени
     if time and time != "all":
-        result = [f"Информация о группах СЗИ за последние {time} {timeparam}:"]
+        result = [f"Информация о группах СУ за последние {time} {timeparam}:"]
     else:
-        result = ["Информация о группах СЗИ за весь период:"]
+        result = ["Информация о группах СУ за весь период:"]
 
     # Формируем данные для табличного отображения
     table_data = []
-    headers = ["Имя группы", "Описание", "Хосты СЗИ"]
+    headers = ["Имя группы", "Описание", "Хосты СУ"]
 
     for group in group_sechost_info:
         name = group['name'] if group['name'] else 'Нет имени'

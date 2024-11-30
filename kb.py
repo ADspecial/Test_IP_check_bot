@@ -9,36 +9,36 @@ start_menu = InlineKeyboardMarkup(inline_keyboard=start_menu)
 
 main_menu = [
     #[InlineKeyboardButton(text="🚫 Блокировка IP", callback_data="block_menu")],
-    [InlineKeyboardButton(text="📄 Проверка IP", callback_data="check_menu")],
+    [InlineKeyboardButton(text="📄 Проверка адресов", callback_data="check_menu")],
     [InlineKeyboardButton(text="🔎 Помощь", callback_data="help")]
 ]
 main_menu = InlineKeyboardMarkup(inline_keyboard=main_menu)
 
 main_menu_admin = [
-    [InlineKeyboardButton(text="🚫 Блокировка IP", callback_data="block_menu")],
-    [InlineKeyboardButton(text="📄 Проверка IP", callback_data="check_menu")],
+    [InlineKeyboardButton(text="🚫 Блокировка адресов", callback_data="block_menu")],
+    [InlineKeyboardButton(text="📄 Проверка адресов", callback_data="check_menu")],
     [InlineKeyboardButton(text="🔎 Помощь", callback_data="help")]
 ]
 main_menu_admin = InlineKeyboardMarkup(inline_keyboard=main_menu_admin)
 
 block_menu = [
-    [InlineKeyboardButton(text="📄 Управлние блоклистами", callback_data="blocklist_menu"),
-    InlineKeyboardButton(text="🌐 Управление СЗИ", callback_data="sechost_menu")],
+    [InlineKeyboardButton(text="📄 Управлние черными списками", callback_data="blocklist_menu"),
+    InlineKeyboardButton(text="🌐 Управление сетевыми устройствами", callback_data="sechost_menu")],
     [InlineKeyboardButton(text="🚫 Управление правилами", callback_data="rules_menu")],
     [InlineKeyboardButton(text="◀️ Выйти в меню", callback_data="view_menu")]
 ]
 block_menu = InlineKeyboardMarkup(inline_keyboard=block_menu)
 
 blocklist_menu = [
-    [InlineKeyboardButton(text="✍️ Создать/изменить блоклист", callback_data="add_bloсklist")],
-    [InlineKeyboardButton(text="🗑 Удалить блоклист", callback_data="delete_bloсklist"),
-    InlineKeyboardButton(text="📄 Просмотр блоклистов", callback_data="view_bloсklist")],
+    [InlineKeyboardButton(text="✍️ Создать/изменить ЧС", callback_data="add_bloсklist")],
+    [InlineKeyboardButton(text="🗑 Удалить ЧС", callback_data="delete_bloсklist"),
+    InlineKeyboardButton(text="📄 Просмотр ЧС", callback_data="view_bloсklist")],
     [InlineKeyboardButton(text="◀️ Назад", callback_data="block_menu")]
 ]
 blocklist_menu = InlineKeyboardMarkup(inline_keyboard=blocklist_menu)
 
 repeat_add_blocklist = [
-    [InlineKeyboardButton(text="Добавить еще блоклист", callback_data="add_bloсklist")],
+    [InlineKeyboardButton(text="Добавить еще ЧС", callback_data="add_bloсklist")],
     [InlineKeyboardButton(text="◀️ Назад", callback_data="blocklist_menu")]
 ]
 repeat_add_blocklist = InlineKeyboardMarkup(inline_keyboard=repeat_add_blocklist)
@@ -50,21 +50,21 @@ repeat_view_blocklist = [
 repeat_view_blocklist = InlineKeyboardMarkup(inline_keyboard=repeat_view_blocklist)
 
 repeat_delete_blocklist = [
-    [InlineKeyboardButton(text="Удалить другие даты", callback_data="delete_bloсklist")],
+    [InlineKeyboardButton(text="Удалить другие ЧС", callback_data="delete_bloсklist")],
     [InlineKeyboardButton(text="◀️ Назад", callback_data="blocklist_menu")]
 ]
 repeat_delete_blocklist = InlineKeyboardMarkup(inline_keyboard=repeat_delete_blocklist)
 
 sechost_menu = [
-    [InlineKeyboardButton(text="✍️ Создать/изменить СЗИ", callback_data="add_sechost")], [InlineKeyboardButton(text="🗑 Удалить СЗИ", callback_data="delete_sechost"),
-    InlineKeyboardButton(text="📄 Просмотр хостов", callback_data="view_sechost")],
-    [InlineKeyboardButton(text="📑 Управление группами СЗИ", callback_data="group_sechost_menu")],
+    [InlineKeyboardButton(text="✍️ Создать/изменить СУ", callback_data="add_sechost")], [InlineKeyboardButton(text="🗑 Удалить СЗИ", callback_data="delete_sechost"),
+    InlineKeyboardButton(text="📄 Просмотр СУ", callback_data="view_sechost")],
+    [InlineKeyboardButton(text="📑 Управление группами СУ", callback_data="group_sechost_menu")],
     [InlineKeyboardButton(text="◀️ Назад", callback_data="block_menu")],
 ]
 sechost_menu = InlineKeyboardMarkup(inline_keyboard=sechost_menu)
 
 group_sechost_menu = [
-    [InlineKeyboardButton(text="✍️ Создать/изменить группы СЗИ", callback_data="add_group_sechost")], [InlineKeyboardButton(text="🗑 Удалить группы СЗИ", callback_data="delete_group_sechost"),
+    [InlineKeyboardButton(text="✍️ Создать/изменить группы СУ", callback_data="add_group_sechost")], [InlineKeyboardButton(text="🗑 Удалить группы СЗИ", callback_data="delete_group_sechost"),
     InlineKeyboardButton(text="📄 Просмотр групп", callback_data="view_group_sechost")],
     [InlineKeyboardButton(text="◀️ Назад", callback_data="sechost_menu")],
 ]
@@ -73,37 +73,37 @@ group_sechost_menu = InlineKeyboardMarkup(inline_keyboard=
 group_sechost_menu)
 
 repeat_add_group_sechost = [
-    [InlineKeyboardButton(text="Добавить еще группу СЗИ", callback_data="add_group_sechost")],
+    [InlineKeyboardButton(text="Добавить еще группу СУ", callback_data="add_group_sechost")],
     [InlineKeyboardButton(text="◀️ Назад", callback_data="group_sechost_menu")]
 ]
 repeat_add_group_sechost = InlineKeyboardMarkup(inline_keyboard=repeat_add_group_sechost)
 
 repeat_view_group_sechost = [
-    [InlineKeyboardButton(text="Просмотреть СЗИ", callback_data="view_group_sechost")],
+    [InlineKeyboardButton(text="Просмотреть СУ", callback_data="view_group_sechost")],
     [InlineKeyboardButton(text="◀️ Назад", callback_data="group_sechost_menu")]
 ]
 repeat_view_group_sechost = InlineKeyboardMarkup(inline_keyboard=repeat_view_group_sechost)
 
 repeat_delete_group_sechost = [
-    [InlineKeyboardButton(text="Удалить СЗИ", callback_data="delete_group_sechost")],
+    [InlineKeyboardButton(text="Удалить СУ", callback_data="delete_group_sechost")],
     [InlineKeyboardButton(text="◀️ Назад", callback_data="group_sechost_menu")]
 ]
 repeat_delete_group_sechost = InlineKeyboardMarkup(inline_keyboard=repeat_delete_group_sechost)
 
 repeat_add_sechost = [
-    [InlineKeyboardButton(text="Добавить еще СЗИ", callback_data="add_sechost")],
+    [InlineKeyboardButton(text="Добавить еще СУ", callback_data="add_sechost")],
     [InlineKeyboardButton(text="◀️ Назад", callback_data="sechost_menu")]
 ]
 repeat_add_sechost = InlineKeyboardMarkup(inline_keyboard=repeat_add_sechost)
 
 repeat_view_sechost = [
-    [InlineKeyboardButton(text="Просмотреть СЗИ", callback_data="view_sechost")],
+    [InlineKeyboardButton(text="Просмотреть СУ", callback_data="view_sechost")],
     [InlineKeyboardButton(text="◀️ Назад", callback_data="sechost_menu")]
 ]
 repeat_view_sechost = InlineKeyboardMarkup(inline_keyboard=repeat_view_sechost)
 
 repeat_delete_sechost = [
-    [InlineKeyboardButton(text="Удалить СЗИ", callback_data="delete_sechost")],
+    [InlineKeyboardButton(text="Удалить СУ", callback_data="delete_sechost")],
     [InlineKeyboardButton(text="◀️ Назад", callback_data="sechost_menu")]
 ]
 repeat_delete_sechost = InlineKeyboardMarkup(inline_keyboard=repeat_delete_sechost)
@@ -164,57 +164,57 @@ check_menu = [
 check_menu = InlineKeyboardMarkup(inline_keyboard=check_menu)
 
 virustotal_menu = [
-    [InlineKeyboardButton(text="⚙️ Информация об IP", callback_data="vt_ip")],
-    [InlineKeyboardButton(text="📄 Загрузить файл с IP", callback_data="vt_file")],
+    [InlineKeyboardButton(text="⚙️ Информация об адресах", callback_data="vt_ip")],
+    [InlineKeyboardButton(text="📄 Загрузить файл с адресами", callback_data="vt_file")],
     [InlineKeyboardButton(text="◀️ Назад", callback_data="check_menu")],
 ]
 virustotal_menu = InlineKeyboardMarkup(inline_keyboard=virustotal_menu)
 
 ipinfo_menu = [
-    [InlineKeyboardButton(text="⚙️ Информация об IP", callback_data="ipi_ip")],
-    [InlineKeyboardButton(text="📄 Загрузить файл с IP", callback_data="ipi_file")],
+    [InlineKeyboardButton(text="⚙️ Информация об адресах", callback_data="ipi_ip")],
+    [InlineKeyboardButton(text="📄 Загрузить файл с адресами", callback_data="ipi_file")],
     [InlineKeyboardButton(text="◀️ Назад", callback_data="check_menu")],
 ]
 ipinfo_menu = InlineKeyboardMarkup(inline_keyboard=ipinfo_menu)
 
 adbuseip_menu = [
-    [InlineKeyboardButton(text="⚙️ Информация об IP", callback_data="abuseipdb_ip")],
-    [InlineKeyboardButton(text="📄 Загрузить файл с IP", callback_data="abuseipdb_file")],
+    [InlineKeyboardButton(text="⚙️ Информация об адресах", callback_data="abuseipdb_ip")],
+    [InlineKeyboardButton(text="📄 Загрузить файл с адресами", callback_data="abuseipdb_file")],
     [InlineKeyboardButton(text="◀️ Назад", callback_data="check_menu")],
 ]
 adbuseip_menu = InlineKeyboardMarkup(inline_keyboard=adbuseip_menu)
 
 kaspersky_menu = [
-    [InlineKeyboardButton(text="⚙️ Информация об IP", callback_data="ksp_ip")],
-    [InlineKeyboardButton(text="📄 Загрузить файл с IP", callback_data="ksp_file")],
+    [InlineKeyboardButton(text="⚙️ Информация об адресах", callback_data="ksp_ip")],
+    [InlineKeyboardButton(text="📄 Загрузить файл с адресами", callback_data="ksp_file")],
     [InlineKeyboardButton(text="◀️ Назад", callback_data="check_menu")],
 ]
 kaspersky_menu = InlineKeyboardMarkup(inline_keyboard=kaspersky_menu)
 
 criminalip_menu = [
-    [InlineKeyboardButton(text="⚙️ Информация об IP", callback_data="cip_ip")],
-    [InlineKeyboardButton(text="📄 Загрузить файл с IP", callback_data="cip_file")],
+    [InlineKeyboardButton(text="⚙️ Информация об адресах", callback_data="cip_ip")],
+    [InlineKeyboardButton(text="📄 Загрузить файл с адресами", callback_data="cip_file")],
     [InlineKeyboardButton(text="◀️ Назад", callback_data="check_menu")],
 ]
 criminalip_menu = InlineKeyboardMarkup(inline_keyboard=criminalip_menu)
 
 alienvault_menu = [
-    [InlineKeyboardButton(text="⚙️ Информация об IP", callback_data="alv_ip")],
-    [InlineKeyboardButton(text="📄 Загрузить файл с IP", callback_data="alv_file")],
+    [InlineKeyboardButton(text="⚙️ Информация об адресах", callback_data="alv_ip")],
+    [InlineKeyboardButton(text="📄 Загрузить файл с адресами", callback_data="alv_file")],
     [InlineKeyboardButton(text="◀️ Назад", callback_data="check_menu")],
 ]
 alienvault_menu = InlineKeyboardMarkup(inline_keyboard=alienvault_menu)
 
 ipqualityscore_menu = [
-    [InlineKeyboardButton(text="⚙️ Информация об IP", callback_data="ipqs_ip")],
-    [InlineKeyboardButton(text="📄 Загрузить файл с IP", callback_data="ipqs_file")],
+    [InlineKeyboardButton(text="⚙️ Информация об адресах", callback_data="ipqs_ip")],
+    [InlineKeyboardButton(text="📄 Загрузить файл с адресами", callback_data="ipqs_file")],
     [InlineKeyboardButton(text="◀️ Назад", callback_data="check_menu")],
 ]
 ipqualityscore_menu = InlineKeyboardMarkup(inline_keyboard=ipqualityscore_menu)
 
 summary_menu = [
-    [InlineKeyboardButton(text="⚙️ Информация об IP", callback_data="summary_ip")],
-    [InlineKeyboardButton(text="📄 Загрузить файл с IP", callback_data="summary_file")],
+    [InlineKeyboardButton(text="⚙️ Информация об адресах", callback_data="summary_ip")],
+    [InlineKeyboardButton(text="📄 Загрузить файл с адресами", callback_data="summary_file")],
     [InlineKeyboardButton(text="◀️ Назад", callback_data="check_menu")],
 ]
 summary_menu  = InlineKeyboardMarkup(inline_keyboard=summary_menu )
