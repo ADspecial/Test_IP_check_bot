@@ -26,26 +26,26 @@ async def start_process_create_blockrule(clbck: CallbackQuery, state: FSMContext
 
 @rule_router.message(Rules_states.add_name_block)
 async def process_name_blockrule(msg: Message, state: FSMContext, bot: Bot):
-    await bot.delete_message(msg.chat.id, msg.message_id-1,request_timeout=0)
-    await bot.delete_message(msg.chat.id, msg.message_id,request_timeout=0)
+    #await bot.delete_message(msg.chat.id, msg.message_id-1,request_timeout=0)
+    #await bot.delete_message(msg.chat.id, msg.message_id,request_timeout=0)
     await state.update_data(name=msg.text.strip())
     await state.set_state(Rules_states.add_blocklist)
-    await msg.answer("Введите имя BlockList:", reply_markup=kb.back_rule)
+    await msg.answer("Введите имя ЧС:", reply_markup=kb.back_rule)
 
 @rule_router.message(Rules_states.add_blocklist)
 async def process_blocklist_blockrule(msg: Message, state: FSMContext, bot: Bot):
-    await bot.delete_message(msg.chat.id, msg.message_id-1,request_timeout=0)
-    await bot.delete_message(msg.chat.id, msg.message_id,request_timeout=0)
+   # await bot.delete_message(msg.chat.id, msg.message_id-1,request_timeout=0)
+    #await bot.delete_message(msg.chat.id, msg.message_id,request_timeout=0)
     await state.update_data(blocklist=msg.text.strip())
     await state.set_state(Rules_states.add_target_block)
-    await msg.answer("Введите имя SecurityHost или GroupSecurityHost (опционально):", reply_markup=kb.back_rule)
+    await msg.answer("Введите имя СУ или группы СУ:", reply_markup=kb.back_rule)
 
 
 @rule_router.message(Rules_states.add_target_block)
 @flags.chat_action("typing")
 async def process_create_blockrule(msg: Message, bot: Bot, state: FSMContext, session: AsyncSession):
-    await bot.delete_message(msg.chat.id, msg.message_id-1,request_timeout=0)
-    await bot.delete_message(msg.chat.id, msg.message_id,request_timeout=0)
+    #await bot.delete_message(msg.chat.id, msg.message_id-1,request_timeout=0)
+    #await bot.delete_message(msg.chat.id, msg.message_id,request_timeout=0)
     mesg = await msg.answer("Пожалуйста, подождите...")
 
     data = await state.get_data()
@@ -86,8 +86,8 @@ async def start_create_or_update_general_rule(clbck: CallbackQuery, state: FSMCo
 
 @rule_router.message(Rules_states.add_name)
 async def process_general_rule_name(msg: Message, state: FSMContext, bot: Bot):
-    await bot.delete_message(msg.chat.id, msg.message_id-1,request_timeout=0)
-    await bot.delete_message(msg.chat.id, msg.message_id,request_timeout=0)
+    #await bot.delete_message(msg.chat.id, msg.message_id-1,request_timeout=0)
+    #await bot.delete_message(msg.chat.id, msg.message_id,request_timeout=0)
     await state.update_data(name=msg.text.strip())
     await state.set_state(Rules_states.add_source)
     await msg.answer(
@@ -99,8 +99,8 @@ async def process_general_rule_name(msg: Message, state: FSMContext, bot: Bot):
 
 @rule_router.message(Rules_states.add_source)
 async def process_general_rule_source(msg: Message, state: FSMContext, bot: Bot):
-    await bot.delete_message(msg.chat.id, msg.message_id-1,request_timeout=0)
-    await bot.delete_message(msg.chat.id, msg.message_id,request_timeout=0)
+   # await bot.delete_message(msg.chat.id, msg.message_id-1,request_timeout=0)
+    #await bot.delete_message(msg.chat.id, msg.message_id,request_timeout=0)
     await state.update_data(source=msg.text.strip())
     await state.set_state(Rules_states.add_destination)
     await msg.answer(
@@ -252,8 +252,8 @@ async def start_get_block_rules(clbck: CallbackQuery, state: FSMContext):
 @rule_router.message(Rules_states.view_blockrules)
 @flags.chat_action("typing")
 async def process_get_block_rules_days(msg: Message, bot: Bot, session: AsyncSession, state: FSMContext):
-    await bot.delete_message(msg.chat.id, msg.message_id-1,request_timeout=0)
-    await bot.delete_message(msg.chat.id, msg.message_id,request_timeout=0)
+    #await bot.delete_message(msg.chat.id, msg.message_id-1,request_timeout=0)
+    #await bot.delete_message(msg.chat.id, msg.message_id,request_timeout=0)
     input_text = msg.text.strip()
 
     # Установка временного интервала

@@ -511,7 +511,7 @@ async def blockrules_info(rules_info: list[dict], time: str = None, timeparam: s
 
     # Формируем данные для табличного отображения
     table_data = []
-    headers = ["Имя", "Блоклисты", "СЗИ", "Commit", "Status"]
+    headers = ["Имя", "ЧС", "СУ", "Commit", "Status"]
 
     for rule in rules_info:
         name = rule['name'] if rule['name'] else 'Нет имени'
