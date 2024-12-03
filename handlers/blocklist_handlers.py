@@ -40,7 +40,7 @@ async def process_description_bloсklist(msg: Message, state: FSMContext, bot: B
     await bot.delete_message(msg.chat.id, msg.message_id,request_timeout=0)
     await state.update_data(description=msg.text)
     await state.set_state(Blocklist_states.add)
-    await msg.answer("Введите ip адреса блокировки:", reply_markup=kb.back_blocklist)
+    await msg.answer("Введите адреса для блокировки:", reply_markup=kb.back_blocklist)
 
 @blocklist_router.message(Blocklist_states.add)
 @flags.chat_action("typing")
@@ -57,7 +57,7 @@ async def process_create_blocklist(msg: Message, bot: Bot, state: FSMContext, se
         await mesg.edit_text(output, parse_mode=ParseMode.MARKDOWN)
         await mesg.answer("Выберете действие:", reply_markup=kb.repeat_add_blocklist)
     else:
-        await mesg.edit_text("Ошибка создания/обновления блоклиста", reply_markup=kb.repeat_add_blocklist)
+        await mesg.edit_text("Ошибка создания/обновления ЧС", reply_markup=kb.repeat_add_blocklist)
 
 @blocklist_router.message(Command("add_blocklist"))
 async def add_blocklist_command(msg: Message, state: FSMContext, session: AsyncSession, is_admin: bool):
@@ -83,13 +83,13 @@ async def add_blocklist_command(msg: Message, state: FSMContext, session: AsyncS
         output = await format.block_output(ip_list)
         await mesg.edit_text(output, parse_mode=ParseMode.MARKDOWN)
     else:
-        await mesg.edit_text("Ошибка создания/обновления блоклиста")
+        await mesg.edit_text("Ошибка создания/обновления ЧС")
     await state.set_state(Base_states.start)
 
 
 @blocklist_router.callback_query(F.data == "view_bloсklist")
 async def start_process_view_blocklist(clbck: CallbackQuery, state: FSMContext):
-    await clbck.message.edit_text("Введите количество дней за которое необходимо просмотреть блоклисты:",reply_markup=kb.back_blocklist)
+    await clbck.message.edit_text("Введите количество дней за которое необходимо просмотреть ЧС:",reply_markup=kb.back_blocklist)
     await state.set_state(Blocklist_states.view)
 
 @blocklist_router.message(Blocklist_states.view)
@@ -113,7 +113,7 @@ async def view_blocklist(msg: Message, bot: Bot, state: FSMContext, session: Asy
         await mesg.edit_text(output, parse_mode=ParseMode.MARKDOWN)
         await mesg.answer("Выберете действие:", reply_markup=kb.repeat_view_blocklist)
     else:
-        await mesg.edit_text("Блоклисты не найдены", reply_markup=kb.repeat_view_blocklist)
+        await mesg.edit_text("ЧС не найдены", reply_markup=kb.repeat_view_blocklist)
     await state.set_state(Blocklist_states.menu)
 
 @blocklist_router.message(Command("view_blocklist"))
@@ -137,7 +137,7 @@ async def view_blocklist_command(msg: Message, state: FSMContext, session: Async
             output = await format.blocklist_info(blocklists, None, None)
             await mesg.edit_text(output, parse_mode=ParseMode.MARKDOWN)
         else:
-            await mesg.edit_text("Блоклисты не найдены")
+            await mesg.edit_text("ЧС не найдены")
         await state.set_state(Base_states.start)
         return
 
@@ -174,14 +174,14 @@ async def view_blocklist_command(msg: Message, state: FSMContext, session: Async
         output = await format.blocklist_info(blocklists, time, param)
         await mesg.edit_text(output, parse_mode=ParseMode.MARKDOWN)
     else:
-        await mesg.edit_text("Блоклисты не найдены")
+        await mesg.edit_text("ЧС не найдены")
 
     await state.set_state(Base_states.start)
 
 @blocklist_router.callback_query(F.data == "delete_bloсklist")
 async def start_process_delete_bloсklist(clbck: CallbackQuery, state: FSMContext):
     await state.set_state(Blocklist_states.delete)
-    await clbck.message.edit_text("Введите имена блоклистов через пробел:", reply_markup=kb.back_blocklist)
+    await clbck.message.edit_text("Введите имена ЧС через пробел:", reply_markup=kb.back_blocklist)
 
 @blocklist_router.message(Blocklist_states.delete)
 @flags.chat_action("typing")
@@ -212,7 +212,7 @@ async def process_create_blocklist(msg: Message, state: FSMContext, session: Asy
     await state.set_state(Blocklist_states.delete_command)
     args = msg.text.split()[1:]
     if not args:
-        await mesg.edit_text("Пожалуйста, введите имена блоклистов через пробел: str: names")
+        await mesg.edit_text("Пожалуйста, введите имена ЧС через пробел: str: names")
         await state.set_state(Base_states.main_menu )
         return
     error_names = []

@@ -24,7 +24,7 @@ group_sechost_router = Router()
 @group_sechost_router.callback_query(F.data == "add_group_sechost")
 async def start_process_create_group_sechost(clbck: CallbackQuery, state: FSMContext):
     await state.set_state(GroupSechost_states.add_name)
-    await clbck.message.edit_text("Введите имя группы СЗИ:", reply_markup=kb.back_group_sechost)
+    await clbck.message.edit_text("Введите имя группы:", reply_markup=kb.back_group_sechost)
 
 @group_sechost_router.message(GroupSechost_states.add_name)
 async def process_name_group_sechost(msg: Message, state: FSMContext, bot: Bot):
@@ -32,7 +32,7 @@ async def process_name_group_sechost(msg: Message, state: FSMContext, bot: Bot):
     await bot.delete_message(msg.chat.id, msg.message_id, request_timeout=0)
     await state.update_data(name=msg.text)
     await state.set_state(GroupSechost_states.add_description)
-    await msg.answer("Введите описание группы СЗИ:", reply_markup=kb.back_group_sechost)
+    await msg.answer("Введите описание группы:", reply_markup=kb.back_group_sechost)
 
 @group_sechost_router.message(GroupSechost_states.add_description)
 async def process_description_group_sechost(msg: Message, state: FSMContext, bot: Bot):
@@ -40,7 +40,7 @@ async def process_description_group_sechost(msg: Message, state: FSMContext, bot
     await bot.delete_message(msg.chat.id, msg.message_id, request_timeout=0)
     await state.update_data(description=msg.text)
     await state.set_state(GroupSechost_states.add)
-    await msg.answer("Введите адреса или имена СЗИ через пробел:", reply_markup=kb.back_group_sechost)
+    await msg.answer("Введите адреса или имена СУ через пробел:", reply_markup=kb.back_group_sechost)
 
 @group_sechost_router.message(GroupSechost_states.add)
 @flags.chat_action("typing")
@@ -53,16 +53,16 @@ async def process_create_group_sechost(msg: Message, bot: Bot, state: FSMContext
     data = await state.get_data()
     result = await orm_query.create_or_update_group_security_host(session, data['name'], data['description'], data['security_hosts'])
     if result:
-        output = f"Группа СЗИ '{data['name']}' успешно добавлена или обновлена."
+        output = f"Группа СУ '{data['name']}' успешно добавлена или обновлена."
         await mesg.edit_text(output)
         await mesg.answer("Выберите действие:", reply_markup=kb.repeat_add_group_sechost)
     else:
-        await mesg.edit_text("Ошибка создания/обновления группы СЗИ", reply_markup=kb.repeat_add_group_sechost)
+        await mesg.edit_text("Ошибка создания/обновления группы СУ", reply_markup=kb.repeat_add_group_sechost)
 
 @group_sechost_router.callback_query(F.data == "delete_group_sechost")
 async def start_process_delete_group_sechost(clbck: CallbackQuery, state: FSMContext):
     await state.set_state(GroupSechost_states.delete)
-    await clbck.message.edit_text("Введите имена групп СЗИ через пробел для удаления:", reply_markup=kb.back_sechost)
+    await clbck.message.edit_text("Введите имена групп СУ через пробел для удаления:", reply_markup=kb.back_sechost)
 
 @group_sechost_router.message(GroupSechost_states.delete)
 @flags.chat_action("typing")
@@ -84,7 +84,7 @@ async def process_delete_group_sechost(msg: Message, bot: Bot, state: FSMContext
 
 @group_sechost_router.callback_query(F.data == "view_group_sechost")
 async def start_process_view_group_sechost(clbck: CallbackQuery, state: FSMContext):
-    await clbck.message.edit_text("Введите 'all' или количество дней, за которое необходимо просмотреть группы СЗИ:", reply_markup=kb.back_sechost)
+    await clbck.message.edit_text("Введите 'all' или количество дней, за которое необходимо просмотреть группы СУ:", reply_markup=kb.back_sechost)
     await state.set_state(GroupSechost_states.view)
 
 @group_sechost_router.message(GroupSechost_states.view)
@@ -116,7 +116,7 @@ async def view_group_sechost(msg: Message, bot: Bot, state: FSMContext, session:
         await mesg.edit_text(output, parse_mode=ParseMode.MARKDOWN)
         await msg.answer("Выберите действие:", reply_markup=kb.repeat_view_group_sechost)
     else:
-        await mesg.edit_text("Группы СЗИ не найдены", reply_markup=kb.repeat_view_group_sechost)
+        await mesg.edit_text("Группы СУ не найдены", reply_markup=kb.repeat_view_group_sechost)
 
     await state.set_state(GroupSechost_states.menu)
 
@@ -161,9 +161,9 @@ async def add_group_sechost_command(msg: Message, state: FSMContext, session: As
     )
 
     if result:
-        await mesg.edit_text(f"Группа СЗИ '{name}' успешно добавлена или обновлена.", parse_mode=ParseMode.MARKDOWN)
+        await mesg.edit_text(f"Группа СУ '{name}' успешно добавлена или обновлена.", parse_mode=ParseMode.MARKDOWN)
     else:
-        await mesg.edit_text("Ошибка создания/обновления группы СЗИ.")
+        await mesg.edit_text("Ошибка создания/обновления группы СУ.")
 
     await state.set_state(Base_states.start)
 
@@ -181,7 +181,7 @@ async def process_delete_group_sechost_command(msg: Message, bot: Bot, state: FS
     args = msg.text.split()[1:]
 
     if not args:
-        await mesg.edit_text("Пожалуйста, введите имена групп СЗИ через пробел.")
+        await mesg.edit_text("Пожалуйста, введите имена групп СУ через пробел.")
         await state.set_state(Base_states.start)
         return
 
@@ -255,7 +255,7 @@ async def view_group_sechost_command(msg: Message, state: FSMContext, session: A
         output = await format.group_sechost_info(group_sechosts, time_value, time_unit)
         await mesg.edit_text(output, parse_mode=ParseMode.MARKDOWN)
     else:
-        await mesg.edit_text("Группы СЗИ не найдены.")
+        await mesg.edit_text("Группы СУ не найдены.")
 
     # Возвращаемся к меню
     await state.set_state(Base_states.main_menu )
