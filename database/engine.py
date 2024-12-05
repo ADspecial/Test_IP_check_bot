@@ -35,7 +35,6 @@ async def create_db():
     except Exception as e:
         print(f"Error creating database: {e}")
 
-
 async def drop_db():
     try:
         async with engine.begin() as conn:
