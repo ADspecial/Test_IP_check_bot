@@ -100,7 +100,7 @@ async def orm_add_vt_ip(session: AsyncSession, data: dict) -> bool:
         return True
 
     except IntegrityError as e:
-        print(f"Ошибка при добавлении/обновлении IP-адреса {data['ip']}: {e}")
+        print(f"Ошибка при добавлении/обновлении IP-адреса {data['ip_address']}: {e}")
         await session.rollback()
         return False
     except Exception as e:
@@ -820,6 +820,9 @@ async def orm_get_data_ip(
         result = await session.execute(select(table_name).where(table_name.address == adress.id))
         record = result.scalars().first()
 
+        if not record:
+            return {'error': f'Record for IP {ip_address} not found in {table_name.__name__} table'}
+
         # Преобразуем объект записи в словарь
         response = {column.name: getattr(record, column.name) for column in table_name.__table__.columns}
         response['ip_address'] = ip_address
@@ -1430,6 +1433,7 @@ async def create_or_update_blockrule(
         print(f"Ошибка базы данных: {e}")
         return False
     except Exception as e:
+        await session.rollback()
         print(f"Произошла ошибка: {e}")
         return False
 

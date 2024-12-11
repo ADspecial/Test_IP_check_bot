@@ -9,7 +9,7 @@ from ipcheckers.ipqualityscore import make_request_ipqs, get_ipqs_info, gen_resu
 
 # Константы для моков
 MOCK_KEY = "mock_ipqs_key"
-MOCK_URL_TEMPLATE = "https://ipqualityscore.com/api/json/ip/%s/%s?strictness=1&fast=1"
+MOCK_URL_TEMPLATE = "https://www.ipqualityscore.com/api/json/ip/%s/%s?fast=1&strictness=1"
 MOCK_IP = "192.168.0.1"
 MOCK_RESPONSE = {
     "country_code": "US",
@@ -36,8 +36,8 @@ async def test_make_request_ipqs(mock_keys):
     """Тест функции make_request_ipqs."""
     with aioresponses() as m:
         # Корректный URL для мока
-        url = MOCK_URL_TEMPLATE % (MOCK_KEY, MOCK_IP)
-        m.get(url, payload=MOCK_RESPONSE)
+        base_url = MOCK_URL_TEMPLATE % (MOCK_KEY, MOCK_IP)
+        m.get(base_url, payload=MOCK_RESPONSE)
 
         result = await make_request_ipqs(MOCK_IP)
 

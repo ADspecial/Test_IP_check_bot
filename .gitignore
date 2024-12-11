@@ -4,3 +4,4 @@ __pycache__
 temp
 config/.env
 docker/certs
+.pytest_cache
