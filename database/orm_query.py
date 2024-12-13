@@ -1,5 +1,6 @@
 
-from sqlalchemy import delete
+import json
+from sqlalchemy import Integer, delete
 from sqlalchemy import Column, func
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.future import select
@@ -1603,3 +1604,96 @@ async def get_block_rules_within_timeframe(
     except Exception as e:
         print(f"Ошибка при получении записей из Rule: {e}")
         return []  # Возвращаем пустой список в случае ошибки
+
+async def get_user_statistics(session: AsyncSession) -> tuple[bool, str]:
+    """
+    Получает общую статистику пользователей, включая общее количество, количество администраторов и супер-администраторов.
+
+    :param session: Асинхронная сессия для работы с базой данных.
+    :return: Кортеж (result, json-строка). Result = True при успешном выполнении.
+    """
+    try:
+        # Создаем запрос для подсчета пользователей
+        query = select(
+            func.count(User.id).label("total_users"),
+            func.sum(User.admin_rights.cast(Integer)).label("admin_users"),
+            func.sum(User.superadmin_rights.cast(Integer)).label("superadmin_users")
+        )
+
+        result = await session.execute(query)
+        stats = result.fetchone()
+
+        statistics = {
+            "total_users": stats.total_users,
+            "admin_users": stats.admin_users,
+            "superadmin_users": stats.superadmin_users
+        }
+
+        return True, json.dumps(statistics)  # Возвращаем результат и JSON-строку
+
+    except Exception as e:
+        print(f"Ошибка при получении статистики пользователей: {e}")
+        return False, json.dumps({"error": "Ошибка при получении данных"})
+
+async def get_command_history(
+    session: AsyncSession,
+    start_time: Optional[datetime] = None,
+    end_time: Optional[datetime] = None,
+    user_id: Optional[int] = None
+) -> List[Dict[str, any]]:
+    """
+    Получает историю команд из таблицы History.
+
+    :param session: Асинхронная сессия для работы с базой данных.
+    :param start_time: Начальная дата и время для фильтрации. Если None, не фильтруется.
+    :param end_time: Конечная дата и время для фильтрации. Если None, не фильтруется.
+    :param user_id: Фильтрация по пользователю (по его ID). Если None, не фильтруется.
+    :return: Список словарей с данными о командах, включая права пользователя.
+    """
+    try:
+        # Базовый запрос
+        query = select(
+            History.message_id,
+            History.chat_id,
+            History.message,
+            History.created,
+            User.username,
+            User.admin_rights,
+            User.superadmin_rights
+        ).join(User, History.user_id == User.id)
+
+        # Применяем фильтры, если параметры указаны
+        if start_time:
+            query = query.where(History.created >= start_time)
+        if end_time:
+            query = query.where(History.created <= end_time)
+        if user_id:
+            query = query.where(History.user_id == user_id)
+
+        # Выполнение запроса
+        result = await session.execute(query)
+        history_records = result.fetchall()
+
+        # Логика определения роли пользователя
+        def determine_user_role(admin_rights: bool, superadmin_rights: bool) -> str:
+            if superadmin_rights:
+                return "Superadmin"
+            elif admin_rights:
+                return "Admin"
+            else:
+                return "User"
+
+        # Форматирование данных для возврата
+        return [
+            {
+                "username": record.username,
+                "chat_id": record.chat_id,
+                "message": record.message,
+                "created": record.created.strftime("%Y-%m-%d %H:%M:%S"),
+                "role": determine_user_role(record.admin_rights, record.superadmin_rights)
+            }
+            for record in history_records
+        ]
+    except Exception as e:
+        print(f"Ошибка при получении истории команд: {e}")
+        return []

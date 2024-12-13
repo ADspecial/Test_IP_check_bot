@@ -233,6 +233,17 @@ users_menu = [
 ]
 users_menu = InlineKeyboardMarkup(inline_keyboard=users_menu)
 
+report_menu = [
+    [InlineKeyboardButton(text="👨‍🔧Данные о пользователях", callback_data="report_users")],
+    [InlineKeyboardButton(text="📄 История команд", callback_data="report_history")],
+    [InlineKeyboardButton(text="🚫 Блокировки", callback_data="report_block"),
+     InlineKeyboardButton(text="⚙️ Проверки", callback_data="report_сheck")],
+    [InlineKeyboardButton(text="🌐 Сетевые устройства", callback_data="report_sechosts")],
+    [InlineKeyboardButton(text="Выгрузка статистики", callback_data="report_download")],
+    [InlineKeyboardButton(text="◀️ Назад", callback_data="admin_menu")]
+]
+report_menu = InlineKeyboardMarkup(inline_keyboard=report_menu)
+
 exit_kb = ReplyKeyboardMarkup(keyboard=[[KeyboardButton(text="◀️ Выйти в меню")]], resize_keyboard=True, input_field_placeholder='Выберите пункт меню...')
 back_vt = InlineKeyboardMarkup(inline_keyboard=[[InlineKeyboardButton(text="◀️ Назад", callback_data="virustotal_menu")]])
 back_ipinfo = InlineKeyboardMarkup(inline_keyboard=[[InlineKeyboardButton(text="◀️ Назад", callback_data="ipinfo_menu")]])

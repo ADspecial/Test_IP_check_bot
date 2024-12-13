@@ -47,6 +47,7 @@ class LogMessageMiddleware(BaseMiddleware):
     async def save_message(self, msg: Message, fsm_context: FSMContext):
         current_state = await fsm_context.get_state()
 
+        # Пропускаем сообщения в чувствительных состояниях
         if current_state in self.sensitive_states:
             return
 
@@ -54,26 +55,34 @@ class LogMessageMiddleware(BaseMiddleware):
         sanitized_text = sanitize_message(msg.text) if msg.text else None
 
         async with self.session_pool() as session:
-            result = await session.execute(select(User).filter_by(id=user_id))
-            user = result.scalars().first()
+            try:
+                # Проверяем, существует ли пользователь
+                result = await session.execute(select(User).filter_by(id=user_id))
+                user = result.scalars().first()
 
-            if not user:
-                user = User(
-                    id=user_id,
-                    first_name=msg.from_user.first_name,
-                    last_name=msg.from_user.last_name,
-                    username=msg.from_user.username,
-                    superadmin_rights=False,
-                    admin_rights=False
+                # Если пользователь не существует, добавляем его
+                if not user:
+                    user = User(
+                        id=user_id,
+                        first_name=msg.from_user.first_name,
+                        last_name=msg.from_user.last_name,
+                        username=msg.from_user.username,
+                        superadmin_rights=False,
+                        admin_rights=False
+                    )
+                    session.add(user)
+                    await session.commit()
+                    print(f"Добавлен новый пользователь: {user.username}")
+
+                # Сохраняем сообщение
+                chat_message = History(
+                    message_id=msg.message_id,
+                    user_id=user.id,  # Используем ID из пользователя
+                    chat_id=msg.chat.id,
+                    message=sanitized_text  # Сохраняем очищенный текст или None
                 )
-                session.add(user)
+                session.add(chat_message)
                 await session.commit()
-
-            chat_message = History(
-                message_id=msg.message_id,
-                user_id=msg.from_user.id,
-                chat_id=msg.chat.id,
-                message=sanitized_text  # Сохраняем очищенный текст или None
-            )
-            session.add(chat_message)
-        await session.commit()
+                print(f"Сохранено сообщение: {chat_message.message_id} для пользователя {user.username}")
+            except Exception as e:
+                print(f"Ошибка при сохранении сообщения: {e}")

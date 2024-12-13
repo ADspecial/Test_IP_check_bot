@@ -92,6 +92,8 @@ class Rules_states(StatesGroup):
 class Admin_states(StatesGroup):
     users_menu = State()
     add_admin = State()
+    report_menu = State()
+    report_users = State()
 
 class Summary_states(StatesGroup):
     menu = State()
