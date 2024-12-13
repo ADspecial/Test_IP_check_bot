@@ -117,6 +117,14 @@ rules_menu = [
 ]
 rules_menu = InlineKeyboardMarkup(inline_keyboard=rules_menu)
 
+commit_menu = [
+    [InlineKeyboardButton(text="Отправить правила ViPNet", callback_data="commit_vipnet")],
+    [InlineKeyboardButton(text="Отрпавить правила UserGate", callback_data="commit_usergate")],
+    [InlineKeyboardButton(text="Получить статусу отправленных правил", callback_data="get_status")],
+    [InlineKeyboardButton(text="◀️ Назад", callback_data="rules_menu")]
+]
+commit_menu = InlineKeyboardMarkup(inline_keyboard=commit_menu)
+
 repeat_add_blockrules = [
     [InlineKeyboardButton(text="Добавить еще правила", callback_data="add_blockrules")],
     [InlineKeyboardButton(text="◀️ Назад", callback_data="rules_menu")]
@@ -254,6 +262,7 @@ back_alienvault = InlineKeyboardMarkup(inline_keyboard=[[InlineKeyboardButton(te
 back_ipqualityscore = InlineKeyboardMarkup(inline_keyboard=[[InlineKeyboardButton(text="◀️ Назад", callback_data="ipqualityscore_menu")]])
 back_summary = InlineKeyboardMarkup(inline_keyboard=[[InlineKeyboardButton(text="◀️ Назад", callback_data="summary_menu")]])
 back_admin = InlineKeyboardMarkup(inline_keyboard=[[InlineKeyboardButton(text="◀️ Назад", callback_data="admin_menu")]])
+back_report = InlineKeyboardMarkup(inline_keyboard=[[InlineKeyboardButton(text="◀️ Назад", callback_data="report_menu")]])
 back_users = InlineKeyboardMarkup(inline_keyboard=[[InlineKeyboardButton(text="◀️ Назад", callback_data="users_menu")]])
 back_block = InlineKeyboardMarkup(inline_keyboard=[[InlineKeyboardButton(text="◀️ Назад", callback_data="block_menu")]])
 back_blocklist = InlineKeyboardMarkup(inline_keyboard=[[InlineKeyboardButton(text="◀️ Назад", callback_data="blocklist_menu")]])

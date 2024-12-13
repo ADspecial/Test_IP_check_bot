@@ -120,6 +120,12 @@ class BlockList(Base):
     def __repr__(self):
         return f"<BlockList(id={self.id}, name={self.name})>"
 
+class TypeSechosts(enum.Enum):
+    VIPNET = "vipnet"
+    USERGATE = "utm"
+    CONTINENT = "cont"
+    NONE = "none"
+
 class SecurityHost(Base):
     __tablename__ = 'security_host'
 
@@ -127,6 +133,7 @@ class SecurityHost(Base):
     name = Column(String(255), nullable=False, unique=True)
     description = Column(String(255), nullable=True)
     address = Column(String(255), nullable=False, unique=True)
+    type = Column(Enum(TypeSechosts), default=TypeSechosts.NONE)
     _api_token = Column(String(255), nullable=True)  # Зашифрованный API токен
     _login = Column(String(255), nullable=False)  # Зашифрованный логин
     _password = Column(String(255), nullable=False)  # Зашифрованный пароль
@@ -221,7 +228,7 @@ class Rule(Base):
 
     # Поле для статуса заполненности
     full = Column(Enum(RuleFullStatus), default=RuleFullStatus.EMPTY)
-    status = Column(String(255), nullable=True)
+    status = Column(Boolean, default=False)
 
     # Связи с блок-листами, хостами безопасности и группами хостов безопасности
     blocklists = relationship('BlockList', secondary=rule_blocklist_association, back_populates='rules')

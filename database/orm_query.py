@@ -11,7 +11,7 @@ from sqlalchemy.exc import SQLAlchemyError
 import asyncio
 
 from datetime import datetime, timedelta
-from database.models import Address, History, Virustotal, Ipinfo, Abuseipdb, Kaspersky, CriminalIP, Alienvault, Ipqualityscore, User, BlockList, blocklist_address_association, SecurityHost, GroupSecurityHost, Rule, RuleFullStatus
+from database.models import Address, History, Virustotal, Ipinfo, Abuseipdb, Kaspersky, CriminalIP, Alienvault, Ipqualityscore, User, BlockList, blocklist_address_association, SecurityHost, GroupSecurityHost, Rule, RuleFullStatus, TypeSechosts
 
 from typing import Callable, List, Dict, Optional, Union, Tuple, Any, Type
 
@@ -1604,6 +1604,149 @@ async def get_block_rules_within_timeframe(
     except Exception as e:
         print(f"Ошибка при получении записей из Rule: {e}")
         return []  # Возвращаем пустой список в случае ошибки
+
+async def get_uncommitted_rules(
+    session: AsyncSession,
+    type_sechost: Optional[str] = None,
+    host_type: Optional[TypeSechosts] = None
+) -> List[Dict[str, any]]:
+    """
+    Получает записи из таблицы Rule с commit=False.
+
+    :param session: Асинхронная сессия для работы с базой данных.
+    :param type_sechost: Тип хоста для фильтрации ("security_hosts" или "group_security_hosts").
+    :param host_type: Тип SecurityHost для фильтрации (TypeSechosts: "vipnet", "utm", "cont", "none").
+    :return: Список словарей с информацией о записях.
+    """
+    try:
+        # Базовый запрос с предварительной загрузкой связанных объектов
+        query = (
+            select(Rule)
+            .options(
+                selectinload(Rule.blocklists),  # Предварительная загрузка блоклистов
+                selectinload(Rule.security_hosts),  # Предварительная загрузка хостов безопасности
+                selectinload(Rule.group_security_hosts),  # Предварительная загрузка групп хостов безопасности
+            )
+            .where(Rule.commit == False)  # Фильтрация по commit = False
+        )
+
+        # Выполняем запрос
+        result = await session.execute(query)
+        rules = result.scalars().all()
+
+        uncommitted_rules = []
+        for rule in rules:
+            # Фильтруем по type_sechost, если параметр указан
+            if type_sechost == "security_hosts" and not rule.security_hosts:
+                continue
+            if type_sechost == "group_security_hosts" and not rule.group_security_hosts:
+                continue
+
+            # Фильтруем по типу хоста (host_type), если параметр указан
+            if host_type:
+                if type_sechost == "security_hosts":
+                    hosts = [host for host in rule.security_hosts if host.type == host_type]
+                    if not hosts:
+                        continue
+                elif type_sechost == "group_security_hosts":
+                    groups = [
+                        group for group in rule.group_security_hosts
+                        if any(host.type == host_type for host in group.security_hosts)
+                    ]
+                    if not groups:
+                        continue
+
+            uncommitted_rules.append({
+                'name': rule.name,
+                'blocklists': [blocklist.name for blocklist in rule.blocklists] if rule.blocklists else [],
+                'security_hosts': [
+                    host.name for host in rule.security_hosts
+                ] if rule.security_hosts else [],
+                'group_security_hosts': [
+                    group.name for group in rule.group_security_hosts
+                ] if rule.group_security_hosts else [],
+                'commit': rule.commit,
+                'status': rule.status,
+                'updated': rule.updated.strftime("%Y-%m-%d %H:%M:%S") if rule.updated else None,
+            })
+
+        return uncommitted_rules
+
+    except Exception as e:
+        print(f"Ошибка при получении записей из Rule: {e}")
+        return []  # Возвращаем пустой список в случае ошибки
+
+async def get_rules_with_false_status(
+    session: AsyncSession,
+    type_sechost: Optional[str] = None,
+    host_type: Optional[TypeSechosts] = None
+) -> List[Dict[str, any]]:
+    """
+    Получает записи из таблицы Rule с status=False.
+
+    :param session: Асинхронная сессия для работы с базой данных.
+    :param type_sechost: Тип хоста для фильтрации ("security_hosts" или "group_security_hosts").
+    :param host_type: Тип SecurityHost для фильтрации (TypeSechosts: "vipnet", "utm", "cont", "none").
+    :return: Список словарей с информацией о записях.
+    """
+    try:
+        # Базовый запрос с предварительной загрузкой связанных объектов
+        query = (
+            select(Rule)
+            .options(
+                selectinload(Rule.blocklists),  # Предварительная загрузка блоклистов
+                selectinload(Rule.security_hosts),  # Предварительная загрузка хостов безопасности
+                selectinload(Rule.group_security_hosts),  # Предварительная загрузка групп хостов безопасности
+            )
+            .where(Rule.status == False)  # Фильтрация по status = False
+        )
+
+        # Выполняем запрос
+        result = await session.execute(query)
+        rules = result.scalars().all()
+
+        rules_with_false_status = []
+        for rule in rules:
+            # Фильтруем по type_sechost, если параметр указан
+            if type_sechost == "security_hosts" and not rule.security_hosts:
+                continue
+            if type_sechost == "group_security_hosts" and not rule.group_security_hosts:
+                continue
+
+            # Фильтруем по типу хоста (host_type), если параметр указан
+            if host_type:
+                if type_sechost == "security_hosts":
+                    hosts = [host for host in rule.security_hosts if host.type == host_type]
+                    if not hosts:
+                        continue
+                elif type_sechost == "group_security_hosts":
+                    groups = [
+                        group for group in rule.group_security_hosts
+                        if any(host.type == host_type for host in group.security_hosts)
+                    ]
+                    if not groups:
+                        continue
+
+            rules_with_false_status.append({
+                'name': rule.name,
+                'blocklists': [blocklist.name for blocklist in rule.blocklists] if rule.blocklists else [],
+                'security_hosts': [
+                    host.name for host in rule.security_hosts
+                ] if rule.security_hosts else [],
+                'group_security_hosts': [
+                    group.name for group in rule.group_security_hosts
+                ] if rule.group_security_hosts else [],
+                'commit': rule.commit,
+                'status': rule.status,
+                'updated': rule.updated.strftime("%Y-%m-%d %H:%M:%S") if rule.updated else None,
+            })
+
+        return rules_with_false_status
+
+    except Exception as e:
+        print(f"Ошибка при получении записей из Rule: {e}")
+        return []  # Возвращаем пустой список в случае ошибки
+
 
 async def get_user_statistics(session: AsyncSession) -> tuple[bool, str]:
     """

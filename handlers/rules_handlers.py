@@ -1,6 +1,6 @@
 from datetime import datetime as date_time
 import datetime
-from aiogram import F, Router, Bot
+from aiogram import F, Router, Bot, types
 from aiogram.filters import Command
 from aiogram.types import Message, CallbackQuery
 from aiogram import flags
@@ -11,10 +11,12 @@ from states import Base_states, Rules_states
 
 from sqlalchemy.ext.asyncio import AsyncSession
 from handlers import format
+from database.models import TypeSechosts
 
 import kb
 import text
 import database.orm_query as orm_query
+
 
 rule_router = Router()
 
@@ -292,3 +294,62 @@ async def process_get_block_rules_days(msg: Message, bot: Bot, session: AsyncSes
         await mesg.edit_text(f"Ошибка при получении записей: {e}", reply_markup=kb.repeat_view_blockrules)
 
     await state.set_state(Base_states.start)
+
+@rule_router.callback_query(F.data == "commit_rules")
+async def start_process_create_blockrule(clbck: CallbackQuery, state: FSMContext):
+    await state.set_state(Rules_states.add_name_block)
+    await clbck.message.edit_text(text.commit_menu, reply_markup=kb.commit_menu)
+
+# Обработчик для callback_data="commit_vipnet"
+@rule_router.callback_query(F.data == "commit_vipnet")
+async def handle_commit_vipnet(callback_query: types.CallbackQuery, session: AsyncSession):
+    try:
+        # Запрос в базу данных
+        rules = await orm_query.get_uncommitted_rules(session, host_type=TypeSechosts.VIPNET)
+
+        # Формирование сообщения
+        if rules:
+            message = "Правила с commit=False для VIPNET:\n" + "\n".join([rule['name'] for rule in rules])
+        else:
+            message = "Нет правил с commit=False для VIPNET."
+
+        # Отправка ответа
+        await callback_query.message.answer(message)
+    except Exception as e:
+        await callback_query.message.answer(f"Произошла ошибка: {e}")
+
+# Обработчик для callback_data="commit_usergate"
+@rule_router.callback_query(F.data == "commit_usergate")
+async def handle_commit_usergate(callback_query: types.CallbackQuery, session: AsyncSession):
+    try:
+        # Запрос в базу данных
+        rules = await orm_query.get_uncommitted_rules(session, host_type=TypeSechosts.USERGATE)
+
+        # Формирование сообщения
+        if rules:
+            message = "Правила с commit=False для UserGate:\n" + "\n".join([rule['name'] for rule in rules])
+        else:
+            message = "Нет правил с commit=False для UserGate."
+
+        # Отправка ответа
+        await callback_query.message.answer(message)
+    except Exception as e:
+        await callback_query.message.answer(f"Произошла ошибка: {e}")
+
+# Обработчик для callback_data="get_status"
+@rule_router.callback_query(F.data == "get_status")
+async def handle_get_status(callback_query: types.CallbackQuery, session: AsyncSession):
+    try:
+        # Запрос в базу данных
+        rules = await orm_query.get_rules_with_false_status(session)
+
+        # Формирование сообщения
+        if rules:
+            message = "Правила со статусом False:\n" + "\n".join([rule['name'] for rule in rules])
+        else:
+            message = "Нет правил со статусом False."
+
+        # Отправка ответа
+        await callback_query.message.answer(message)
+    except Exception as e:
+        await callback_query.message.answer(f"Произошла ошибка: {e}")

@@ -80,30 +80,27 @@ async def report_users_handler(callback_query: CallbackQuery, session: AsyncSess
     Обработчик для создания и отправки диаграммы распределения пользователей.
     """
     try:
-        # Получаем статистику пользователей из базы данных
         result, statistics_json = await orm_query.get_user_statistics(session)
         if not result:
             await callback_query.message.answer("Ошибка при получении данных о пользователях.")
             return
 
-        # Преобразуем статистику в словарь
         statistics = json.loads(statistics_json)
 
-        # Генерация диаграммы
         chart_path = create_user_distribution_chart(statistics)
         if not chart_path:
-            await callback_query.message.answer("Не удалось создать диаграмму.")
+            await callback_query.message.answer("Не удалось создать диаграмму.", reply_markup=kb.back_report)
             return
 
-        # Отправляем диаграмму с помощью FSInputFile
         photo = FSInputFile(chart_path)
         await callback_query.message.answer_photo(
             photo=photo,
             caption="Распределение пользователей."
         )
+        await callback_query.message.answer("Вернуться назад", reply_markup=kb.back_report)
     except Exception as e:
         print(f"Ошибка в обработчике report_users_handler: {e}")
-        await callback_query.message.answer("Произошла ошибка при обработке запроса.")
+        await callback_query.message.answer("Произошла ошибка при обработке запроса.", reply_markup=kb.back_report)
 
 @admin_router.callback_query(F.data == "report_history")
 async def report_history_handler(callback_query: CallbackQuery, session: AsyncSession):
@@ -111,19 +108,16 @@ async def report_history_handler(callback_query: CallbackQuery, session: AsyncSe
     Обработчик для получения и отправки истории команд в текстовом файле.
     """
     try:
-        # Получение истории команд
         history: List[Dict[str, any]] = await orm_query.get_command_history(session)
 
         if not history:
-            await callback_query.message.answer("История команд пуста.")
+            await callback_query.message.answer("История команд пуста.", reply_markup=kb.back_report)
             return
 
-        # Формируем путь к файлу
         output_dir = "./data/Reports"
         os.makedirs(output_dir, exist_ok=True)
         file_path = os.path.join(output_dir, f"command_history_{datetime.now().strftime('%Y%m%d_%H%M%S')}.txt")
 
-        # Создаем текстовый файл с историей команд
         with open(file_path, 'w', encoding='utf-8') as file:
             file.write("№ Пользователь Права Чат ID Сообщение Создано\n")
             file.write("=" * 80 + "\n")
@@ -133,12 +127,12 @@ async def report_history_handler(callback_query: CallbackQuery, session: AsyncSe
                     f"{record['message']} {record['created']}\n"
                 )
 
-        # Отправка файла
         document = FSInputFile(file_path)
         await callback_query.message.answer_document(
             document=document,
-            caption="История команд в текстовом файле."
+            caption="История команд в текстовом файле.",
         )
+        await callback_query.message.answer("Вернуться назад", reply_markup=kb.back_report)
     except Exception as e:
         print(f"Ошибка в обработчике report_history_handler: {e}")
-        await callback_query.message.answer("Произошла ошибка при обработке запроса.")
+        await callback_query.message.answer("Произошла ошибка при обработке запроса.", reply_markup=kb.back_report)
