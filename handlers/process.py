@@ -252,10 +252,14 @@ async def download_and_read_file(
     Returns:
         Tuple[List[str], List[str]]: A tuple containing lists of IPs and DNS names extracted from the file.
     """
+    dir_path = os.path.join("data", dir_name)
+    os.makedirs(dir_path, exist_ok=True)
+
     file_id = msg.document.file_id
     file = await bot.get_file(file_id)
 
-    file_name = f"data/{dir_name}/{file_id}.txt"
+    file_name = os.path.join(dir_path, f"{file_id}.txt")
+
     await bot.download_file(file.file_path, file_name)
 
     await orm_query.orm_add_file_history(session, msg.message_id, file_name)

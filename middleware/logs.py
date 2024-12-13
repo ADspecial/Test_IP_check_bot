@@ -11,12 +11,12 @@ from aiogram.fsm.context import FSMContext
 import re
 
 def sanitize_message(text: str) -> str:
-    # Регулярные выражения для поиска значений после login=, password= и api_token=
+    if not text:
+        return ""
     login_pattern = re.compile(r"(?<=\blogin=)[^\s]+", re.IGNORECASE)
     password_pattern = re.compile(r"(?<=\bpassword=)[^\s]+", re.IGNORECASE)
     api_token_pattern = re.compile(r"(?<=\bapi_token=)[^\s]+", re.IGNORECASE)
 
-    # Заменяем значения на [REDACTED]
     text = login_pattern.sub("[REDACTED]", text)
     text = password_pattern.sub("[REDACTED]", text)
     text = api_token_pattern.sub("[REDACTED]", text)
@@ -47,12 +47,11 @@ class LogMessageMiddleware(BaseMiddleware):
     async def save_message(self, msg: Message, fsm_context: FSMContext):
         current_state = await fsm_context.get_state()
 
-        # Проверка, является ли текущее состояние чувствительным
         if current_state in self.sensitive_states:
-            return  # Пропуск сохранения, если состояние содержит чувствительные данные
+            return
 
         user_id = msg.from_user.id
-        sanitized_text = sanitize_message(msg.text)  # Очищаем текст от чувствительных данных
+        sanitized_text = sanitize_message(msg.text) if msg.text else None
 
         async with self.session_pool() as session:
             result = await session.execute(select(User).filter_by(id=user_id))
@@ -74,7 +73,7 @@ class LogMessageMiddleware(BaseMiddleware):
                 message_id=msg.message_id,
                 user_id=msg.from_user.id,
                 chat_id=msg.chat.id,
-                message=sanitized_text  # Сохраняем очищенный текст
+                message=sanitized_text  # Сохраняем очищенный текст или None
             )
             session.add(chat_message)
-            await session.commit()
+        await session.commit()
