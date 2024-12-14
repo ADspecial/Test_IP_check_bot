@@ -4,8 +4,8 @@ FROM python:3.11.9-slim
 # Устанавливаем рабочую директорию
 WORKDIR /app
 
-# Создаем не-root пользователя для выполнения приложений
-RUN useradd -m nonrootuser && mkdir /app && chown nonrootuser:nonrootuser /app
+# Создаем не-root пользователя для выполнения приложений && mkdir /app
+RUN useradd -m nonrootuser && rmdir /app && mkdir /app && chown nonrootuser:nonrootuser /app
 
 # Переключаемся на созданного пользователя
 USER nonrootuser
@@ -28,7 +28,7 @@ ENV PATH="/app/.venv/bin:$PATH" \
 COPY .. .
 
 # Устанавливаем права доступа для изоляции
-RUN chmod -R 700 /app/.venv
+#RUN chmod -R 700 /app/.venv
 
 # Задаем entrypoint для работы с приложением
 ENTRYPOINT [ "tail", "-f", "/dev/null" ]
