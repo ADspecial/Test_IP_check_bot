@@ -23,20 +23,18 @@ services:
       - POSTGRES_USER=postgres
       - POSTGRES_PASSWORD=postgres
     expose:
-      - "5432"  # Откроет порт только внутри сети Docker
+      - "5432"  # Открыть порт внутри сети Docker
     container_name: pgdb
     volumes:
       - pgdbdata:/var/lib/postgresql/data/
     command: >
+      postgres
       -c ssl=on
       -c ssl_cert_file=/var/lib/postgresql/certs/server.crt
       -c ssl_key_file=/var/lib/postgresql/certs/server.key
       -c ssl_ca_file=/var/lib/postgresql/certs/rootCA.crt
     init: true
-    entrypoint: >
-      bash -c "
-      ls -l /var/lib/postgresql/certs &&
-      docker-entrypoint.sh postgres"
+    user: postgres
     networks:
       my_network:
         ipv4_address: 172.18.0.4
