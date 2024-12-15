@@ -1,8 +1,8 @@
-output
+
 data
-test
 .venv
-pyvenv.cfg
-test/test.py
-includes/.env
 __pycache__
+temp
+config/.env
+docker/certs
+.pytest_cache

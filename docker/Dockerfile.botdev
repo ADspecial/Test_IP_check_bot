@@ -1,0 +1,40 @@
+# Используем официальный Python-образ
+FROM python:3.11.9-slim
+
+# Устанавливаем рабочую директорию
+WORKDIR /app
+
+# Устанавливаем git и необходимые зависимости
+RUN apt-get update && \
+    apt-get install -y --no-install-recommends git && \
+    apt-get clean && \
+    rm -rf /var/lib/apt/lists/*
+
+# Создаем не-root пользователя для выполнения приложений && mkdir /app
+#RUN useradd -m nonrootuser && rmdir /app && mkdir /app && chown nonrootuser:nonrootuser /app
+
+# Переключаемся на созданного пользователя
+#USER nonrootuser
+
+# Копируем только requirements.txt для оптимизации кэширования
+COPY docker/requirements.txt ./
+
+# Создаем виртуальное окружение в безопасной директории
+RUN python -m venv /app/.venv
+
+# Активируем виртуальное окружение и устанавливаем зависимости
+RUN . /app/.venv/bin/activate && pip install --no-cache-dir -r requirements.txt
+
+# Настраиваем переменные среды
+ENV PATH="/app/.venv/bin:$PATH" \
+    PYTHONUNBUFFERED=1 \
+    PYTHONDONTWRITEBYTECODE=1
+
+# Копируем всё, кроме исключенного в .dockerignore
+COPY .. .
+
+# Устанавливаем права доступа для изоляции
+#RUN chmod -R 700 /app/.venv
+
+# Задаем entrypoint для работы с приложением
+ENTRYPOINT [ "tail", "-f", "/dev/null" ]
