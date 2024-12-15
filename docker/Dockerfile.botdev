@@ -4,11 +4,17 @@ FROM python:3.11.9-slim
 # Устанавливаем рабочую директорию
 WORKDIR /app
 
+# Устанавливаем git и необходимые зависимости
+RUN apt-get update && \
+    apt-get install -y --no-install-recommends git && \
+    apt-get clean && \
+    rm -rf /var/lib/apt/lists/*
+
 # Создаем не-root пользователя для выполнения приложений && mkdir /app
-RUN useradd -m nonrootuser && rmdir /app && mkdir /app && chown nonrootuser:nonrootuser /app
+#RUN useradd -m nonrootuser && rmdir /app && mkdir /app && chown nonrootuser:nonrootuser /app
 
 # Переключаемся на созданного пользователя
-USER nonrootuser
+#USER nonrootuser
 
 # Копируем только requirements.txt для оптимизации кэширования
 COPY docker/requirements.txt ./
